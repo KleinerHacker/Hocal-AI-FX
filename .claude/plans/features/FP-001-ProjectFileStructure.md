@@ -48,7 +48,8 @@ libraries and code that read, write and edit it:
         * tags
         * format version
         * version of the application that saved the file last
-    * the references - a list of UUIDs, nothing else
+    * the references - a list; each reference holds its UUID and, below it, the history details of
+      its media, keyed by the medium number `000` to `999`
     * the virtual directory structure
 * Every reference has a folder in the ZIP, named after its UUID, holding the media of the reference
 * The media of a reference are numbered by file name from `000` to `999`, followed by the file
@@ -71,6 +72,12 @@ libraries and code that read, write and edit it:
       UUID
     * every other medium, the current one included, can be deleted; the one before it becomes the
       current medium
+* Every medium has history details: the prompt, the model and the flow it was generated with, each
+  of which may be empty
+    * explicitly used additional images are NOT recorded
+    * the details are stored in `project.json` below their reference, under the number of the medium
+    * the details belong to their medium: they follow it when media are appended, removed or
+      renumbered
 * The virtual directory structure is a tree of folders and entries stored in `project.json`
     * an entry links a reference by UUID
     * the link is 1:n - one UUID can be linked by several entries
@@ -93,6 +100,10 @@ libraries and code that read, write and edit it:
 * Reading protects against path traversal in ZIP entry names (zip slip) and oversized entries
 * Saving is atomic: a failed save MUST NOT destroy the existing file
 * A medium file is never overwritten in place; a new medium always gets the next number
+* ZIP entries are always stored without compression (`STORED`), media and `project.json` alike
+    * a stored entry needs its size and CRC before its header is written, so entries are measured
+      first
+* A file with a newer format version than the application knows is rejected
 * Removing a medium renumbers the following ones, so the numbering stays continuous
 * A reference folder without a medium, or with gaps in the numbering, is an invalid file
 * Encryption uses the JDK (`javax.crypto`: `Cipher`, `CipherOutputStream`, `CipherInputStream`,
@@ -121,8 +132,8 @@ libraries and code that read, write and edit it:
 
 * `lib/model` (`hocal-model`) - new module
     * `ProjectData` - the general data object
-    * `ProjectFile` (name open) - root POJO mirroring `project.json`: project data, reference
-      UUIDs, tree
+    * `ProjectFile` (name open) - root POJO mirroring `project.json`: project data, references
+      with their history details, tree
     * `VirtualNode` (folder / entry) - the tree; an entry carries a reference UUID
     * storage - reads and writes the ZIP and `project.json`
     * media history access per reference
@@ -159,7 +170,7 @@ ZIP structure and `project.json` included, is encrypted.
 ```text
 {
   "project":    { name, description, uuid, author, created, modified, tags, formatVersion, applicationVersion },
-  "references": [ "<uuid>", "<uuid>", ... ],
+  "references": [ { "uuid": "<uuid>", "media": { "000": { prompt, model, flow }, "001": { ... } } }, ... ],
   "tree":       folders and entries; an entry holds one "<uuid>"
 }
 ```
@@ -201,8 +212,9 @@ Create `lib/model` (`hocal-model`) and the POJOs of `project.json`.
 
 * Gradle module registered in `settings.gradle.kts`, set up like `app/ui` (Kotlin, KDoc, licence
   check, Kover, tests)
-* POJOs for the project data object, the root, the virtual tree (folder, entry)
-* The reference list is a list of UUIDs; no own reference POJO
+* POJOs for the project data object, the root, the virtual tree (folder, entry) and the history
+  details of a medium (prompt, model, flow)
+* Reference POJO: UUID and the history details by medium number (`000` to `999`)
 * Format version constant and the fixed key names
 * NOT: serialization, ZIP handling, encryption, FX models
 
@@ -270,6 +282,9 @@ Read and write the ZIP with `project.json` in its root.
 * Save atomically through a temporary file
 * Zip-slip and size protection while reading
 * Typed errors for invalid, damaged and unsupported-version files
+* Read and write the history details of the media inside `project.json`
+* Validate that the keys of the history details match the media of the reference folder
+* Store every ZIP entry uncompressed
 * A stream-based entry point (input and output stream) so IP-06 can wrap it
 * NOT: media numbering logic, tree editing, encryption
 
@@ -306,6 +321,7 @@ Implement the media history of a reference inside the ZIP.
 * Read the current medium and the whole history
 * Append a new medium as highest number + 1; an overflow beyond `999` is an error
 * Remove a medium and renumber the following ones, so the numbering stays continuous
+* Keep the history details, keyed by medium number, in step with append, remove and renumbering
 * The original `000` cannot be removed; consequently the last remaining medium of a reference
   cannot be removed either, the whole reference has to be removed, which drops its UUID and its
   folder
@@ -475,15 +491,21 @@ IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in paral
 * Decided: JSON with Jackson; media with file extension; continuous numbering with renumbering
   after a removal in the middle; error on overflow beyond `999`; no reference without a medium;
   the original `000` cannot be removed, so the last medium cannot be removed either
-* Reference no entry links to: keep or remove on save?
+* Reference no entry links to: keep or remove on save? - left open
 * Decided: empty folders are allowed; an entry always links a reference, so there is no entry
   without one
-* Format version policy: reject newer versions strictly or read tolerantly?
+* Decided: a file with a newer format version is rejected
 * Decided: project data object with name, description, project UUID, author, creation time, time of
   the last change, tags, format version and application version of the last save
-* Large media: compression level and memory behaviour while rewriting the ZIP on append
-* Decided: AES-256-GCM, PBKDF2-HMAC-SHA256 with 600,000 iterations (my proposal for the iteration
-  count, stored in the header, can be changed), stream-only reading
+* Decided: ZIP entries are never compressed; memory behaviour while rewriting the ZIP on append
+  stays open
+* Decided: JSON stays the format of the metadata, no embedded database; the data are small, the
+  project is held in memory as one, and a database would need a real file next to the stream-only,
+  encrypted ZIP. Revisit only for very many nodes, search over the whole project or partial loading
+* Decided: AES-256-GCM, PBKDF2-HMAC-SHA256 with 600,000 iterations (confirmed, stored in the
+  header, so it can be raised later), stream-only reading
+* Decided: `ProjectManager` lives in `lib/fx-model`; opening or creating needs a closed project, and
+  unsaved changes fail unless discarding is allowed explicitly
 * Decided: unencrypted and encrypted files are read by the same stream-only reader (one code path)
 * Not blocking, to be settled in IP-04 / IP-06: a medium read through the stream is held back until
   the GCM tag of the whole file is verified, so a very large medium costs memory; whether a size
@@ -493,12 +515,16 @@ IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in paral
 * Lost password: no recovery is possible by design
 * Use in `app/ui` (creating, opening, saving, password prompt) is deliberately NOT part of this
   feature
+* Decided: the history details (prompt, model, flow; no additional images) are part of this
+  feature and are done first, as FP-002 shows them
+* Decided: the history details are stored in `project.json` below each reference, keyed by the
+  medium number `000` to `999`
 
 ## 10. Feature Completion Criteria
 
 * `lib/model` and `lib/fx-model` exist, are built by `build` and covered by tests
 * A saved unencrypted file is a standard ZIP with `project.json` in its root, holding the project
-  data object, the UUID list and the virtual tree
+  data object, the references with their history details and the virtual tree
 * Reading a saved file restores all three parts identically
 * Every reference has a folder with media numbered from `000`; the highest number is current
 * Appending a medium adds highest number + 1 and leaves all older media untouched
@@ -510,5 +536,7 @@ IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in paral
 * A file without `project.json`, a damaged ZIP and a newer format version are rejected with a clear
   error; a failed save leaves the previous file intact
 * Every POJO has a tested property model
+* The history details of a medium (prompt, model, flow) are saved and read with the project and
+  follow their medium when media are appended, removed or renumbered
 * Only one project is loaded at a time, and every change goes through the project manager
 * README, MkDocs, pipeline and structure documentation are up to date

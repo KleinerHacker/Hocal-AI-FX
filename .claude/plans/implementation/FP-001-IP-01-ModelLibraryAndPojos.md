@@ -16,8 +16,11 @@
 ## Aufgabe 2: POJOs und Konstanten
 
 * [ ] `ProjectData` mit Name, Beschreibung, Projekt-UUID, Autor, Zeiten, Schlagworten, Formatversion, Anwendungsversion
-* [ ] Wurzel-POJO mit Projektdaten, UUID-Liste der Referenzen und virtuellem Baum
+* [ ] Wurzel-POJO mit Projektdaten, Referenzen und virtuellem Baum
+* [ ] Referenz-POJO mit UUID und Historien-Details je Mediumnummer `000` bis `999`
 * [ ] `VirtualNode` für Ordner und Eintrag, Eintrag trägt genau eine Referenz-UUID
+* [ ] POJO für die Historien-Details eines Mediums: Prompt, Modell, Flow, alle leer erlaubt
+* [ ] Zusätzlich verwendete Bilder werden in den Historien-Details nicht aufgenommen
 * [ ] Alle POJOs mit Getter und Setter, wie `BeanFields` es verlangt
 * [ ] Konstanten für Formatversion und feste JSON-Schlüsselnamen
 
