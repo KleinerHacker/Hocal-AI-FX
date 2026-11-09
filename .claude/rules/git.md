@@ -10,8 +10,9 @@ name: git and GitHub
     * Create: add with `git add` after creation
 * Commits, pushes, pulls or any other actions communicating with the Git server MUST NEVER be invoked.
     * Should it be required, the user MUST be asked
-* Exceptions:
-    * NEVER add plans or plan status
+* Plans and plan status files (`.claude/plans`) are NOT excluded:
+    * they MUST be added and committed like every other file, status files included
+    * this applies to feature plans, implementation plans and their status files
 
 ## Target Environment
 
