@@ -1,0 +1,76 @@
+/*
+ * Copyright (c) KleinerHacker alias Pfeiffer C Soft 2026.
+ * This work is licensed under the Apache License, Version 2.0.
+ * You may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, this software is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and limitations.
+ */
+
+/*
+ * Dark colour scheme of the Hocal AI theme.
+ *
+ * The primary and accent colours are the ones the MkDocs theme uses for its "slate" scheme
+ * (docs/docs/stylesheets/extra.css), so application and documentation stay in step in dark mode as
+ * well. The roles of ink and surface are swapped against the light scheme: the deep navy ink
+ * becomes the surface and the indigo tinted paper tone becomes the ink.
+ *
+ * A colour scheme is the ONLY place carrying colour literals, and it MUST define exactly the same
+ * variables as styles/color-scheme/light.css.
+ */
+
+.root {
+    /* MkDocs "slate" primary / accent colours */
+    -hocal-primary: #7986cb;
+    -hocal-primary-light: #9fa8da;
+    -hocal-primary-dark: #5c6bc0;
+    -hocal-accent: #9fa8da;
+
+    /*
+     * Ink and surfaces, inverted: navy carries the surfaces, the paper tone is the ink. No surface
+     * is pure black - every one of them keeps the indigo tint.
+     */
+    -hocal-ink: #e5eaf6;
+    -hocal-ink-soft: #a8b3d0;
+    -hocal-surface: #1b2138;
+    -hocal-surface-bar: #151a2c;
+    -hocal-surface-raised: #232b45;
+    -hocal-surface-input: #2a3352;
+    -hocal-glow: #8fd8f5;
+
+    /* Ink used on top of a primary coloured fill, where the regular ink would vanish */
+    -hocal-on-primary: #151a2c;
+
+    /* Signal colours: a value running towards its limit, and a value that reached it */
+    -hocal-warn: #ffb74d;
+    -hocal-danger: #ef5350;
+
+    /* Derived tints used for hover and pressed states, lightening the dark surfaces */
+    -hocal-tint-hover: rgba(159, 168, 218, 0.16);
+    -hocal-tint-pressed: rgba(159, 168, 218, 0.28);
+    -hocal-tint-line: rgba(229, 234, 246, 0.14);
+
+    /* Drop shadow colours: on dark surfaces only a near black shadow stays visible */
+    -hocal-shadow: rgba(0, 0, 0, 0.55);
+    -hocal-shadow-soft: rgba(0, 0, 0, 0.22);
+
+    /* Glass sheen laid over raised controls: a bright highlight fading into the fill below it */
+    -hocal-gloss: rgba(255, 255, 255, 0.08);
+    -hocal-gloss-soft: rgba(255, 255, 255, 0.04);
+
+    /* Modena base variables, so unstyled controls already follow the palette */
+    -fx-base: -hocal-surface;
+    -fx-background: -hocal-surface;
+    -fx-control-inner-background: -hocal-surface-input;
+    -fx-control-inner-background-alt: -hocal-surface-raised;
+    -fx-accent: -hocal-primary;
+    -fx-default-button: -hocal-accent;
+    -fx-focus-color: -hocal-accent;
+    -fx-faint-focus-color: rgba(159, 168, 218, 0.35);
+    -fx-selection-bar: -hocal-primary;
+    -fx-selection-bar-non-focused: -hocal-surface-bar;
+    -fx-text-background-color: -hocal-ink;
+}

@@ -1,0 +1,21 @@
+---
+name: Architecture
+---
+
+# Architecture
+
+## Module Structure
+
+* all Applications (end user apps) are stored in 'app'
+  * Java FX UI application is stored in 'app/ui' (`hocal-ui`)
+    * no other module SHOULD CONTAIN Java FX parts or frameworks
+* Libraries are stored in 'lib'; none exists yet - a library is created when the first code needs
+  to leave 'app/ui'
+  * the plain model POJOs go into 'lib/model' (`hocal-model`), free of Java FX
+  * their property models go into 'lib/fx-model' (`hocal-fx-model`), see the `fx-model` skill
+* A module under 'lib' MAY carry Java FX only in this one case; every other one stays free of it
+  * a property model library on 'javafx.base' alone - 'lib/fx-model'; no toolkit module beyond
+    `javafx.base`
+* The full Java FX toolkit lives ONLY in 'app/ui'
+* The application drives ComfyUI as a separate process through its HTTP and WebSocket API; no module
+  embeds or links ComfyUI itself

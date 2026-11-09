@@ -1,0 +1,284 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  # Fail fast: make sure the tag has a matching changelog entry before anything else runs.
+  verify-changelog:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Verify changelog entry exists
+        run: |
+          TAG="${{ github.ref_name }}"
+          NOTES=$(awk "/^## \[$TAG\]/{found=1; next} found && /^## \[/{exit} found{print}" CHANGELOG.md)
+          NOTES=$(echo "$NOTES" | sed '/./,$!d' | sed -e :a -e '/^\n*$/{$d;N;ba}')
+          if [ -z "$NOTES" ]; then
+            echo "ERROR: No changelog entry found for tag $TAG"
+            exit 1
+          fi
+          echo "Changelog entry for tag $TAG found."
+
+  licences:
+    runs-on: ubuntu-latest
+    needs: verify-changelog
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Check licences
+        run: ./gradlew licensee --stacktrace
+
+  # JavaFX resolves to the classifier of the building host, so every host family produces its own
+  # archive. Packaging skips every kind of test - they run as their own jobs below, each on the same
+  # host family, so a failing test cannot hide behind a passing package step.
+  build:
+    name: build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: verify-changelog
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        if: runner.os != 'Windows'
+        run: chmod +x ./gradlew
+
+      - name: Build and package
+        shell: bash
+        run: |
+          ./gradlew build -x test -x integrationTest packageDist \
+            -PreleaseVersion="${{ github.ref_name }}" --stacktrace
+
+      - name: Upload distribution
+        uses: actions/upload-artifact@v7
+        with:
+          name: distribution-${{ matrix.os }}
+          path: app/ui/build/distributions/hocal-ui-*.zip
+          if-no-files-found: error
+
+  # Developer tests (plain, unsuffixed test classes) run on every host family, since they exercise
+  # the real JavaFX toolkit.
+  developer-test:
+    name: developer-test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: build
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        if: runner.os != 'Windows'
+        run: chmod +x ./gradlew
+
+      - name: Run developer tests
+        run: ./gradlew test --stacktrace
+
+  # Integration tests ("...IT") cover a complete feature or aim at performance, per the `testing`
+  # skill, and run apart from the plain developer tests, on every host family as well.
+  integration-test:
+    name: integration-test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: build
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        if: runner.os != 'Windows'
+        run: chmod +x ./gradlew
+
+      - name: Run integration tests
+        run: ./gradlew integrationTest --stacktrace
+
+  # Build the docs as a generation test (mkdocs --strict) before they get deployed.
+  validate-docs:
+    runs-on: ubuntu-latest
+    needs: verify-changelog
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: 3.x
+
+      - name: Pip Update
+        run: pip install --upgrade pip
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Build docs
+        run: ./gradlew buildDocs --stacktrace --info
+
+  # Publish the docs to gh-pages (mike). A deployment failure must not fail the release.
+  deploy-docs:
+    runs-on: ubuntu-latest
+    needs: validate-docs
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: 3.x
+
+      - name: Pip Update
+        run: pip install --upgrade pip
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Configure git for gh-deploy
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Deploy docs
+        continue-on-error: true
+        run: ./gradlew deployDocs -PdocsVersion="${{ github.ref_name }}" --stacktrace --info
+
+      - name: Set default docs version
+        continue-on-error: true
+        run: ./gradlew setDefaultDocs --stacktrace --info
+
+  release:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - developer-test
+      - integration-test
+      - licences
+      - deploy-docs
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download distributions
+        uses: actions/download-artifact@v8
+        with:
+          pattern: distribution-*
+          path: dist
+          merge-multiple: true
+
+      - name: Extract changelog
+        run: |
+          TAG="${{ github.ref_name }}"
+          NOTES=$(awk "/^## \[$TAG\]/{found=1; next} found && /^## \[/{exit} found{print}" CHANGELOG.md)
+          NOTES=$(echo "$NOTES" | sed '/./,$!d' | sed -e :a -e '/^\n*$/{$d;N;ba}')
+          if [ -z "$NOTES" ]; then
+            echo "ERROR: No changelog entry found for tag $TAG"
+            exit 1
+          fi
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo "$NOTES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          if [[ "$TAG" =~ ^(0|[a-zA-Z]) ]]; then
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes "$RELEASE_NOTES" \
+              --prerelease \
+              --latest=false \
+              dist/*.zip
+          else
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes "$RELEASE_NOTES" \
+              --latest \
+              dist/*.zip
+          fi
