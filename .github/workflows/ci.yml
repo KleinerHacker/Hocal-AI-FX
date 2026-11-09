@@ -1,0 +1,225 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # Detects which parts of the repository changed, so only the affected jobs run.
+  # code    -> build, developer-test, integration-test, licences
+  # docs    -> validate-docs
+  # .github -> everything
+  changes:
+    runs-on: ubuntu-latest
+
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      docs: ${{ steps.filter.outputs.docs }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed areas
+        id: filter
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${BASE_SHA}" ] || [ "${BASE_SHA}" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            echo "No usable base commit - running everything."
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "docs=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          FILES="$(git diff --name-only "${BASE_SHA}" "${GITHUB_SHA}")"
+          echo "Changed files:"
+          echo "${FILES}"
+
+          code=false
+          docs=false
+
+          while IFS= read -r file; do
+            [ -n "${file}" ] || continue
+            case "${file}" in
+              # Pipeline definition itself - run everything.
+              .github/*)
+                code=true
+                docs=true
+                ;;
+              # Documentation sources.
+              docs/*|README.md|CHANGELOG.md|LICENSE)
+                docs=true
+                ;;
+              # Everything else counts as code; the docs embed KDoc and the licence report.
+              *)
+                code=true
+                docs=true
+                ;;
+            esac
+          done <<< "${FILES}"
+
+          echo "code=${code}" >> "$GITHUB_OUTPUT"
+          echo "docs=${docs}" >> "$GITHUB_OUTPUT"
+
+  check-licences:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Check licences
+        run: ./gradlew licensee --stacktrace --info
+
+  # Compiling only needs the platform independent JavaFX API, so one runner is enough here.
+  build:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Build
+        run: ./gradlew build -x test --stacktrace --info
+
+  # Developer tests (plain, unsuffixed test classes) run on every host family, since they exercise
+  # the real JavaFX toolkit.
+  developer-test:
+    name: developer-test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [ changes, build ]
+    if: needs.changes.outputs.code == 'true'
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        if: runner.os != 'Windows'
+        run: chmod +x ./gradlew
+
+      - name: Run developer tests
+        run: ./gradlew test --stacktrace --info
+
+  # Integration tests ("...IT") cover a complete feature or aim at performance, per the `testing`
+  # skill, and run apart from the plain developer tests, on every host family as well.
+  integration-test:
+    name: integration-test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [ changes, build ]
+    if: needs.changes.outputs.code == 'true'
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        if: runner.os != 'Windows'
+        run: chmod +x ./gradlew
+
+      - name: Run integration tests
+        run: ./gradlew integrationTest --stacktrace --info
+
+  # Build the docs as a generation test (mkdocs --strict) on every push and PR. No deployment here.
+  validate-docs:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: 3.x
+
+      - name: Pip Update
+        run: pip install --upgrade pip
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Build docs
+        run: ./gradlew buildDocs --stacktrace --info

@@ -1,0 +1,62 @@
+site_name: Hocal AI
+site_description: Hocal AI - a desktop application running local AI image and video flows on ComfyUI.
+# Must include the mike version segment (here the "latest" alias): mike deploys every version
+# under /Hocal-AI-FX/<version>/, so links derived from site_url need that segment.
+site_url: https://kleinerhacker.github.io/Hocal-AI-FX/latest/
+repo_name: Hocal-AI-FX
+repo_url: https://github.com/KleinerHacker/Hocal-AI-FX
+docs_dir: docs
+site_dir: ../build/docs
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+extra:
+  version:
+    provider: mike
+    default: latest
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Main window: main-window.md
+  - API Docs: dokka/html/index.html
+  - Licences: licences/index.html
