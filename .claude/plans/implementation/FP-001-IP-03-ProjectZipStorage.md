@@ -9,14 +9,18 @@
 * [ ] Storage-Paket in `lib/model` anlegen, ohne Zustand
 * [ ] Jackson-Mapping für `project.json`, Zeiten in UTC im Format ISO-8601
 * [ ] Lesen als Stream über `ZipInputStream`, `project.json` muss der erste Eintrag sein
-* [ ] Validierung von Version, UUID-Liste und Eintragsverweisen
+* [ ] Validierung von Version, Referenzen und Eintragsverweisen
+* [ ] Schlüssel der Historien-Details müssen zu den Medien des Referenzordners passen
 * [ ] Validierung: jeder Referenzordner enthält mindestens ein Medium
 * [ ] Zip-Slip- und Größenschutz beim Lesen
 * [ ] Typisierte Fehler für ungültig, beschädigt und unbekannte Version
+* [ ] Datei mit neuerer Formatversion als bekannt wird abgelehnt
 
 ## Aufgabe 2: Schreiben
 
 * [ ] Schreiben mit `project.json` als erstem ZIP-Eintrag
+* [ ] Alle ZIP-Einträge immer unkomprimiert (`STORED`), Größe und CRC vorher ermitteln
+* [ ] Historien-Details in `project.json` unter jeder Referenz lesen und schreiben, Schlüssel `000` bis `999`
 * [ ] Atomares Speichern über temporäre Datei und anschließendes Ersetzen
 * [ ] Stream-Einstiegspunkte (Ein- und Ausgabestrom), damit IP-06 sie umschließen kann
 

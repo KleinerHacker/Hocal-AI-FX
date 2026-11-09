@@ -15,7 +15,7 @@
 
 * [ ] Je POJO eine `<Pojo>Property` im gespiegelten Paket `org.pcsoft.app.hocal.fx.model`
 * [ ] Rekursiven Baum mit verschachtelter Änderungsweitergabe bis zur Wurzel abbilden
-* [ ] UUID-Liste und Schlagworte als `list` in `BeanFields` registrieren
+* [ ] Referenzliste, Historien-Details je Mediumnummer und Schlagworte in `BeanFields` registrieren
 * [ ] `refresh()` je Modell mit dem Rumpf `fields.refresh()`
 
 ## Aufgabe 3: Tests und Doku

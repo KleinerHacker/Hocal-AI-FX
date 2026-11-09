@@ -15,6 +15,7 @@
 ## Aufgabe 2: Löschen
 
 * [ ] Löschen eines Mediums mit lückenloser Neunummerierung der folgenden
+* [ ] Historien-Details folgen ihrem Medium, Schlüssel werden bei Anhängen, Löschen und Neunummerierung angepasst
 * [ ] Löschen von `000` ablehnen, damit auch das letzte Medium nie löschbar ist
 * [ ] Löschen des aktuellen Mediums macht den Vorgänger zum aktuellen
 * [ ] Neunummerierung auf der Gesamtmenge vor dem Schreiben, nie in-place
