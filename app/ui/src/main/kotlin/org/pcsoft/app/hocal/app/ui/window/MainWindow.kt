@@ -15,7 +15,6 @@ package org.pcsoft.app.hocal.app.ui.window
 import de.saxsys.mvvmfx.FluentViewLoader
 import javafx.scene.Scene
 import javafx.stage.Stage
-import org.pcsoft.app.hocal.app.HocalTheme
 import org.pcsoft.app.hocal.app.Messages
 
 /**
@@ -29,7 +28,7 @@ class MainWindow : Stage() {
 
     init {
         FluentViewLoader.fxmlView(MainWindowView::class.java).load().apply {
-            scene = Scene(view).also(HocalTheme::apply)
+            scene = Scene(view)
             this@MainWindow.viewModel = viewModel
         }
 
