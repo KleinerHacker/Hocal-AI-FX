@@ -43,7 +43,7 @@ dependencies {
 
     // The application logs against the SLF4J API only; Log4j 2 is the implementation behind it and
     // is bound through the SLF4J provider, so no code ever touches a Log4j type.
-    implementation("org.slf4j:slf4j-api:2.0.19")
+    implementation("org.slf4j:slf4j-api:2.0.20")
     runtimeOnly("org.apache.logging.log4j:log4j-core:${log4jVersion}")
     runtimeOnly("org.apache.logging.log4j:log4j-slf4j2-impl:${log4jVersion}")
 
