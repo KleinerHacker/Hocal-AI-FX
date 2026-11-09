@@ -22,12 +22,10 @@ import org.pcsoft.app.hocal.app.util.logger
 /**
  * JavaFX application entry point of Hocal AI.
  *
- * There is no startup area yet (see the `startup` skill), so the theme is installed and the main
- * window is shown directly.
+ * There is no startup area yet (see the `startup` skill), so the main window is shown directly.
  */
 class HocalApplication : Application() {
     override fun start(stage: Stage) {
-        HocalTheme.install()
         MainWindow().show()
     }
 }

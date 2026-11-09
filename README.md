@@ -17,7 +17,6 @@ runs without building a ComfyUI graph.
 |----------------------------------------------------------------|-------------|
 | Main window with File menu (Exit)                              | Implemented |
 | Flow list component with example flows                         | Implemented |
-| Light and dark theme following the operating system            | Implemented |
 | English and German user interface                              | Implemented |
 | Portable distribution archive (ZIP) and jlink image            | Implemented |
 | Connection to a local ComfyUI process                          | Planned     |
