@@ -36,7 +36,7 @@ val testFxVersion = "4.0.18"
 val log4jVersion = "2.26.1"
 
 dependencies {
-    implementation("org.apache.commons:commons-lang3:3.20.0")
+    implementation("org.apache.commons:commons-lang3:3.21.0")
 
     implementation("org.controlsfx:controlsfx:11.2.5")
     implementation("de.saxsys:mvvmfx:1.8.0")
