@@ -12,6 +12,7 @@ Status: NOT_STARTED
 | IP-04 | Reference Media History | NOT_STARTED |
 | IP-05 | Virtual Tree Operations | NOT_STARTED |
 | IP-06 | Project File Encryption | NOT_STARTED |
+| IP-07 | Project Manager         | NOT_STARTED |
 
 ## Overall Progress
 

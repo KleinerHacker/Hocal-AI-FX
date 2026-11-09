@@ -29,6 +29,7 @@ libraries and code that read, write and edit it:
 * A storage in `lib/model` reads and writes the ZIP; it keeps no state
 * The media history of a reference can be read (current medium, history) and extended
 * The virtual directory structure can be edited without touching the ZIP layout
+* A singleton project manager holds the one loaded project and handles every change
 * A project file can be written encrypted and is read back with the password
 
 ## 4. Requirements
@@ -186,6 +187,7 @@ The key names are fixed by IP-01.
 | IP-04 | Reference Media History  | Reference folders, continuous numbering 000-999, current medium, add and remove media | IP-01, IP-03 |
 | IP-05 | Virtual Tree Operations  | Edit the virtual directory structure consistently with the references   | IP-01        |
 | IP-06 | Project File Encryption  | Optional AES encryption of the project file through cipher streams      | IP-03        |
+| IP-07 | Project Manager          | Singleton manager holding the one loaded project and handling all changes | IP-02, IP-03, IP-04, IP-05, IP-06 |
 
 ## 7. Implementation Plans
 
@@ -418,6 +420,42 @@ unencrypted form stays a standard ZIP.
   unencrypted file read without password, switching between both forms
 * Passwords never appear in logs or error messages
 
+### IP-07: Project Manager
+
+**Objective**
+
+Organise the project through a singleton project manager that handles all changes.
+
+**Scope**
+
+* `ProjectManager` as a Kotlin `object` in `lib/fx-model`, on `javafx.base` only
+* Exactly one project is loaded at a time, held as `ProjectProperty`
+* Read-only properties for the loaded project, its path and its dirty state
+* New, open (optional password), save, save as, close
+* All changes (tree operations of IP-05, media operations of IP-04) go through the manager
+* NOT: UI, file chooser, password prompt
+
+**Affected Areas**
+
+* `lib/fx-model` (manager package), tests
+
+**Dependencies**
+
+IP-02, IP-03, IP-04, IP-05, IP-06.
+
+**Expected Result**
+
+One place owns the loaded project; no other code writes to the storage or edits the tree directly.
+
+**Technical Considerations**
+
+* Opening or creating while a project is loaded requires closing first; with unsaved changes it
+  fails unless discarding is allowed explicitly
+* A change edits the POJO, then calls `refresh()` of the property model and marks the project dirty
+* Changes only on the FX thread; file input and output block the caller
+* Saving sets the time of the last change and the application version
+* The singleton state must be resettable for tests
+
 ## 8. Dependency Graph
 
 ```text
@@ -427,6 +465,7 @@ IP-01
 │   ├── IP-04
 │   └── IP-06
 └── IP-05
+IP-07 follows after IP-02, IP-03, IP-04, IP-05 and IP-06 are completed.
 ```
 
 IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in parallel after IP-03.
@@ -471,4 +510,5 @@ IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in paral
 * A file without `project.json`, a damaged ZIP and a newer format version are rejected with a clear
   error; a failed save leaves the previous file intact
 * Every POJO has a tested property model
+* Only one project is loaded at a time, and every change goes through the project manager
 * README, MkDocs, pipeline and structure documentation are up to date
