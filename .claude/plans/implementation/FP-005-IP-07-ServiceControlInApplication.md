@@ -18,7 +18,7 @@
 
 ## Aufgabe 3: Neustart
 
-* [ ] Rückfrage vor dem Neustart, wenn eine Erzeugung läuft
+* [ ] Rückfrage vor dem Neustart, wenn Aufträge laufen oder warten, mit Anzahl der laufenden und wartenden Aufträge
 * [ ] Neustart im Hintergrund, Menüeintrag währenddessen gesperrt
 
 ## Aufgabe 4: Beenden
