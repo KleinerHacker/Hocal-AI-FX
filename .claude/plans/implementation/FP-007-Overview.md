@@ -4,7 +4,7 @@ Feature-Plan: `.claude/plans/features/FP-007-ProjectContentEditing.md`
 
 ## Teilpläne
 
-* IP-01 Medien-Import-Operation: `FP-007-IP-01-MediaImportOperation.md`
+* IP-01 Medien-Import- und Export-Operationen: `FP-007-IP-01-MediaImportAndExportOperations.md`
 * IP-02 Verzeichnisbaum-Menü: `FP-007-IP-02-DirectoryTreeMenu.md`
 * IP-03 Dateilisten-Menü: `FP-007-IP-03-FileListMenu.md`
 * IP-04 Historien-Menü: `FP-007-IP-04-HistoryMenu.md`

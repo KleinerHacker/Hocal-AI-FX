@@ -12,7 +12,7 @@
 
 ## Aufgabe 2: Menü
 
-* [ ] Kontextmenü in `ProjectTree`: Neuer Ordner, Ordner löschen, Dateien importieren
+* [ ] Kontextmenü in `ProjectTree`: Neuer Ordner, Ordner löschen, Dateien importieren, Ordner exportieren
 * [ ] Rechtsklick wählt zuerst das Element unter dem Mauszeiger aus
 * [ ] Wurzelordner hat ein reduziertes Menü ohne Löschen
 * [ ] Keine Icons in den Menüeinträgen
@@ -21,7 +21,8 @@
 
 * [ ] Namensdialog mit Prüfung nach den Namensregeln der Baum-Operation
 * [ ] Löschbestätigung mit Anzahl der Unterordner und Einträge
-* [ ] Import-Zusammenfassung mit übersprungenen Dateien und Grund
+* [ ] Import- und Export-Zusammenfassung mit übersprungenen Objekten und Grund
+* [ ] Konfliktdialog beim Ordnerexport: überschreiben, überspringen, abbrechen
 * [ ] Dialoge so anlegen, dass Dateiliste und Historie sie wiederverwenden
 
 ## Aufgabe 4: Aktionen
@@ -29,6 +30,7 @@
 * [ ] Neuer Ordner legt den Ordner unter dem gewählten an und wählt ihn aus
 * [ ] Ordner löschen über den `ProjectManager`, Auswahl wechselt auf den Elternordner
 * [ ] Import: Dateiauswahl mit Mehrfachauswahl und Filter aus der Registry, Fortschrittsdialog bei großen Mengen
+* [ ] Export: Zielverzeichnis wählen, Fortschrittsdialog, bei vorhandener Datei je Konflikt nachfragen
 
 ## Aufgabe 5: Texte, Tests und Doku
 

@@ -7,11 +7,11 @@
 ## Aufgabe 1: Vorbereitung
 
 * [ ] Skills `component`, `dialog`, `ui-styling`, `fx-component-lifecycle` und `translation` laden
-* [ ] Mit dem Benutzer klären: Referenz ohne Eintrag nach dem Löschen behalten oder entfernen, Mehrfachauswahl
+* [ ] Mit dem Benutzer klären: Referenz ohne Eintrag nach dem Löschen behalten oder entfernen
 
 ## Aufgabe 2: Menü
 
-* [ ] Kontextmenü in `FileList`: Dateien importieren, Datei löschen
+* [ ] Kontextmenü in `FileList`: Dateien importieren, Datei löschen, Datei exportieren
 * [ ] Import auch bei leerer Liste verfügbar
 * [ ] Rechtsklick wählt zuerst die Zeile unter dem Mauszeiger aus
 * [ ] Keine Icons in den Menüeinträgen
@@ -22,6 +22,8 @@
 * [ ] Löschbestätigung nennt die Datei und die Folge für die Referenz
 * [ ] Eintrag über den `ProjectManager` entfernen, Medien bleiben nach den Regeln aus FP-001 erhalten
 * [ ] Auswahl wechselt auf einen Nachbarn in der Liste
+* [ ] Datei exportieren: nur das aktuelle Medium der Referenz, Zieldatei wählen, Überschreiben bestätigt der FileChooser
+* [ ] Einfachauswahl in der Liste, keine Mehrfachauswahl
 
 ## Aufgabe 4: Texte, Tests und Doku
 

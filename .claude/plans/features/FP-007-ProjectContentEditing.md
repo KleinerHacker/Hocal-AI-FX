@@ -4,7 +4,8 @@
 
 Let the user change the content of the project in the main window through context menus: create and
 delete folders and import files in the directory tree, import and delete files in the file list, and
-delete media in the history list.
+delete, export to the gallery and export to files in the history list. Every object of the history and
+the gallery can be exported.
 
 ## 2. Current State
 
@@ -22,9 +23,9 @@ delete media in the history list.
 
 ## 3. Target State
 
-* Right click in the directory tree opens a menu: new folder, delete folder, import files
-* Right click in the file list opens a menu: import files, delete file
-* Right click in the history list opens a menu: delete medium
+* Right click in the directory tree opens a menu: new folder, delete folder, import files, export folder
+* Right click in the file list opens a menu: import files, delete file, export file
+* Right click in the history list opens a menu: delete medium, export to the gallery, export to file
 * Imported files become new references (one UUID, medium `000` = the imported file) with an entry in
   the selected folder
 * Destructive actions ask for confirmation, say what is removed, and leave the project consistent
@@ -41,12 +42,20 @@ delete media in the history list.
     * Delete folder: with all subfolders and entries after confirmation naming the counts; the root
       cannot be deleted
     * Import files: opens a file chooser (multiple selection), imports into the selected folder
+    * Export folder: writes the folder with all subfolders as directories and its files as media files
+      into a directory chosen by the user
 * File list menu:
     * Import files: same as in the tree, into the folder shown in the list
     * Delete file: removes the entry from the folder after confirmation
+    * Export file: writes the current medium of the file's reference (only that one, no history, no
+      history details) to a file chosen by the user
     * available also on an empty list (import)
 * History list menu:
-    * Delete medium only; no other entries
+    * Delete medium
+    * Export to gallery: copies the medium as a new reference (new UUID, the copy is medium `000`, the
+      history details are copied with it) into a folder chosen in a dialog showing the folders of
+      the project; the default is the folder shown in the file list
+    * Export to file: writes the medium to a file chosen by the user, with its own extension
     * medium `000` cannot be deleted; the entry is disabled with an explaining tooltip
     * a medium that is the only one of its reference cannot be deleted (same rule)
     * deleting from the middle renumbers the following media; the history details move with them
@@ -57,6 +66,15 @@ delete media in the history list.
       the folder (a number is appended on a clash)
     * a failure of one file does not stop the others; a summary lists the skipped files
     * the import runs in the background with the progress dialog for large selections
+* Export:
+    * everything in the history and in the gallery can be exported: a medium, a file of the gallery
+      and a folder; there is no object without an export
+    * an export does not change the project and does not mark it as changed, except the export to the
+      gallery, which is a change
+    * file names are made valid for the file system; an existing target is never overwritten
+      silently: a single file relies on the confirmation of the file chooser, a folder export asks
+      for each clash (overwrite, skip, cancel)
+    * the export runs in the background with the progress dialog for large selections
 * After a deletion, the selection moves to a sensible neighbour in the affected list
 * A deleted reference that is the target of a running or waiting generation (FP-006) makes the result
   be discarded with a message
@@ -70,12 +88,16 @@ delete media in the history list.
 * Context menu entries carry no icons (icons are not part of any plan except the File menu)
 * Confirmation, name input and import report dialogs follow the `dialog` skill
 * Changes on the FX thread, the file reading of an import in the background (`javafx.concurrent`)
-* Tests with TestFX for the menus and unit tests for the import operation
+* Export reads the media of the project and writes through streams, a large medium is never held twice
+  in memory
+* Tests with TestFX for the menus and unit tests for the import and export operations
 
 ## 5. Architecture
 
 * `lib/fx-model` (`ProjectManager`) gets an import operation: reads a file, checks the type, creates the
-  reference, medium `000` and the tree entry as one change; all other operations come from FP-001
+  reference, medium `000` and the tree entry as one change; it gets export operations (medium to file,
+  reference to file, folder to directory) that only read, and a copy of a medium into a new reference;
+  all other operations come from FP-001
 * `app/ui`:
     * context menu support in `ProjectTree`, `FileList` and `HistoryList` and their view models
     * dialogs: name input, delete confirmation (with counts and consequences), import summary
@@ -88,24 +110,28 @@ delete media in the history list.
 
 | ID    | Implementation Plan        | Objective                                                          | Dependencies                         |
 |-------|----------------------------|--------------------------------------------------------------------|--------------------------------------|
-| IP-01 | Media Import Operation     | Import files as new references with medium `000` and a tree entry  | FP-001 IP-04, IP-05, IP-07, FP-002 IP-03 |
+| IP-01 | Media Import And Export Operations | Import files as references, export media, references and folders, copy a medium to the gallery | FP-001 IP-04, IP-05, IP-07, FP-002 IP-03 |
 | IP-02 | Directory Tree Menu        | Context menu: new folder, delete folder, import; shared dialogs    | IP-01, FP-002 IP-02, FP-003 IP-04    |
 | IP-03 | File List Menu             | Context menu: import files, delete file                            | IP-02, FP-002 IP-03                  |
 | IP-04 | History Menu               | Context menu: delete medium with the rules of the history          | IP-02, FP-002 IP-05, FP-001 IP-04    |
 
 ## 7. Implementation Plans
 
-### IP-01: Media Import Operation
+### IP-01: Media Import And Export Operations
 
 **Objective**
 
-Bring existing files into the project as references.
+Bring files into the project and every object of the project out of it.
 
 **Scope**
 
 * import operation in the `ProjectManager` for one or several files into a folder
 * type check through the media type registry; typed result with imported and skipped files
 * unique names within the folder
+* export of a medium to a file, of a reference (current medium) to a file and of a folder to a
+  directory; valid file names, clash rule, typed result
+* copy of a history medium into a new reference (new UUID, medium `000`, history details copied)
+  in a chosen folder
 * background execution and progress, partial success
 * not: user interface
 
@@ -119,13 +145,15 @@ FP-001 IP-04, IP-05, IP-07, FP-002 IP-03 (registry).
 
 **Expected Result**
 
-* an import changes the model consistently or not at all per file
+* an import or a copy changes the model consistently or not at all per file; an export leaves the
+  project untouched
 
 **Technical Considerations**
 
 * a file is read completely before the change; an unreadable file is skipped
+* export streams from the project file, no medium is copied through memory twice
 * very large files and a size limit are open
-* the overflow rule of `999` does not matter here (new reference starts at `000`)
+* the overflow rule of `999` does not matter here (a new reference starts at `000`)
 
 ### IP-02: Directory Tree Menu
 
@@ -135,7 +163,7 @@ Give the directory tree its context menu and the dialogs the other menus reuse.
 
 **Scope**
 
-* menu in `ProjectTree`: new folder, delete folder, import files
+* menu in `ProjectTree`: new folder, delete folder, import files, export folder
 * dialogs: name input (with validation by the tree operation rules), delete confirmation with counts,
   import summary
 * selection handling after create and delete
@@ -167,7 +195,7 @@ Give the file list its context menu.
 
 **Scope**
 
-* menu in `FileList`: import files, delete file; import also on an empty list
+* menu in `FileList`: import files, delete file, export file; import also on an empty list
 * delete confirmation naming the file and the consequence for the reference
 * selection moves to a neighbour after the deletion
 * not: the tree and history menus
@@ -193,19 +221,22 @@ IP-02, FP-002 IP-03.
 
 **Objective**
 
-Allow deleting single media from the history.
+Allow deleting and exporting single media from the history.
 
 **Scope**
 
-* menu in `HistoryList` with the one entry delete medium
-* entry disabled with an explaining tooltip for medium `000` and for a single medium
+* menu in `HistoryList` with three entries: delete medium, export to gallery, export to file
+* delete entry disabled with an explaining tooltip for medium `000` and for a single medium
 * confirmation, then the deletion with renumbering through the `ProjectManager`
-* selection after the deletion: the predecessor, so the main window shows a valid medium
+* folder choice dialog for the export to gallery (folders of the project, default the folder shown in
+  the file list), then the copy as a new reference
+* file chooser for the export to file
+* selection after a deletion: the predecessor, so the main window shows a valid medium
 * not: any other action in the history
 
 **Affected Areas**
 
-* `app/ui` `HistoryList`, view model, message bundles
+* `app/ui` `HistoryList`, view model, folder choice dialog, message bundles
 
 **Dependencies**
 
@@ -213,13 +244,14 @@ IP-02, FP-002 IP-05, FP-001 IP-04.
 
 **Expected Result**
 
-* a medium can be deleted from the middle or the end; the list, the shown medium and the file list
-  preview follow
+* a medium can be deleted, copied into the gallery or exported to a file; the lists, the shown
+  medium and the file list preview follow
 
 **Technical Considerations**
 
 * the renumbering changes the medium numbers; a running generation result still appends at the end
 * the preview "current medium" in the file list is recomputed
+* the new reference of the gallery export appears in the file list when its folder is shown
 * skills as in IP-02
 
 ## 8. Dependency Graph
@@ -239,12 +271,18 @@ Risks:
 * A deletion while a generation targets the reference needs the discard rule of FP-006
 * Large imports must not block the window
 
+Decided:
+
+* Exporting a file of the gallery writes only its current medium, without history details
+* Overwriting always asks; for a single file the file chooser asks, for a folder export each clash
+* No multiple selection: all lists keep a single selection and every operation works on one object;
+  the file chooser of the import may still select several files
+
 Open questions:
 
 * Is rename part of the menus (the model supports it), and in the tree and the file list
 * Delete key and the accelerator for the menu entries
 * Reference without an entry after deleting its last entry: keep or remove (open since FP-001)
-* Multiple selection in the file list for delete, and in the history for delete
 * Import of a whole directory tree, and import by drag and drop from the system
 * Size limit and error handling of very large files
 * Undo and redo of deletions (not planned)
@@ -256,5 +294,7 @@ Open questions:
 * Files import as references with medium `000`; unsupported files are reported and skipped
 * Folders can be created and deleted with confirmation; the root stays
 * Files can be deleted from the list; media can be deleted from the history, never `000`
+* A medium can be copied from the history into the gallery as a new reference
+* Every medium, file and folder can be exported; an export leaves the project unchanged
 * After each change all lists update, the selection is valid, and the project is marked as changed
 * The Gradle `build` passes; tests cover the import and each menu; README and KDoc are up to date
