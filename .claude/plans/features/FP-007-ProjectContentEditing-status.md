@@ -6,7 +6,7 @@ Status: NOT_STARTED
 
 | ID    | Implementation Plan    | Status      |
 |-------|------------------------|-------------|
-| IP-01 | Media Import Operation | NOT_STARTED |
+| IP-01 | Media Import And Export Operations | NOT_STARTED |
 | IP-02 | Directory Tree Menu    | NOT_STARTED |
 | IP-03 | File List Menu         | NOT_STARTED |
 | IP-04 | History Menu           | NOT_STARTED |
