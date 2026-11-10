@@ -6,7 +6,7 @@ Status: NOT_STARTED
 
 | ID    | Implementation Plan               | Status      |
 |-------|-----------------------------------|-------------|
-| IP-01 | Workflow Templates And Builder    | NOT_STARTED |
+| IP-01 | Workflow Builder                  | NOT_STARTED |
 | IP-02 | Generation Service                | NOT_STARTED |
 | IP-03 | Send Button And Prompt Submission | NOT_STARTED |
 | IP-04 | Progress Tile                     | NOT_STARTED |

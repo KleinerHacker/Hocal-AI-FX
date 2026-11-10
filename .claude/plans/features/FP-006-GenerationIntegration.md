@@ -82,9 +82,10 @@ emerging image, a percentage and a progress bar.
 
 ## 5. Architecture
 
-* `lib/comfy`, new package `workflow`: `WorkflowTemplate` (API-format JSON with named placeholders
-  for prompt, seed, model, input image and extra images), `WorkflowRegistry` (templates of the
-  application resources, name = flow), `WorkflowBuilder` (fills the placeholders, new seed per run)
+* `lib/comfy`, new package `workflow`: `WorkflowBuilder` writes the values of a send (prompt, model
+  files, seed, images, parameters) into a copy of the workflow at the targets of the catalog of
+  FP-008 (`standard` keys and `parameters`); the templates, their registry and the model and flow
+  definitions live in `lib/ai-model` (FP-008)
 * `lib/comfy`, new package `generation`: `GenerationService`:
     1. `ensureRunning()` of FP-005
     2. upload of the input and the extra images
@@ -106,7 +107,7 @@ emerging image, a percentage and a progress bar.
 
 | ID    | Implementation Plan             | Objective                                                          | Dependencies                  |
 |-------|---------------------------------|--------------------------------------------------------------------|-------------------------------|
-| IP-01 | Workflow Templates And Builder  | Templates per flow, placeholders, models list, builder             | FP-004 IP-03                  |
+| IP-01 | Workflow Builder                | Write the values of a send into the workflow at the catalog targets, installed-model check | FP-004 IP-03, FP-008 IP-02 |
 | IP-02 | Generation Service              | Run orchestration with job state, upload, submit, events, result   | IP-01, FP-004 IP-04, FP-005 IP-05 |
 | IP-03 | Send Button And Prompt Submission | Send button, collected data, real model and flow lists, errors    | IP-02, FP-002 IP-06           |
 | IP-04 | Progress Tile                   | Pop-up tile with preview, percent and progress bar, tile host      | IP-02, FP-002 IP-01, IP-04    |
@@ -118,15 +119,18 @@ emerging image, a percentage and a progress bar.
 
 **Objective**
 
-Turn "flow" and "model" from placeholders into real, usable data.
+Fill the workflow of a flow with the values of a send.
 
 **Scope**
 
-* workflow templates in ComfyUI API format as application resources, with named placeholders
-* registry of the templates; the name of a template is the flow name of the history details
-* builder: fills prompt, new random seed, model, input image and extra images
-* model list: checkpoint names read from `/object_info` through the facade
-* validation of a template (placeholders present, nodes known to the server)
+* templates, registry and the model and flow definitions come from the catalog of FP-008; this plan
+  does not define them
+* builder: writes the values of a send (prompt, model files, seed, input image, extra images and the
+  parameters) into a copy of the workflow at the targets `<node>.<input>` of the catalog; a new random
+  seed at each send unless the user fixed it
+* installed-model check: checkpoint names read from `/object_info` through the facade, compared with
+  the catalog
+* validation against the server: the targets point to nodes known to the server
 * not: workflow editing by the user, custom nodes
 
 **Affected Areas**
@@ -135,18 +139,18 @@ Turn "flow" and "model" from placeholders into real, usable data.
 
 **Dependencies**
 
-FP-004 IP-03.
+FP-004 IP-03, FP-008 IP-02.
 
 **Expected Result**
 
-* the builder returns a ready workflow JSON for a template and a data set; the lists of models and
-  flows are available
+* the builder returns a ready workflow JSON for a flow and a set of values; the installed models
+  are known
 
 **Technical Considerations**
 
-* which flows exist (text to image, image edit, image to image) and which models they need is open
-* a template needs the right input nodes; extra images need a template with several image inputs
-* the seed is not part of the history details and is not stored
+* the builder works on a copy; the template of the catalog is never changed
+* a target that does not exist in the workflow is a typed error, found by the catalog validation first
+* the used seed and the values of the `EDITABLE` parameters go into the history details (FP-001)
 
 ### IP-02: Generation Service
 
@@ -201,7 +205,8 @@ Let the user start a generation from the prompt input part.
 * enabling rules; a send stays possible while runs are active and while the service starts
 * the combo box shows the real models, the flow is chosen with the toggle button bar already planned
   in FP-002 IP-06, which now carries the real flows
-* collect the data and hand it to the `GenerationService`; text box stays filled, send does not clear
+* collect the data (including the values of the parameter area of FP-008 IP-04) and hand it to the
+  `GenerationService`; text box stays filled, send does not clear
 * error dialogs for a failed send (service not available, rejected workflow, no connection)
 * not: tile, storage
 
@@ -271,7 +276,8 @@ Bring the finished image into the project history.
 **Scope**
 
 * on the end of a job: append the result as newest medium of the reference through the
-  `ProjectManager`, with the history details prompt, model and flow
+  `ProjectManager`, with the history details prompt, model, flow, seed and the values of the editable
+  parameters
 * the history list selects the new medium; the file list preview shows it as latest
 * the project is `dirty` afterwards
 * project closed, replaced or another one opened while jobs are active or waiting: ask once for all
@@ -333,8 +339,7 @@ Decided:
 
 Open questions:
 
-* Which flows and models are delivered first and which model files the runtime installs; to be
-  clarified at implementation of IP-01
+* Which flows and models are delivered is decided in FP-008 (demonstration model Krea 2)
 * The length of the closing delay of the tile; chosen at implementation of IP-04
 
 ## 10. Feature Completion Criteria
