@@ -11,7 +11,7 @@
 ## Aufgabe 2: Speichern
 
 * [ ] Bei Auftragsende Ergebnis als neuestes Medium der beim Senden festgehaltenen Referenz anhängen
-* [ ] Über den `ProjectManager`, mit Historiendetails Prompt, Modell und Flow
+* [ ] Über den `ProjectManager`, mit Historiendetails Prompt, Modell, Flow, Seed und Werten der änderbaren Parameter
 * [ ] Zusätzliche Bilder nicht speichern, Dateiendung folgt dem Ergebnis von ComfyUI
 * [ ] Projekt wird `dirty`
 * [ ] Überlauf über `999` als typisierten Fehler dem Benutzer anzeigen

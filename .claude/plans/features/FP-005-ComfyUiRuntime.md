@@ -393,7 +393,7 @@ Open questions:
   at implementation (IP-03, IP-04)
 * Install location (default per operating system) and whether the user may choose it; to be
   clarified at implementation (IP-01)
-* Where models are stored and who downloads the first checkpoint (later feature)
+* Where models are stored and who downloads the first checkpoint: covered by FP-008 (model download)
 * Updates of ComfyUI and of the PyTorch backend (later feature)
 
 ## 10. Feature Completion Criteria

@@ -23,7 +23,7 @@
 
 ## Aufgabe 4: Absenden
 
-* [ ] Daten sammeln: Prompt, Modell, Flow, im Hauptfenster angezeigtes Medium, weitere Galerie-Bilder
+* [ ] Daten sammeln: Prompt, Modell, Flow, Seed, Parameterwerte, im Hauptfenster angezeigtes Medium, weitere Galerie-Bilder
 * [ ] Daten an den `GenerationService` übergeben, Textbox bleibt gefüllt
 * [ ] Fehlerdialoge: Dienst nicht verfügbar, Workflow abgelehnt, keine Verbindung
 

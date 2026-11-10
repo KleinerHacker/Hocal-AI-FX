@@ -385,6 +385,7 @@ Build the input part below the image.
 * Model toggle buttons above the right side of the text box (placeholders)
 * Model combobox above the toggle buttons (placeholder)
 * Placeholder model list behind an interface
+* Placeholder area for further parameters, filled by FP-008 IP-04 from the fields of the flow
 * An added image is held by the UUID of its reference; its last medium is the one used
 * NOT: sending the prompt, generation, storing the prompt, real models
 

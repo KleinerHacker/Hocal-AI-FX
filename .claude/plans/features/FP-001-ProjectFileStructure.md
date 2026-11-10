@@ -72,8 +72,9 @@ libraries and code that read, write and edit it:
       UUID
     * every other medium, the current one included, can be deleted; the one before it becomes the
       current medium
-* Every medium has history details: the prompt, the model and the flow it was generated with, each
-  of which may be empty
+* Every medium has history details: the prompt, the model and the flow it was generated with, the seed
+  and the values of the editable parameters of the flow (by parameter id, see FP-008), each of which
+  may be empty
     * explicitly used additional images are NOT recorded
     * the details are stored in `project.json` below their reference, under the number of the medium
     * the details belong to their medium: they follow it when media are appended, removed or
@@ -170,7 +171,7 @@ ZIP structure and `project.json` included, is encrypted.
 ```text
 {
   "project":    { name, description, uuid, author, created, modified, tags, formatVersion, applicationVersion },
-  "references": [ { "uuid": "<uuid>", "media": { "000": { prompt, model, flow }, "001": { ... } } }, ... ],
+  "references": [ { "uuid": "<uuid>", "media": { "000": { prompt, model, flow, seed, parameters }, "001": { ... } } }, ... ],
   "tree":       folders and entries; an entry holds one "<uuid>"
 }
 ```
@@ -213,7 +214,7 @@ Create `lib/model` (`hocal-model`) and the POJOs of `project.json`.
 * Gradle module registered in `settings.gradle.kts`, set up like `app/ui` (Kotlin, KDoc, licence
   check, Kover, tests)
 * POJOs for the project data object, the root, the virtual tree (folder, entry) and the history
-  details of a medium (prompt, model, flow)
+  details of a medium (prompt, model, flow, seed, parameter values)
 * Reference POJO: UUID and the history details by medium number (`000` to `999`)
 * Format version constant and the fixed key names
 * NOT: serialization, ZIP handling, encryption, FX models
@@ -519,6 +520,9 @@ IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in paral
   feature and are done first, as FP-002 shows them
 * Decided: the history details are stored in `project.json` below each reference, keyed by the
   medium number `000` to `999`
+* Decided (FP-008): the history details also hold the used seed and the values of the `EDITABLE`
+  parameters of the flow by parameter id; image inputs and constants are not stored; the type of
+  the values (text, number, boolean) is settled with the `fx-model` skill in IP-01
 
 ## 10. Feature Completion Criteria
 
