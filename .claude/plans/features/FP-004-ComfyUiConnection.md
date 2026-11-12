@@ -187,6 +187,8 @@ Offer the important ComfyUI operations as a small, typed Kotlin API.
   interrupt, system stats, connection check
 * the workflow stays an opaque JSON tree; building workflows is a later feature
 * node errors of a rejected submit become a typed exception with the node list
+* `BlockedNodes`: a list of node class types that are never sent; `submit` checks the workflow before
+  the call and refuses it with a typed exception; the list contains `GemmaAPITextEncode`
 * not: events, UI, workflow creation
 
 **Affected Areas**
@@ -206,6 +208,8 @@ IP-02.
 * `/object_info` can be large; it is parsed lazily or returned as a JSON tree
 * the facade is an interface plus an implementation, so the UI and tests can replace it
 * paths are built with encoding of `filename` and `subfolder`
+* the check sits in the facade so no code path can bypass it; the engine blocks the node as well
+  (FP-005 IP-05); the list is exposed so the catalog validation (FP-008 IP-02) can use the same list
 
 ### IP-04: Execution Event Hook
 
