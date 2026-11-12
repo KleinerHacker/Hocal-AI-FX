@@ -19,6 +19,7 @@ import tools.jackson.databind.json.JsonMapper
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.io.PushbackInputStream
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -51,16 +52,38 @@ object ProjectStorage {
      * @param input The ZIP stream.
      * @param sink Receives every medium while the stream is read.
      * @param limits Upper bounds against hostile files.
+     * @param password The password of an encrypted file; an unencrypted file is read without it. The array
+     *   is not changed.
      * @return the validated project description.
      * @throws InvalidProjectFileException if the content breaks a format rule.
      * @throws DamagedProjectFileException if the ZIP is broken, a limit is exceeded or the stream or the
      *   sink fail with an I/O error while reading.
      * @throws UnsupportedFormatVersionException if the file is newer than this application knows.
+     * @throws PasswordRequiredException if the file is encrypted and [password] is `null`.
+     * @throws WrongPasswordException if the password does not match.
+     * @throws ManipulatedProjectFileException if the encrypted content fails its check. The sink may
+     *   already have received media of the valid part, the result of the call MUST then be discarded.
+     * @throws UnsupportedEncryptionVersionException if the encryption is newer than this application knows.
      */
     @JvmOverloads
-    fun read(input: InputStream, sink: MediaSink, limits: StorageLimits = StorageLimits()): ProjectFile {
+    fun read(
+        input: InputStream,
+        sink: MediaSink,
+        limits: StorageLimits = StorageLimits(),
+        password: CharArray? = null,
+    ): ProjectFile {
         try {
-            return ZipInputStream(NonClosingInputStream(input)).use { zip -> readEntries(zip, sink, limits) }
+            val pushback = PushbackInputStream(NonClosingInputStream(input), EncryptionHeader.MAGIC.size)
+            val head = pushback.readNBytes(EncryptionHeader.MAGIC.size)
+            pushback.unread(head)
+            val encrypted = head.contentEquals(EncryptionHeader.MAGIC)
+            val source: InputStream = if (encrypted) ProjectCipher.openInput(pushback, password) else pushback
+            return ZipInputStream(NonClosingInputStream(source)).use { zip ->
+                val file = readEntries(zip, sink, limits)
+                // the ZIP reader stops at its last entry; the rest must be read so the last block is checked
+                if (encrypted) source.transferTo(OutputStream.nullOutputStream())
+                file
+            }
         } catch (e: IOException) {
             throw DamagedProjectFileException("The project file cannot be read: ${e.message}", e)
         } catch (e: IllegalArgumentException) {
@@ -75,8 +98,13 @@ object ProjectStorage {
      * @see read
      */
     @JvmOverloads
-    fun read(file: Path, sink: MediaSink, limits: StorageLimits = StorageLimits()): ProjectFile =
-        Files.newInputStream(file).use { read(it.buffered(BUFFER_SIZE), sink, limits) }
+    fun read(
+        file: Path,
+        sink: MediaSink,
+        limits: StorageLimits = StorageLimits(),
+        password: CharArray? = null,
+    ): ProjectFile =
+        Files.newInputStream(file).use { read(it.buffered(BUFFER_SIZE), sink, limits, password) }
 
     /**
      * Writes a project to a stream. The stream is not closed.
@@ -86,10 +114,23 @@ object ProjectStorage {
      * @param output The target stream.
      * @param project The project; the media of each reference are taken by list index.
      * @param source Delivers extension and content of every medium.
+     * @param password If given, the whole ZIP is encrypted with it; otherwise a standard ZIP is written.
+     *   The array is not changed.
      * @throws InvalidProjectFileException if the project breaks a format rule.
      * @throws IOException if reading a medium or writing fails.
      */
-    fun write(output: OutputStream, project: ProjectFile, source: MediaSource) {
+    fun write(output: OutputStream, project: ProjectFile, source: MediaSource, password: CharArray? = null) {
+        writeWithIterations(output, project, source, password, EncryptionHeader.DEFAULT_ITERATIONS)
+    }
+
+    /** Like [write], with the key derivation iteration count given; tests use a low one. */
+    internal fun writeWithIterations(
+        output: OutputStream,
+        project: ProjectFile,
+        source: MediaSource,
+        password: CharArray?,
+        iterations: Int,
+    ) {
         ProjectValidator.validate(project)
         val json = try {
             mapper.writeValueAsBytes(project)
@@ -97,8 +138,9 @@ object ProjectStorage {
             throw InvalidProjectFileException("The project cannot be written as JSON: ${e.message}", e)
         }
         val parts = measure(project, source)
+        val encrypting = password?.let { ProjectCipher.openOutput(output, it, iterations) }
 
-        ZipOutputStream(NonClosingOutputStream(output)).use { zip ->
+        ZipOutputStream(NonClosingOutputStream(encrypting ?: output)).use { zip ->
             zip.putNextEntry(storedEntry(ProjectFormat.PROJECT_FILE_NAME, json.size.toLong(), crcOf(json)))
             zip.write(json)
             zip.closeEntry()
@@ -111,6 +153,7 @@ object ProjectStorage {
                 zip.closeEntry()
             }
         }
+        encrypting?.close()
     }
 
     /**
@@ -120,12 +163,23 @@ object ProjectStorage {
      *
      * @see write
      */
-    fun write(file: Path, project: ProjectFile, source: MediaSource) {
+    fun write(file: Path, project: ProjectFile, source: MediaSource, password: CharArray? = null) {
+        writeFileWithIterations(file, project, source, password, EncryptionHeader.DEFAULT_ITERATIONS)
+    }
+
+    /** Like the file variant of [write], with the key derivation iteration count given. */
+    internal fun writeFileWithIterations(
+        file: Path,
+        project: ProjectFile,
+        source: MediaSource,
+        password: CharArray?,
+        iterations: Int,
+    ) {
         ProjectValidator.validate(project)
         val directory = file.toAbsolutePath().parent
         val temporary = Files.createTempFile(directory, ".hocal-", ".tmp")
         try {
-            Files.newOutputStream(temporary).buffered(BUFFER_SIZE).use { write(it, project, source) }
+            Files.newOutputStream(temporary).buffered(BUFFER_SIZE).use { writeWithIterations(it, project, source, password, iterations) }
             try {
                 Files.move(temporary, file, StandardCopyOption.ATOMIC_MOVE)
             } catch (e: AtomicMoveNotSupportedException) {

@@ -110,6 +110,12 @@ object StorageFixtures {
     fun save(project: ProjectFile, media: MediaSource): ByteArray =
         ByteArrayOutputStream().also { ProjectStorage.write(it, project, media) }.toByteArray()
 
+    /** Saves encrypted; the low iteration count keeps the tests fast. */
+    fun saveEncrypted(project: ProjectFile, media: MediaSource, password: String, iterations: Int = 1000): ByteArray =
+        ByteArrayOutputStream().also {
+            ProjectStorage.writeWithIterations(it, project, media, password.toCharArray(), iterations)
+        }.toByteArray()
+
     /** Asserts that every medium number of every reference still holds the content of its own details. */
     fun assertMatching(project: ProjectFile, media: MemoryMedia) {
         for (reference in project.references) {

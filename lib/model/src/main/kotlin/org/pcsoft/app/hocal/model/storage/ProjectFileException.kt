@@ -41,3 +41,27 @@ class UnsupportedFormatVersionException(
     val foundVersion: Int,
     val supportedVersion: Int,
 ) : ProjectFileException("Format version $foundVersion is newer than the supported version $supportedVersion")
+
+/** The file is encrypted but no password was given. */
+class PasswordRequiredException : ProjectFileException("The project file is encrypted, a password is required")
+
+/** The given password does not match the encrypted file. */
+class WrongPasswordException : ProjectFileException("The password does not match the project file")
+
+/**
+ * The encrypted content failed its authentication: it was manipulated, damaged or cut off.
+ */
+class ManipulatedProjectFileException(message: String, cause: Throwable? = null) :
+    ProjectFileException(message, cause)
+
+/**
+ * The file uses an encryption version or key derivation this application does not know.
+ *
+ * @property foundVersion The encryption version found in the file.
+ * @property supportedVersion The newest encryption version this application can read.
+ */
+class UnsupportedEncryptionVersionException(
+    val foundVersion: Int,
+    val supportedVersion: Int,
+    detail: String = "Encryption version $foundVersion is not supported, the newest known is $supportedVersion",
+) : ProjectFileException(detail)
