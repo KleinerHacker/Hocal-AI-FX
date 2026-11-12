@@ -430,7 +430,7 @@ unencrypted form stays a standard ZIP.
 * Stream-only reading is sequential: reading one medium or the project data scans the file up to
   that entry, and the result counts only after the whole stream was consumed and the tag verified
 * A medium is therefore read fully into memory or into a consumer while scanning; very large media
-  need a size limit, see open questions
+  need a size limit (the user setting is planned in FP-009 IP-04 and IP-08), see open questions
 * GCM limits the amount of data per key and IV; a fresh IV per save keeps this safe
 * Appending a medium (IP-04) rewrites and re-encrypts the complete file
 * Tests: round trip, wrong password, flipped byte, truncated file, header of unknown version,

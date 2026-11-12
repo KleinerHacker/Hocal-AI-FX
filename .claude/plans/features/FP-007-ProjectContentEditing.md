@@ -152,7 +152,7 @@ FP-001 IP-04, IP-05, IP-07, FP-002 IP-03 (registry).
 
 * a file is read completely before the change; an unreadable file is skipped
 * export streams from the project file, no medium is copied through memory twice
-* very large files and a size limit are open
+* very large files: the maximum image size and project size are settings (FP-009 IP-04, IP-08)
 * the overflow rule of `999` does not matter here (a new reference starts at `000`)
 
 ### IP-02: Directory Tree Menu
@@ -284,7 +284,7 @@ Open questions:
 * Delete key and the accelerator for the menu entries
 * Reference without an entry after deleting its last entry: keep or remove (open since FP-001)
 * Import of a whole directory tree, and import by drag and drop from the system
-* Size limit and error handling of very large files
+* Size limit of imported files: image size and project size are covered by FP-009 IP-08; other file sizes stay open
 * Undo and redo of deletions (not planned)
 * Moving entries and folders (drag and drop inside the project) is not part of this feature
 

@@ -485,7 +485,7 @@ IP-02, IP-03 and IP-06 can run in parallel after IP-01. IP-02 to IP-05 and IP-07
 * Decided: registry in code for further media types
 * Decided: icons are needed, but the user delivers the orientation and they are not part of any plan
 * Decided: the `ProjectManager` creates the initial new project
-* Persistence of divider positions between runs is not part of this feature
+* Persistence of divider positions between runs is not part of this feature (FP-009 IP-02)
 * Without file system access the previews are only visible in tests; a new project is empty
 
 ## 10. Feature Completion Criteria

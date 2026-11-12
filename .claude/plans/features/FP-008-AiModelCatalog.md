@@ -445,7 +445,7 @@ IP-04, IP-05, FP-003 IP-02 (menu structure), FP-003 IP-04 (progress and error di
   downloads; the circle may be a JavaFX `ProgressIndicator`, which shows the percentage inside by
   default (to be checked)
 * the progress of a row follows the model state through a view model; updates are coalesced
-* the model list is a menu entry first; a later feature plan moves it into a settings dialog, so the
+* the model list is a menu entry first; FP-009 IP-06 moves it into a settings dialog, so the
   list is a self-contained component that can be placed in another window
 * the menu entry carries no icon (icons are only planned for the File menu)
 * skills: `dialog`, `component`, `ui-styling`, `fx-component-lifecycle`, `translation`
@@ -532,7 +532,7 @@ Decided:
 * The fields for the demonstration: prompt, seed, steps, guidance and size, checked against the real
   Krea 2 workflow
 * The demonstration model is Krea 2; its conditions are checked at implementation
-* The model list is a menu entry first and moves into a settings dialog in a later separate feature plan
+* The model list is a menu entry first and moves into the settings dialog in FP-009 IP-06
 * Several downloads can run at the same time, not limited for now; the progress is shown in the rows of
   the list and in an indicator at the top right of the window (circle with percent inside and the
   number of downloads), never in the bottom right corner (generation tile, queue)

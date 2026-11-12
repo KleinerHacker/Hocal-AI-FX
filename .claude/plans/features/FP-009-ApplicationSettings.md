@@ -131,7 +131,8 @@ writing direction.
     * a finished generation tile closes automatically after N seconds (0 = stays until closed)
     * maximum number of queued jobs (default 10)
     * default for the seed: random for every send, or fixed
-    * live preview during generation on or off (the preview method of ComfyUI)
+    * live preview during generation on or off (the preview method of ComfyUI); it is a start option of
+      the service, so a change applies at the next start of the service and shows the restart hint
 * Help menu:
     * entry `About`: application name, version, short description, own licence
     * entry for the components: list of the used components with name, version and licence (libraries
@@ -234,7 +235,7 @@ Example of the shape (illustration only, not a decision on the final names):
 | IP-01 | Settings Model And Store             | POJOs, property models, `SettingsManager`, JSON file, defaults, validation  | FP-001 IP-01, IP-02                                   |
 | IP-02 | Window State Persistence             | Store and restore window bounds, state and all splitter positions           | IP-01, FP-002 IP-01                                   |
 | IP-03 | Settings Dialog Frame                | `File -> Settings`, dialog with category list, buttons, validation, hints   | IP-01, FP-003 IP-02                                   |
-| IP-04 | General Category                     | The `General` page: limits, confirmations, recent projects and their menu   | IP-03                                                 |
+| IP-04 | General Category                     | The `General` page: limits, confirmations, recent projects and their menu   | IP-03, FP-003 IP-02                                   |
 | IP-05 | View Category                        | The `View` page: choose language and appearance                             | IP-03, IP-10, IP-11                                   |
 | IP-06 | Models Category                      | Model list in the dialog, parallel download setting, waiting state          | IP-03, FP-008 IP-05, IP-06                            |
 | IP-07 | ComfyUI And Generation Categories    | The `ComfyUI` and `Generation` pages and the settings they control          | IP-03, FP-005 IP-07, FP-006 IP-02, IP-04              |
