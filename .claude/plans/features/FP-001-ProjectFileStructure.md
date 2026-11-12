@@ -198,7 +198,7 @@ The key names are fixed by IP-01.
 | IP-03 ✅ | Project ZIP Storage      | Read and write ZIP and `project.json`, validation, atomic save          | IP-01        |
 | IP-04 | Reference Media History  | Reference folders, continuous numbering 000-999, current medium, add and remove media | IP-01, IP-03 |
 | IP-05 | Virtual Tree Operations  | Edit the virtual directory structure consistently with the references   | IP-01        |
-| IP-06 | Project File Encryption  | Optional AES encryption of the project file through cipher streams      | IP-03        |
+| IP-06 ✅ | Project File Encryption | Optional AES encryption of the project file through cipher streams      | IP-03        |
 | IP-07 | Project Manager          | Singleton manager holding the one loaded project and handling all changes | IP-02, IP-03, IP-04, IP-05, IP-06 |
 
 ## 7. Implementation Plans
@@ -447,7 +447,7 @@ Every edit keeps the structure valid; every invalid edit is rejected with a defi
 * Name rules (empty, separators, case sensitivity) must be defined and documented
 * Deleting an entry never deletes media; removing a reference is a separate, explicit action
 
-### IP-06: Project File Encryption
+### IP-06: Project File Encryption ✅ COMPLETED
 
 **Objective**
 
@@ -482,10 +482,9 @@ unencrypted form stays a standard ZIP.
 **Technical Considerations**
 
 * AES-256-GCM detects a wrong password and manipulation (decided)
-* `CipherInputStream` with GCM delivers the plaintext before the tag is verified and reports a bad
-  tag only at the end of the stream; the reader therefore must not trust a result before the stream
-  is fully consumed
-* Reading is stream-only (decided): `ZipInputStream` on the `CipherInputStream`, no temporary file
+* The JDK GCM implementation holds a whole decrypted stream in memory until its tag is verified, so the
+  file is encrypted block by block (decided in IP-06), each block with its own tag
+* Reading is stream-only (decided): `ZipInputStream` on a block-decrypting stream, no temporary file
 * Stream-only reading is sequential: reading one medium or the project data scans the file up to
   that entry, and the result counts only after the whole stream was consumed and the tag verified
 * A medium is therefore read fully into memory or into a consumer while scanning; very large media
@@ -495,6 +494,24 @@ unencrypted form stays a standard ZIP.
 * Tests: round trip, wrong password, flipped byte, truncated file, header of unknown version,
   unencrypted file read without password, switching between both forms
 * Passwords never appear in logs or error messages
+
+**As Built**
+
+* Block-wise AES-256-GCM instead of one `CipherOutputStream` and `CipherInputStream`: blocks of 64 KiB,
+  each with its own 16 byte tag, so memory stays bounded and every block is verified before its data is used
+* The block IV is the base IV from the header combined with an 8 byte block counter; the header and a
+  last-block flag are authenticated data of every block, so cutting off, swapping and header changes fail
+* Header of 78 bytes: magic `HOCALENC`, version, key derivation id, iteration count, salt, base IV,
+  block size, password check value (HMAC-SHA256 of a fixed text under the derived key)
+* A wrong password is recognised by the check value before any block is read; a failed block is
+  `ManipulatedProjectFileException`, also for a cut-off file
+* After the last ZIP entry the reader consumes the rest of the stream, so the last block is verified;
+  the sink may already have received media of the valid part, the result is then to be discarded
+* `ProjectStorage.read` and `write` got the optional last parameter `password`; without it a standard
+  ZIP is written, an unencrypted file is read even when a password is passed
+* New errors: `PasswordRequiredException`, `WrongPasswordException`, `ManipulatedProjectFileException`,
+  `UnsupportedEncryptionVersionException`
+* The regression test reads a fixed encrypted file produced by an independent script following the format
 
 ### IP-07: Project Manager
 
@@ -539,12 +556,12 @@ IP-01 ✅
 ├── IP-02 ✅
 ├── IP-03 ✅
 │   ├── IP-04
-│   └── IP-06
+│   └── IP-06 ✅
 └── IP-05
 IP-07 follows after IP-02, IP-03, IP-04, IP-05 and IP-06 are completed.
 ```
 
-Completed plans: IP-01, IP-02, IP-03.
+Completed plans: IP-01, IP-02, IP-03, IP-06.
 
 IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in parallel after IP-03.
 
