@@ -47,12 +47,17 @@ class ProjectFileTest {
         assertSame(tree, file.tree)
     }
 
-    /** Two roots with equal parts are equal. */
+    /**
+     * Two roots with equal project data, references and the same tree are equal; the tree nodes are no
+     * data classes and are compared by identity.
+     */
     @Test
     fun equalityByValue() {
+        val tree = VirtualFolder()
+
         assertEquals(
-            ProjectFile(ProjectData(name = "Sample")),
-            ProjectFile(ProjectData(name = "Sample")),
+            ProjectFile(ProjectData(name = "Sample"), tree = tree),
+            ProjectFile(ProjectData(name = "Sample"), tree = tree),
         )
     }
 }
