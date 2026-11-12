@@ -18,3 +18,6 @@ rootProject.name = "hocal-ai-fx"
 
 include(":app:ui")
 project(":app:ui").name = "hocal-ui"
+
+include(":lib:model")
+project(":lib:model").name = "hocal-model"

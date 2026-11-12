@@ -6,31 +6,31 @@
 
 ## Aufgabe 1: Modul anlegen
 
-* [ ] Skills `fx-model`, `testing`, `project-docs` und `ci-pipeline` laden
-* [ ] Modul `lib/model` (`hocal-model`) in `settings.gradle.kts` eintragen
-* [ ] `lib/model/build.gradle.kts` wie `app/ui` anlegen, ohne JavaFX und ohne Anwendungs-Plugins
-* [ ] Jackson-Abhängigkeiten ergänzen, Lizenz Apache-2.0 ist im `licensee`-Check erlaubt
-* [ ] `module-info.java` anlegen, Modell-Pakete für Jackson-databind öffnen
+* [x] Skills `fx-model`, `testing`, `project-docs` und `ci-pipeline` laden
+* [x] Modul `lib/model` (`hocal-model`) in `settings.gradle.kts` eintragen
+* [x] `lib/model/build.gradle.kts` wie `app/ui` anlegen, ohne JavaFX und ohne Anwendungs-Plugins
+* [x] Jackson-Abhängigkeiten ergänzen, Lizenz Apache-2.0 ist im `licensee`-Check erlaubt
+* [x] `module-info.java` anlegen, Modell-Pakete für Jackson-databind öffnen
 * [ ] Fehlende Lizenz im erlaubten Teil dem Benutzer melden
 
 ## Aufgabe 2: POJOs und Konstanten
 
-* [ ] `ProjectData` mit Name, Beschreibung, Projekt-UUID, Autor, Zeiten, Schlagworten, Formatversion, Anwendungsversion
-* [ ] Wurzel-POJO mit Projektdaten, Referenzen und virtuellem Baum
-* [ ] Referenz-POJO mit UUID und Historien-Details je Mediumnummer `000` bis `999`
-* [ ] `VirtualNode` für Ordner und Eintrag, Eintrag trägt genau eine Referenz-UUID
-* [ ] POJO für Historien-Details eines Mediums: Prompt, Modell, Flow, Seed, Parameterwerte je Parameter-Id, leer erlaubt
-* [ ] Wertetyp der Parameterwerte mit dem Skill `fx-model` klären
-* [ ] Zusätzlich verwendete Bilder werden in den Historien-Details nicht aufgenommen
-* [ ] Alle POJOs mit Getter und Setter, wie `BeanFields` es verlangt
-* [ ] Konstanten für Formatversion und feste JSON-Schlüsselnamen
+* [x] `ProjectData` mit Name, Beschreibung, Projekt-UUID, Autor, Zeiten, Schlagworten, Formatversion, Anwendungsversion
+* [x] Wurzel-POJO mit Projektdaten, Referenzen und virtuellem Baum
+* [x] Referenz-POJO mit UUID und Historien-Details je Mediumnummer `000` bis `999`
+* [x] `VirtualNode` für Ordner und Eintrag, Eintrag trägt genau eine Referenz-UUID
+* [x] POJO für Historien-Details eines Mediums: Prompt, Modell, Flow, Seed, Parameterwerte je Parameter-Id, leer erlaubt
+* [x] Wertetyp der Parameterwerte mit dem Skill `fx-model` klären
+* [x] Zusätzlich verwendete Bilder werden in den Historien-Details nicht aufgenommen
+* [x] Alle POJOs mit Getter und Setter, wie `BeanFields` es verlangt
+* [x] Konstanten für Formatversion und feste JSON-Schlüsselnamen
 
 ## Aufgabe 3: Tests und Doku
 
-* [ ] Tests je POJO, jede Testmethode mit KDoc-Anwendungsfall
-* [ ] KDoc für alle öffentlichen Member
-* [ ] Pipeline `ci.yml` und `release.yml` auf das neue Modul prüfen
-* [ ] README-Strukturabschnitt anpassen
+* [x] Tests je POJO, jede Testmethode mit KDoc-Anwendungsfall
+* [x] KDoc für alle öffentlichen Member
+* [x] Pipeline `ci.yml` und `release.yml` auf das neue Modul prüfen
+* [x] README-Strukturabschnitt anpassen
 
 ## Abschluss
 
