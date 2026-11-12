@@ -61,7 +61,9 @@ class ReferenceProperty internal constructor() : SimpleObjectProperty<Reference?
         fields.string(uuidProperty, "uuid")
         fields.list(mediaProperty, "media")
 
-        addListener { _, _, newValue -> fields.rebind(newValue) }
+        // An invalidation listener and not a change listener: a change listener stays silent when the new object
+        // equals the old one, and the fields would then stay tied to the object that was left behind.
+        addListener { fields.rebind(get()) }
         fields.rebind(get())
     }
 

@@ -59,7 +59,9 @@ class VirtualEntryProperty internal constructor() : SimpleObjectProperty<Virtual
         fields.string(nameProperty, "name")
         fields.string(referenceProperty, "reference")
 
-        addListener { _, _, newValue -> fields.rebind(newValue) }
+        // An invalidation listener and not a change listener: a change listener stays silent when the new object
+        // equals the old one, and the fields would then stay tied to the object that was left behind.
+        addListener { fields.rebind(get()) }
         fields.rebind(get())
     }
 
