@@ -331,7 +331,8 @@ also needs FP-002 IP-01.
 * Decided: all icons may need a light and a dark variant, as far as the contrast requires it
 * Open: how the application picks the light or the dark variant - the theme, which followed the
   operating system colour scheme, was removed; proposal: `HocalIcons` reads the colour scheme of the
-  operating system once at start (`Platform.getPreferences().colorScheme`)
+  operating system once at start (`Platform.getPreferences().colorScheme`); FP-009 IP-10 replaces this
+  with an own theme and the appearance setting, which then decides the variant
 
 ## 10. Feature Completion Criteria
 

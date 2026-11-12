@@ -308,7 +308,7 @@ Open:
 * Large downloads and uploads: size limit and progress for them
 * WireMock brings transitive artifacts (for example Jetty) whose licences must pass the `licensee`
   check; unlisted licences are to be shown to the user
-* Where the server address is stored and edited (settings dialog) is a later feature
+* The server address is not edited by the user: only the local service is used and its port is chosen automatically (FP-005); no setting is planned
 * JPMS: Apache automatic modules could force a merged module as with mvvmfx; to be checked in IP-01
 
 ## 10. Feature Completion Criteria

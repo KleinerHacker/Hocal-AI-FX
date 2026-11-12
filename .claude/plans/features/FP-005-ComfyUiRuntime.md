@@ -99,7 +99,7 @@ service on the first communication, stops it when the application ends and lets 
 | IP-04 | ComfyUI Runtime Installation    | Pinned ComfyUI download, dependencies, GPU backend, verification       | IP-03                |
 | IP-05 | Service Process Management      | Start, stop, restart, health check, logs, orphan cleanup, lazy start   | IP-01, FP-004 IP-03  |
 | IP-06 | First-Start Setup Flow          | Startup check, consent dialog, progress, error handling                | IP-04, IP-05         |
-| IP-07 | Service Control In Application  | State display, restart, stop on exit and window close                  | IP-05                |
+| IP-07 | Service Control In Application  | State display, restart, stop on exit and window close                  | IP-05, FP-003 IP-02  |
 
 ## 7. Implementation Plans
 
@@ -346,6 +346,7 @@ Let the user see and control the service, and tie its life to the application.
 * stop of the service on Exit, on closing the window and on a fatal error
 * accelerator and icon for the restart entry, following the `icons` skill
 * not: the installation, settings for port and directory
+* the restart control later moves into the `ComfyUI` page of the settings dialog (FP-009 IP-07)
 
 **Affected Areas**
 

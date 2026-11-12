@@ -47,8 +47,8 @@ emerging image, a percentage and a progress bar.
 * Queue: every send is submitted at once to the queue of ComfyUI and stays enabled while runs are
   active; the input data (prompt, model, flow, images) are captured and uploaded at send time, later
   changes of the selection do not affect a waiting run
-* Models and flows are real lists: models from the ComfyUI server (`/object_info`), flows from the
-  workflow templates shipped with the application
+* Models and flows are real lists: both come from the catalog of FP-008 (model state from its file
+  check), the workflow of a flow is the flow file of the catalog
 * A send starts ComfyUI on demand and waits for it; the tile shows "starting" meanwhile
 * Progress tile:
     * pop-up at the bottom right of the main window, follows the window, does not take the focus
@@ -115,7 +115,7 @@ emerging image, a percentage and a progress bar.
 
 ## 7. Implementation Plans
 
-### IP-01: Workflow Templates And Builder
+### IP-01: Workflow Builder
 
 **Objective**
 
@@ -262,7 +262,7 @@ IP-02, FP-002 IP-01.
 **Expected Result**
 
 * a running job shows a live tile; waiting jobs are shown as one row or one collapsed line; a
-  finished job closes it by itself after a delay
+  finished job closes it by itself after a delay (the delay is a setting of FP-009 IP-07, default 5 s)
 
 **Technical Considerations**
 
@@ -326,7 +326,7 @@ Risks:
 * Latent previews appear only when ComfyUI runs with a preview method; FP-005 IP-05 must start it
   that way, and a preview is a rough picture and sometimes missing
 * The percent value of a workflow with several samplers or cached nodes is only an estimate
-* Workflow templates depend on installed models and nodes; a missing model gives a node error
+* Flow files depend on installed models and nodes; a missing model gives a node error
 * Many preview frames can flood the FX thread; coalescing is required
 * A restart of the service drops the queue; the confirmation of FP-005 IP-07 has to name the number
   of running and waiting jobs
