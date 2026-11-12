@@ -197,7 +197,7 @@ The key names are fixed by IP-01.
 | IP-02 ✅ | FX Property Models       | Create `lib/fx-model` mirroring all POJOs                              | IP-01        |
 | IP-03 ✅ | Project ZIP Storage      | Read and write ZIP and `project.json`, validation, atomic save          | IP-01        |
 | IP-04 ✅ | Reference Media History | Reference folders, continuous numbering 000-999, current medium, add and remove media | IP-01, IP-03 |
-| IP-05 | Virtual Tree Operations  | Edit the virtual directory structure consistently with the references   | IP-01        |
+| IP-05 ✅ | Virtual Tree Operations | Edit the virtual directory structure consistently with the references   | IP-01        |
 | IP-06 ✅ | Project File Encryption | Optional AES encryption of the project file through cipher streams      | IP-03        |
 | IP-07 | Project Manager          | Singleton manager holding the one loaded project and handling all changes | IP-02, IP-03, IP-04, IP-05, IP-06 |
 
@@ -434,7 +434,7 @@ removing a medium leaves a continuous numbering, and a reference never ends up w
 * The same cases run against an in-memory and the directory store; one test saves the history as ZIP
   and reads it back with numbers and media still matching
 
-### IP-05: Virtual Tree Operations
+### IP-05: Virtual Tree Operations ✅ COMPLETED
 
 **Objective**
 
@@ -464,6 +464,26 @@ Every edit keeps the structure valid; every invalid edit is rejected with a defi
 
 * Name rules (empty, separators, case sensitivity) must be defined and documented
 * Deleting an entry never deletes media; removing a reference is a separate, explicit action
+
+**As Built**
+
+* Package `org.pcsoft.app.hocal.model.tree` in `lib/model`; the operations are extension functions of
+  `ProjectFile`: `parentOf`, `createFolder`, `createEntry`, `rename`, `move`, `orphansOf`, `delete` and
+  `removeReference`; nodes are found by identity, not by value
+* Name rules in `TreeNames`: not empty, no space at the start or end, at most 255 characters, no control
+  character and none of `/ \ : * ? " < > |`, neither `.` nor `..`; siblings are unique without regard to
+  upper and lower case, folders and entries share one name space
+* The root folder always exists (`ProjectFile.tree`), has the empty name and cannot be renamed, moved or
+  deleted; reading and writing a project file reject any other root name
+* Orphaned references: when a deletion would take the last entry of a reference, `delete` changes nothing and
+  returns `false`; only with `removeOrphans = true` are these references and their media removed.
+  `orphansOf` tells beforehand which ones, so the UI can warn. This is normal control flow and no exception
+* `removeReference` removes all entries that link a reference, the reference and its media
+* The tree and the reference list change before the media are deleted; a failing store leaves a valid project
+  and only unused media behind
+* `MediaStore.deleteReference` is new; `DirectoryMediaStore` also removes the empty folder of the reference
+* Typed errors: `InvalidNameException`, `DuplicateNameException`, `NodeNotFoundException`,
+  `TreeCycleException`, `RootNodeException`, `UnknownReferenceException`
 
 ### IP-06: Project File Encryption ✅ COMPLETED
 
@@ -575,11 +595,11 @@ IP-01 ✅
 ├── IP-03 ✅
 │   ├── IP-04 ✅
 │   └── IP-06 ✅
-└── IP-05
+└── IP-05 ✅
 IP-07 follows after IP-02, IP-03, IP-04, IP-05 and IP-06 are completed.
 ```
 
-Completed plans: IP-01, IP-02, IP-03, IP-04, IP-06.
+Completed plans: IP-01, IP-02, IP-03, IP-04, IP-05, IP-06.
 
 IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in parallel after IP-03.
 
@@ -588,7 +608,8 @@ IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in paral
 * Decided: JSON with Jackson; media with file extension; continuous numbering with renumbering
   after a removal in the middle; error on overflow beyond `999`; no reference without a medium;
   the original `000` cannot be removed, so the last medium cannot be removed either
-* Reference no entry links to: keep or remove on save? - left open
+* Decided in IP-05: a reference that loses its last entry is removed with its media only when the caller
+  allows it explicitly; the caller can ask beforehand which references that would be
 * Decided: empty folders are allowed; an entry always links a reference, so there is no entry
   without one
 * Decided: a file with a newer format version is rejected
