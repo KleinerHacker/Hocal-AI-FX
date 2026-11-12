@@ -16,7 +16,7 @@ plugins {
     id("org.jetbrains.kotlin.jvm") version "2.4.20" apply false
     id("org.jetbrains.dokka") version "2.2.0" apply false
     id("org.jetbrains.kotlinx.kover") version "0.9.9" apply false
-    id("com.github.jk1.dependency-license-report") version "3.1.4" apply false
+    id("com.github.jk1.dependency-license-report") version "3.1.5" apply false
     id("org.cyclonedx.bom") version "3.4.1" apply false
     id("app.cash.licensee") version "1.14.1" apply false
 }
