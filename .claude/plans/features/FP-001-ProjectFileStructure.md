@@ -195,7 +195,7 @@ The key names are fixed by IP-01.
 |-------|--------------------------|------------------------------------------------------------------------|--------------|
 | IP-01 ✅ | Model Library And POJOs  | Create `lib/model` with project data, reference list and tree POJOs     | -            |
 | IP-02 ✅ | FX Property Models       | Create `lib/fx-model` mirroring all POJOs                              | IP-01        |
-| IP-03 | Project ZIP Storage      | Read and write ZIP and `project.json`, validation, atomic save          | IP-01        |
+| IP-03 ✅ | Project ZIP Storage      | Read and write ZIP and `project.json`, validation, atomic save          | IP-01        |
 | IP-04 | Reference Media History  | Reference folders, continuous numbering 000-999, current medium, add and remove media | IP-01, IP-03 |
 | IP-05 | Virtual Tree Operations  | Edit the virtual directory structure consistently with the references   | IP-01        |
 | IP-06 | Project File Encryption  | Optional AES encryption of the project file through cipher streams      | IP-03        |
@@ -309,7 +309,7 @@ Every POJO has a tested property counterpart; a change deep in the tree reaches 
 * Known limitation: exchanging a nested model object against an equal one keeps the old instance in
   the parent POJO, as `BeanFields.write()` compares by `==`
 
-### IP-03: Project ZIP Storage
+### IP-03: Project ZIP Storage ✅ COMPLETED
 
 **Objective**
 
@@ -346,6 +346,26 @@ The file written is read back identically; broken files fail with a clear error.
 * The ZIP itself uses the JDK API (`java.util.zip`) and needs no dependency
 * Test cases: round trip, damaged ZIP, missing `project.json`, traversal entry, dangling entry link,
   reference without medium, interrupted save
+
+**As Built**
+
+* Package `org.pcsoft.app.hocal.model.storage` in `lib/model`; the object `ProjectStorage` is the entry
+  point and holds no state
+* Stream variants (`read`, `write`) never close the streams they are given, so IP-06 can wrap them;
+  file variants save through a temporary file in the target folder and an atomic move
+* Media are not held in memory: `MediaSink` receives them while reading, `MediaSource` delivers them
+  while writing; the source is opened twice per medium (size and CRC first, content second)
+* Medium number is the list index, the ZIP entry is `<reference uuid>/<NNN>.<extension>`; the extension
+  comes from the source and is not part of the POJOs
+* `ProjectValidator` checks the format version, the references (UUID form, no duplicates, 1 to 1000 media)
+  and the entry links of the tree, for reading as well as for writing, so an invalid project is never written
+* A newer format version is detected before the full parse, so unknown fields do not hide it
+* `StorageLimits` bounds `project.json`, one medium and the number of entries
+* Errors: sealed `ProjectFileException` with `InvalidProjectFileException`, `DamagedProjectFileException`
+  and `UnsupportedFormatVersionException`; I/O errors while reading a stream are reported as damaged
+* The module descriptor of `lib/model` now requires `tools.jackson.core` and `tools.jackson.databind`
+* Tests include the deletion cases: after a medium is removed, numbers and media still belong together;
+  the regression test reads a fixed ZIP from the test resources
 
 ### IP-04: Reference Media History
 
@@ -517,14 +537,14 @@ One place owns the loaded project; no other code writes to the storage or edits 
 ```text
 IP-01 ✅
 ├── IP-02 ✅
-├── IP-03
+├── IP-03 ✅
 │   ├── IP-04
 │   └── IP-06
 └── IP-05
 IP-07 follows after IP-02, IP-03, IP-04, IP-05 and IP-06 are completed.
 ```
 
-Completed plans: IP-01, IP-02.
+Completed plans: IP-01, IP-02, IP-03.
 
 IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in parallel after IP-03.
 
