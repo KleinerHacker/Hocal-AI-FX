@@ -50,7 +50,7 @@ abstract class MediaHistoryContract {
             val content = store.open(reference.uuid, number).use { it.readAllBytes() }
             assertEquals(String(StorageFixtures.content(StorageFixtures.tag(medium))), String(content))
         }
-        MediaHistory.verify(store, reference)
+        reference.verifyMedia(store)
     }
 
     /** A new medium becomes the current one with the next number and keeps its own extension. */
@@ -60,11 +60,11 @@ abstract class MediaHistoryContract {
         val reference = reference(store, "a", "b")
         val medium = StorageFixtures.medium("c")
 
-        val number = MediaHistory.append(store, reference, medium, "webp", ByteArrayInputStream(StorageFixtures.content("c")))
+        val number = reference.appendMedium(store, medium, "webp", ByteArrayInputStream(StorageFixtures.content("c")))
 
         assertEquals(2, number)
-        assertSame(medium, MediaHistory.current(reference))
-        assertEquals(2, MediaHistory.currentNumber(reference))
+        assertSame(medium, reference.currentMedium)
+        assertEquals(2, reference.currentNumber)
         assertEquals("webp", store.extension(FIRST, 2))
         assertEquals("png", store.extension(FIRST, 0))
         assertEquals("jpg", store.extension(FIRST, 1))
@@ -82,7 +82,7 @@ abstract class MediaHistoryContract {
         }
 
         assertThrows(MediaHistoryFullException::class.java) {
-            MediaHistory.append(store, reference, Medium(), "png", ByteArrayInputStream(byteArrayOf(2)))
+            reference.appendMedium(store, Medium(), "png", ByteArrayInputStream(byteArrayOf(2)))
         }
 
         assertEquals(1000, reference.media.size)
@@ -101,7 +101,7 @@ abstract class MediaHistoryContract {
         }
 
         assertThrows(IOException::class.java) {
-            MediaHistory.append(failing, reference, Medium(), "png", ByteArrayInputStream(byteArrayOf(1)))
+            reference.appendMedium(failing, Medium(), "png", ByteArrayInputStream(byteArrayOf(1)))
         }
 
         assertEquals(listOf("a"), tags(reference))
@@ -115,7 +115,7 @@ abstract class MediaHistoryContract {
             val store = newStore()
             val reference = reference(store, "a", "b", "c", "d")
 
-            MediaHistory.remove(store, reference, index)
+            reference.removeMedium(store, index)
 
             assertEquals(remaining, tags(reference))
             assertPaired(store, reference)
@@ -128,7 +128,7 @@ abstract class MediaHistoryContract {
         val store = newStore()
         val reference = reference(store, "a", "b", "c")
 
-        MediaHistory.remove(store, reference, 1)
+        reference.removeMedium(store, 1)
 
         assertEquals("png", store.extension(FIRST, 0))
         assertEquals("webp", store.extension(FIRST, 1))
@@ -140,10 +140,10 @@ abstract class MediaHistoryContract {
         val store = newStore()
         val reference = reference(store, "a", "b", "c")
 
-        MediaHistory.remove(store, reference, 2)
+        reference.removeMedium(store, 2)
 
-        assertEquals("b", StorageFixtures.tag(MediaHistory.current(reference)))
-        assertEquals(1, MediaHistory.currentNumber(reference))
+        assertEquals("b", StorageFixtures.tag(reference.currentMedium))
+        assertEquals(1, reference.currentNumber)
     }
 
     /** The original `000` cannot be removed, so the last medium never is either. */
@@ -152,9 +152,9 @@ abstract class MediaHistoryContract {
         val store = newStore()
         val reference = reference(store, "a", "b")
 
-        assertThrows(OriginalMediumException::class.java) { MediaHistory.remove(store, reference, 0) }
-        MediaHistory.remove(store, reference, 1)
-        assertThrows(OriginalMediumException::class.java) { MediaHistory.remove(store, reference, 0) }
+        assertThrows(OriginalMediumException::class.java) { reference.removeMedium(store, 0) }
+        reference.removeMedium(store, 1)
+        assertThrows(OriginalMediumException::class.java) { reference.removeMedium(store, 0) }
 
         assertEquals(listOf("a"), tags(reference))
         assertPaired(store, reference)
@@ -166,8 +166,8 @@ abstract class MediaHistoryContract {
         val store = newStore()
         val reference = reference(store, "a", "b")
 
-        assertThrows(MediumNotFoundException::class.java) { MediaHistory.remove(store, reference, 2) }
-        assertThrows(MediumNotFoundException::class.java) { MediaHistory.remove(store, reference, -1) }
+        assertThrows(MediumNotFoundException::class.java) { reference.removeMedium(store, 2) }
+        assertThrows(MediumNotFoundException::class.java) { reference.removeMedium(store, -1) }
 
         assertPaired(store, reference)
     }
@@ -177,7 +177,7 @@ abstract class MediaHistoryContract {
     fun verifyAcceptsConsistentHistory() {
         val store = newStore()
 
-        MediaHistory.verify(store, reference(store, "a", "b"))
+        reference(store, "a", "b").verifyMedia(store)
     }
 
     /** `verify` reports a gap, an extra medium and a reference without medium. */
@@ -191,10 +191,10 @@ abstract class MediaHistoryContract {
         extra.accept(FIRST, 1, "png", ByteArrayInputStream(byteArrayOf(1)))
         val none = newStore()
 
-        assertThrows(InconsistentHistoryException::class.java) { MediaHistory.verify(gap, gapReference) }
-        assertThrows(InconsistentHistoryException::class.java) { MediaHistory.verify(extra, extraReference) }
-        assertThrows(InconsistentHistoryException::class.java) { MediaHistory.verify(none, Reference(FIRST)) }
-        assertThrows(InconsistentHistoryException::class.java) { MediaHistory.current(Reference(FIRST)) }
+        assertThrows(InconsistentHistoryException::class.java) { gapReference.verifyMedia(gap) }
+        assertThrows(InconsistentHistoryException::class.java) { extraReference.verifyMedia(extra) }
+        assertThrows(InconsistentHistoryException::class.java) { Reference(FIRST).verifyMedia(none) }
+        assertThrows(InconsistentHistoryException::class.java) { Reference(FIRST).currentMedium }
     }
 
     /** After appending and removing, the project is saved and read back with numbers and media still matching. */
@@ -202,9 +202,9 @@ abstract class MediaHistoryContract {
     fun savedHistoryKeepsNumbersAndMedia() {
         val store = newStore()
         val reference = reference(store, "a", "b", "c")
-        MediaHistory.remove(store, reference, 1)
-        MediaHistory.append(store, reference, StorageFixtures.medium("d"), "png", ByteArrayInputStream(StorageFixtures.content("d")))
-        MediaHistory.remove(store, reference, 1)
+        reference.removeMedium(store, 1)
+        reference.appendMedium(store, StorageFixtures.medium("d"), "png", ByteArrayInputStream(StorageFixtures.content("d")))
+        reference.removeMedium(store, 1)
         val project = ProjectFile(
             references = mutableListOf(reference),
             tree = VirtualFolder().apply { children.add(VirtualEntry().apply { name = "x"; this.reference = FIRST }) },

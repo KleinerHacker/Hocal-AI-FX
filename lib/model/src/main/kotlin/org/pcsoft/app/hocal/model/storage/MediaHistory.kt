@@ -34,77 +34,77 @@ class MediumNotFoundException(val reference: String, val number: Int) :
 /** The history details and the media in the store do not belong together. */
 class InconsistentHistoryException(message: String) : MediaHistoryException(message)
 
-/**
+/*
  * The operations on the media history of a [Reference]: the last medium is the current one, a new
  * medium is appended, any medium but the original can be removed and the following ones move down.
  *
  * The details of a medium are part of the [Medium] in the list, so they follow it automatically; the
  * content in the [MediaStore] is moved in step. If the store fails midway, the list and the store may
- * differ; call [verify] then, or reload the project.
+ * differ; call [verifyMedia] then, or reload the project.
  */
-object MediaHistory {
 
-    /** The current medium: the last one of the history. */
-    fun current(reference: Reference): Medium =
-        reference.media.lastOrNull()
-            ?: throw InconsistentHistoryException("Reference ${reference.uuid} has no medium")
+/** The current medium: the last one of the history. */
+val Reference.currentMedium: Medium
+    get() = media.lastOrNull() ?: throw InconsistentHistoryException("Reference $uuid has no medium")
 
-    /** The number of the current medium. */
-    fun currentNumber(reference: Reference): Int {
-        current(reference)
-        return reference.media.size - 1
+/** The number of the current medium. */
+val Reference.currentNumber: Int
+    get() {
+        currentMedium
+        return media.size - 1
     }
 
-    /**
-     * Appends a medium as the new current one: highest number plus one.
-     *
-     * The content goes into the store first, the list is extended afterwards, so a failing store leaves
-     * the list untouched.
-     *
-     * @param content The content of the medium; it is not closed.
-     * @return the number of the new medium.
-     * @throws MediaHistoryFullException if the history already holds 1000 media.
-     */
-    fun append(store: MediaStore, reference: Reference, medium: Medium, extension: String, content: InputStream): Int {
-        val number = reference.media.size
-        if (number > ProjectFormat.MEDIUM_MAX) throw MediaHistoryFullException(reference.uuid)
-        store.accept(reference.uuid, number, extension, content)
-        reference.media.add(medium)
-        return number
-    }
+/**
+ * Appends a medium as the new current one: highest number plus one.
+ *
+ * The content goes into the store first, the list is extended afterwards, so a failing store leaves
+ * the list untouched.
+ *
+ * @param store The store that holds the content of the media.
+ * @param medium The details of the new medium.
+ * @param extension The file extension of the new medium, without dot.
+ * @param content The content of the medium; it is not closed.
+ * @return the number of the new medium.
+ * @throws MediaHistoryFullException if the history already holds 1000 media.
+ */
+fun Reference.appendMedium(store: MediaStore, medium: Medium, extension: String, content: InputStream): Int {
+    val number = media.size
+    if (number > ProjectFormat.MEDIUM_MAX) throw MediaHistoryFullException(uuid)
+    store.accept(uuid, number, extension, content)
+    media.add(medium)
+    return number
+}
 
-    /**
-     * Removes a medium and renumbers the following ones without gap. When the current medium is
-     * removed, its predecessor becomes the current one.
-     *
-     * @throws MediumNotFoundException if the number does not exist.
-     * @throws OriginalMediumException for the number `000`.
-     */
-    fun remove(store: MediaStore, reference: Reference, number: Int) {
-        if (number !in reference.media.indices) throw MediumNotFoundException(reference.uuid, number)
-        if (number == ProjectFormat.MEDIUM_MIN) throw OriginalMediumException(reference.uuid)
-        store.delete(reference.uuid, number)
-        for (next in number + 1 until reference.media.size) {
-            store.move(reference.uuid, next, next - 1)
-        }
-        reference.media.removeAt(number)
+/**
+ * Removes a medium and renumbers the following ones without gap. When the current medium is
+ * removed, its predecessor becomes the current one.
+ *
+ * @param store The store that holds the content of the media.
+ * @param number The number of the medium to remove.
+ * @throws MediumNotFoundException if the number does not exist.
+ * @throws OriginalMediumException for the number `000`.
+ */
+fun Reference.removeMedium(store: MediaStore, number: Int) {
+    if (number !in media.indices) throw MediumNotFoundException(uuid, number)
+    if (number == ProjectFormat.MEDIUM_MIN) throw OriginalMediumException(uuid)
+    store.delete(uuid, number)
+    for (next in number + 1 until media.size) {
+        store.move(uuid, next, next - 1)
     }
+    media.removeAt(number)
+}
 
-    /**
-     * Checks that the media in the store are exactly the numbers `000` to the last one of the history.
-     *
-     * @throws InconsistentHistoryException on a missing medium, a gap or an extra medium.
-     */
-    fun verify(store: MediaStore, reference: Reference) {
-        if (reference.media.isEmpty()) {
-            throw InconsistentHistoryException("Reference ${reference.uuid} has no medium")
-        }
-        val expected = reference.media.indices.toList()
-        val actual = store.numbers(reference.uuid)
-        if (actual != expected) {
-            throw InconsistentHistoryException(
-                "Media of reference ${reference.uuid} are $actual but the history needs $expected",
-            )
-        }
+/**
+ * Checks that the media in the store are exactly the numbers `000` to the last one of the history.
+ *
+ * @param store The store that holds the content of the media.
+ * @throws InconsistentHistoryException on a missing medium, a gap or an extra medium.
+ */
+fun Reference.verifyMedia(store: MediaStore) {
+    if (media.isEmpty()) throw InconsistentHistoryException("Reference $uuid has no medium")
+    val expected = media.indices.toList()
+    val actual = store.numbers(uuid)
+    if (actual != expected) {
+        throw InconsistentHistoryException("Media of reference $uuid are $actual but the history needs $expected")
     }
 }
