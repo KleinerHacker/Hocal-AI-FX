@@ -199,7 +199,7 @@ The key names are fixed by IP-01.
 | IP-04 ✅ | Reference Media History | Reference folders, continuous numbering 000-999, current medium, add and remove media | IP-01, IP-03 |
 | IP-05 ✅ | Virtual Tree Operations | Edit the virtual directory structure consistently with the references   | IP-01        |
 | IP-06 ✅ | Project File Encryption | Optional AES encryption of the project file through cipher streams      | IP-03        |
-| IP-07 | Project Manager          | Singleton manager holding the one loaded project and handling all changes | IP-02, IP-03, IP-04, IP-05, IP-06 |
+| IP-07 ✅ | Project Manager         | Singleton manager holding the one loaded project and handling all changes | IP-02, IP-03, IP-04, IP-05, IP-06 |
 
 ## 7. Implementation Plans
 
@@ -551,7 +551,7 @@ unencrypted form stays a standard ZIP.
   `UnsupportedEncryptionVersionException`
 * The regression test reads a fixed encrypted file produced by an independent script following the format
 
-### IP-07: Project Manager
+### IP-07: Project Manager ✅ COMPLETED
 
 **Objective**
 
@@ -587,6 +587,30 @@ One place owns the loaded project; no other code writes to the storage or edits 
 * Saving sets the time of the last change and the application version
 * The singleton state must be resettable for tests
 
+**As Built**
+
+* `ProjectManager` is a Kotlin `object` in the package `org.pcsoft.app.hocal.fx.model.manager` of `lib/fx-model`
+  (exported in the module descriptor, `javafx.base` only); the loaded project is held as a `ProjectFileProperty`
+  in `project`
+* Read-only properties: `loadedProperty`, `pathProperty`, `dirtyProperty` and `encryptedProperty`
+* The media of the open project live in a `DirectoryMediaStore` in a temporary folder that is created per session
+  (below `workRoot` if set) and removed on close
+* `createNew` and `open` fail with `IllegalStateException` while a project is loaded; `close(discardChanges)` is the
+  place where unsaved changes matter and answers `false` instead of throwing, as does `delete` of IP-05
+* `save` uses the path and the password of the project, `saveAs(path, password?)` is the only way to change the
+  password or to switch between the encrypted and the unencrypted form; there is no separate method for it
+* The password of `open` or `saveAs` is kept as a copy for `save` and overwritten on close
+* Saving sets the time of the last change and the application version (`applicationVersion`, set by the application)
+* The operations of IP-04 and IP-05 are offered by the manager (`createFolder`, `createEntry`, `rename`, `move`,
+  `orphansOf`, `delete`, `removeReference`, `addReference`, `appendMedium`, `removeMedium`, `openMedium`,
+  `mediumExtension`); after a successful change the property model reads the project again and the project
+  counts as changed; a rejected change leaves everything as it was
+* A field edited through a property model of `project` marks the project as changed as well
+* `javafx.base` has no `Platform`, so the FX thread is checked through `threadCheck`, which the application sets at
+  start; every operation fails if it answers `false`
+* Reading and writing a file blocks the caller
+* `resetForTests` sets the singleton back to the start
+
 ## 8. Dependency Graph
 
 ```text
@@ -596,10 +620,10 @@ IP-01 ✅
 │   ├── IP-04 ✅
 │   └── IP-06 ✅
 └── IP-05 ✅
-IP-07 follows after IP-02, IP-03, IP-04, IP-05 and IP-06 are completed.
+IP-07 ✅ followed after IP-02, IP-03, IP-04, IP-05 and IP-06 were completed.
 ```
 
-Completed plans: IP-01, IP-02, IP-03, IP-04, IP-05, IP-06.
+Completed plans: IP-01, IP-02, IP-03, IP-04, IP-05, IP-06, IP-07.
 
 IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in parallel after IP-03.
 
