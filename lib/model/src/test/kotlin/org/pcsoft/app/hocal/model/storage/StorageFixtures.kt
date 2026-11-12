@@ -21,13 +21,15 @@ import org.pcsoft.app.hocal.model.project.VirtualFolder
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
+import java.nio.file.FileAlreadyExistsException
+import java.nio.file.NoSuchFileException
 import java.time.Instant
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
 /** Media held in memory; usable as source and as sink. Content and details carry the same tag. */
-class MemoryMedia : MediaSource, MediaSink {
+class MemoryMedia : MediaStore {
 
     val extensions = LinkedHashMap<String, String>()
     val contents = LinkedHashMap<String, ByteArray>()
@@ -46,6 +48,21 @@ class MemoryMedia : MediaSource, MediaSink {
     override fun accept(reference: String, number: Int, extension: String, content: InputStream) {
         put(reference, number, extension, content.readAllBytes())
     }
+
+    override fun delete(reference: String, number: Int) {
+        if (contents.remove(key(reference, number)) == null) throw NoSuchFileException(key(reference, number))
+        extensions.remove(key(reference, number))
+    }
+
+    override fun move(reference: String, from: Int, to: Int) {
+        if (contents.containsKey(key(reference, to))) throw FileAlreadyExistsException(key(reference, to))
+        val content = contents.remove(key(reference, from)) ?: throw NoSuchFileException(key(reference, from))
+        val extension = extensions.remove(key(reference, from))!!
+        put(reference, to, extension, content)
+    }
+
+    override fun numbers(reference: String): List<Int> =
+        contents.keys.filter { it.startsWith("$reference/") }.map { it.substringAfter('/').toInt() }.sorted()
 
     companion object {
         fun key(reference: String, number: Int) = "$reference/$number"
