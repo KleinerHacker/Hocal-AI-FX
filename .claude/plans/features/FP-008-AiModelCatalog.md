@@ -89,6 +89,9 @@ Hugging Face on demand).
     * every target points to an existing node and input of the workflow; the required standard keys
       are present; the default fits the type and the limits; parameter ids are unique within the flow
       entry; the `mode` is one of the three values
+    * a flow file that contains a blocked node (the list `BlockedNodes` of FP-004, for example
+      `GemmaAPITextEncode`) is rejected; the loader receives the blocked types as a parameter, so
+      `lib/ai-model` keeps no dependency on `lib/comfy`
     * errors name the file and the field
 * Model list in the main window (opened from a menu entry; a model that is not installed offers it
   as a hint):
@@ -259,7 +262,8 @@ Read the catalog from the resources safely.
 **Scope**
 
 * loader: index file, model files, flow files; resolution of the flow references
-* the validation rules of section 4 with precise errors
+* the validation rules of section 4 with precise errors, including the rejection of flow files that
+  contain a blocked node
 * the read-only `ModelCatalog` API
 * tests with test resources: a valid catalog and every error case
 * not: the real demonstration model
@@ -464,6 +468,7 @@ Give Claude a repeatable way to add a new model, or a new flow for an existing m
 * the procedures for a new model: licence and gating check, repository, pinned revision, files with
   target directory, size and checksum, model file, index entry, at least one flow
 * the demonstration model of IP-03 serves as the worked example
+* the procedure for a new flow checks that the flow contains no blocked node and says so in the report
 * not: changes of production code, download or run of a model, adding gated models
 
 **Affected Areas**

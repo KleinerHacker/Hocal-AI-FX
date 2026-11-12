@@ -44,6 +44,14 @@ service on the first communication, stops it when the application ends and lets 
 * ComfyUI always comes from the application's own installation; an existing or external ComfyUI is
   neither configured nor used, and the application never stops a process it did not start
 * The service listens on a free port chosen by the application at each start
+* The service runs offline and without paid or cloud nodes: it is started with `--offline` (switches
+  off the paid API nodes); an engine version that does not know this switch is started with the older
+  `--disable-api-nodes` instead
+* The node `GemmaAPITextEncode` is blocked on two ways: through the built-in list of disabled nodes of
+  ComfyUI 0.42 and in the application before a workflow is submitted (FP-004 IP-03); flow files that
+  contain it are rejected when the catalog is read (FP-008 IP-02)
+* Telemetry of the started process is switched off with the environment variables `DO_NOT_TRACK=1` and
+  `HF_HUB_DISABLE_TELEMETRY=1`
 * States visible to the user: not installed, installing, stopped, starting, running, failed
 
 ### Technical Requirements
@@ -248,6 +256,13 @@ Run ComfyUI as a controlled background service.
   process
 * PID file and cleanup of an orphaned service of an earlier crashed run
 * JVM shutdown hook as safety net
+* offline start: pick `--offline` or, for an older engine, `--disable-api-nodes` by probing which of
+  the two switches the installed ComfyUI knows (its `--help` output), cached per installed version
+* if the engine knows neither switch the start is refused with a clear error; the process never runs
+  with the paid nodes enabled
+* hand `GemmaAPITextEncode` to the built-in list of disabled nodes of ComfyUI 0.42, in the way that
+  version provides it (checked against the documentation at implementation)
+* start environment: `DO_NOT_TRACK=1`, `HF_HUB_DISABLE_TELEMETRY=1` set on the child process
 * not: installation, user interface
 
 **Affected Areas**
@@ -269,6 +284,11 @@ IP-01, FP-004 IP-03. Can run in parallel to IP-02 to IP-04 with a configured exe
 * an undrained output pipe blocks the child process; the reader runs on its own thread
 * the free port is handed to `ComfyConfig` of FP-004 before the client is used; the client and the
   event hook therefore take the address from the service, not from a fixed default
+* an unknown switch makes ComfyUI exit at once; the probe therefore runs before the real start and
+  the version of the engine is not compared by number
+* `--offline` stops the paid nodes only; it does not make the process refuse the network for
+  downloads of models done by FP-008 (that is the application's own download)
+* the telemetry variables are set for the child process only, not for the application itself
 
 ### IP-06: First-Start Setup Flow
 
@@ -374,6 +394,9 @@ Risks:
 * Disk space of 10 GB and more; the check happens before the download
 * Offline use, proxies, interrupted downloads
 * Antivirus software may flag or block a freshly downloaded Python or process start
+* The switches `--offline` and `--disable-api-nodes` and the node block list of ComfyUI 0.42 come from
+  the user; they could not be verified against docs.comfy.org (not reachable from the planning
+  session); a changed switch name in a later engine version would stop the start
 * FP-004 states that the application does not start ComfyUI; this feature supersedes it, FP-004
   stays as it is because the client remains independent of the process
 
@@ -386,6 +409,10 @@ Decided:
 * The installation runs completely in the splash screen; the main window opens afterwards
 * A free port is chosen at each service start
 * Declining or cancelling the installation ends the application
+* The service starts with `--offline`, or with `--disable-api-nodes` where the engine does not know
+  `--offline`; telemetry is off (`DO_NOT_TRACK=1`, `HF_HUB_DISABLE_TELEMETRY=1`)
+* `GemmaAPITextEncode` is blocked in the engine list and in the application (before submit and when
+  flow files are read)
 
 Open questions:
 
@@ -405,6 +432,8 @@ Open questions:
 * After closing the application, also after a crash and a new start, no ComfyUI process of the
   application remains
 * The user can restart the service from the application; foreign processes are never stopped
+* ComfyUI runs with the paid API nodes switched off and with telemetry disabled; a workflow with
+  `GemmaAPITextEncode` is refused before it is sent
 * A cancelled or failed installation leaves no half-installed state; a retry works
 * No Java FX in `lib/comfy-runtime`; tests run without network and without a real ComfyUI
 * The Gradle `build` passes; README, KDoc and the CI pipeline describe the new module

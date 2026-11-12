@@ -16,26 +16,36 @@
 * [ ] Auf Bereitschaft warten über `systemStats` der Fassade, mit Zeitlimit
 * [ ] Ausgabekanäle laufend auf eigenem Thread in eine Logdatei mit Rotation schreiben
 
-## Aufgabe 3: Lazy-Start
+## Aufgabe 3: Offline-Betrieb und Datenschutz
+
+* [ ] Unterstützten Schalter prüfen: Ausgabe von `--help` der installierten Engine nach `--offline` durchsuchen
+* [ ] Mit `--offline` starten, sonst mit dem älteren `--disable-api-nodes`, Ergebnis je Version zwischenspeichern
+* [ ] Kennt die Engine keinen der beiden Schalter, Start mit klarem Fehler verweigern, nie mit Bezahl-Knoten starten
+* [ ] `GemmaAPITextEncode` in die eingebaute Liste abgeschalteter Knoten von ComfyUI 0.42 eintragen, Weg anhand der Doku klären
+* [ ] Umgebung des Kindprozesses: `DO_NOT_TRACK=1` und `HF_HUB_DISABLE_TELEMETRY=1`, nur für den Kindprozess
+* [ ] Schalternamen und Liste gegen die ComfyUI-Dokumentation prüfen, in der Planung nicht erreichbar
+
+## Aufgabe 4: Lazy-Start
 
 * [ ] `ensureRunning()` startet den Dienst bei der ersten Kommunikation
 * [ ] Sicher gegen gleichzeitige Aufrufer
 * [ ] Vorschaltschicht vor der Fassade, `ComfyClient` bleibt prozessunabhängig
 
-## Aufgabe 4: Stop und Neustart
+## Aufgabe 5: Stop und Neustart
 
 * [ ] Stop zuerst sauber, dann erzwungen, einschließlich Kindprozessen
 * [ ] Neustart; bei laufender Erzeugung über die Warteschlange warnen
 * [ ] Fremde Prozesse nie beenden
 
-## Aufgabe 5: Absturzsicherung
+## Aufgabe 6: Absturzsicherung
 
 * [ ] PID-Datei schreiben und verwaisten Dienst beim nächsten Start aufräumen
 * [ ] JVM-Shutdown-Hook als Absicherung
 
-## Aufgabe 6: Tests und Doku
+## Aufgabe 7: Tests und Doku
 
 * [ ] Tests mit Attrappenprozess: Start, Bereitschaft, Zeitlimit, Stop, Neustart, Verwaisung
+* [ ] Tests: Schalterwahl bei beiden Engine-Arten, kein Schalter bekannt, Umgebungsvariablen am Prozess
 * [ ] KDoc und README prüfen
 
 ## Abschluss

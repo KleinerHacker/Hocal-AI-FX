@@ -26,6 +26,7 @@
 * [ ] Flow als unveränderten ComfyUI-API-Export in `flows/<flow>.json` ablegen, nichts aus Beispielen kopieren
 * [ ] Flow-Eintrag in der Modell-Datei ergänzen: Standardfelder, Ziele, Parameter mit `mode`
 * [ ] Ziele `"<Knoten-Id>.<Eingabe>"` gegen den Flow prüfen, Datei-Ids des Modells binden
+* [ ] Flow auf gesperrte Knotentypen prüfen, etwa `GemmaAPITextEncode`, solche Flows nicht aufnehmen
 * [ ] Flow als ungeprüft markieren, bis er gegen ein echtes ComfyUI läuft
 * [ ] Katalog-Test ausführen
 

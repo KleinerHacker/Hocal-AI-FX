@@ -17,6 +17,8 @@
 
 * [ ] `submit`: `POST /prompt` mit `client_id`, Ergebnis `prompt_id` und Warteschlangennummer
 * [ ] Abgelehnten Workflow als Ausnahme mit Knotenfehlerliste melden
+* [ ] `BlockedNodes` mit gesperrten Knotentypen, enthält `GemmaAPITextEncode`, öffentlich lesbar
+* [ ] `submit` prüft vor dem Aufruf alle Knoten und verweigert gesperrte mit typisierter Ausnahme
 * [ ] `history` für eine Ausführung und als Liste
 * [ ] `view` lädt eine Ausgabedatei, `upload` lädt ein Eingabebild hoch
 * [ ] `objectInfo` liefert den Knotenkatalog als JSON-Baum, groß, nicht tief parsen
@@ -26,6 +28,7 @@
 ## Aufgabe 4: Tests und Doku
 
 * [ ] WireMock-Tests je Operation, Erfolg und Fehlerfall
+* [ ] Test: Workflow mit gesperrtem Knoten wird nicht gesendet, es gibt keinen Aufruf am Server
 * [ ] KDoc mit Anwendungsfall, README prüfen
 
 ## Abschluss

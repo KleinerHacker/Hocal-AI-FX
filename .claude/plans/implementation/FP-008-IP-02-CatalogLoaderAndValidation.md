@@ -23,13 +23,16 @@
 * [ ] Jede Datei hat SHA-256, positive Größe und bekannten Zielordner
 * [ ] Pflicht-Standardfelder vorhanden, Ziele zeigen auf vorhandene Knoten und Eingaben des Workflows
 * [ ] Vorgabe passt zu Typ und Grenzen, `mode` ist einer der drei Werte
+* [ ] Flow-Datei mit gesperrtem Knotentyp wie `GemmaAPITextEncode` wird abgelehnt
+* [ ] Lader bekommt die gesperrten Typen als Parameter, keine Abhängigkeit auf `lib/comfy`
 * [ ] Fehler nennen Datei und Feld
 
 ## Aufgabe 4: API und Tests
 
 * [ ] `ModelCatalog`: Modelle auflisten, Modell nach Id, Flow-Einträge eines Modells, Workflow eines Flows
 * [ ] `CatalogException`-Hierarchie für jeden Fehlerfall
-* [ ] Tests mit Testressourcen: gültiger Katalog und jeder Fehlerfall, KDoc und README prüfen
+* [ ] Tests mit Testressourcen: gültiger Katalog und jeder Fehlerfall, auch Flow mit gesperrtem Knoten
+* [ ] KDoc und README prüfen
 
 ## Abschluss
 
