@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.pcsoft.app.hocal.app.HocalTheme
 import org.pcsoft.app.hocal.app.Messages
 import org.testfx.framework.junit5.ApplicationTest
 import java.text.MessageFormat
@@ -76,15 +75,6 @@ class MainWindowIT : ApplicationTest() {
 
         assertEquals("_Datei", fileMenu.text)
         assertEquals(listOf("_Beenden"), fileMenu.items.map { it.text })
-    }
-
-    /**
-     * Use case: the main window is decorated with the global application theme, so its controls are
-     * rendered in the colours and shapes of the product design.
-     */
-    @Test
-    fun windowUsesTheApplicationTheme() {
-        assertEquals(HocalTheme.stylesheets, window.scene.stylesheets.toList())
     }
 
     /**

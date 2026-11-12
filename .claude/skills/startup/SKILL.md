@@ -20,7 +20,7 @@ description: The background area behind the splash screen that runs every job th
   2. `Startup.discoverSteps()` scans the package `org.pcsoft.app.hocal.app.startup.step` with
      ClassGraph for `StartupStep` implementations, builds each one and sorts them by `@StartupOrder`
   3. every step runs, one after another
-  4. `Startup.run` calls its `onDone` on the FX thread; `Launcher` then installs the theme, shows
+  4. `Startup.run` calls its `onDone` on the FX thread; `Launcher` then shows
      the main window and fades the splash out
 * `Launcher` (`app/ui/src/main/kotlin/org/pcsoft/app/hocal/app/Launcher.kt`) is the only caller of
   `Startup.run`.
@@ -44,7 +44,7 @@ description: The background area behind the splash screen that runs every job th
   a step without the annotation runs at `StartupOrder.DEFAULT` (0); a step reading the preferences
   belongs at `@StartupOrder(0)` and everything that needs them ranks above it
 * A step runs on the startup background thread - keep file and network work here
-* Work that needs the FX thread (a dialog, a stage, the theme) MUST go through
+* Work that needs the FX thread (a dialog, a stage) MUST go through
   `StartupContext.onFxThread { ... }`; never touch the toolkit directly from a step
 * Reach the running application through `StartupContext.app` (to stop it, to read its parameters) -
   never through a constructor argument, the scan cannot pass one
