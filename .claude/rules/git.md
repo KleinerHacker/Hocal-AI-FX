@@ -14,17 +14,13 @@ name: git and GitHub
     * they MUST be added and committed like every other file, status files included
     * this applies to feature plans, implementation plans and their status files
 
-## Pull Requests
+## Branches
 
-* ONE pull request per Feature Plan
-    * ALL implementation plans of a Feature Plan are delivered through the same branch and the same pull
-      request
-    * A new pull request is opened only for the next Feature Plan, never per implementation plan
-* The user creates the pull request; the session subscribes to it and waits for the GitHub build
-* An implementation plan counts as finished only after the GitHub build of its last push is green
-    * Waiting for the GitHub build is ALWAYS required; a local build is not a replacement
-* After the pull request of a Feature Plan is merged, the next Feature Plan starts on a fresh branch from
-  the latest default branch
+* ONE branch and ONE pull request per Feature Plan
+    * ALL implementation plans of a Feature Plan are delivered through that one branch
+    * The branch is named after its Feature Plan: `FP-<NUMBER>-<FeatureName>`, exactly as in the file
+      name of the Feature Plan (`FP-001-ProjectFileStructure`)
+    * A new branch is started only for the next Feature Plan, never per implementation plan
 
 ## Target Environment
 
