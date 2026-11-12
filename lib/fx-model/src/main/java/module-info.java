@@ -9,4 +9,7 @@ module org.pcsoft.app.hocal.fx.model {
 
     // The property models mirroring the plain model types are the public surface.
     exports org.pcsoft.app.hocal.fx.model.project;
+
+    // The singleton that owns the loaded project and is the only way to change it.
+    exports org.pcsoft.app.hocal.fx.model.manager;
 }
