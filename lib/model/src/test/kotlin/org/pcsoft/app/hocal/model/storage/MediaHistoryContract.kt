@@ -218,4 +218,18 @@ abstract class MediaHistoryContract {
         assertEquals(listOf("a", "d"), tags(read.references[0]))
         StorageFixtures.assertMatching(read, sink)
     }
+
+    /** Removing a reference removes all its media and leaves other references alone; an unknown one is no error. */
+    @Test
+    fun deleteReferenceRemovesAllMedia() {
+        val store = newStore()
+        reference(store, "a", "b", "c")
+        store.accept(StorageFixtures.SECOND, 0, "png", ByteArrayInputStream(byteArrayOf(1)))
+
+        store.deleteReference(FIRST)
+        store.deleteReference("unknown")
+
+        assertEquals(emptyList<Int>(), store.numbers(FIRST))
+        assertEquals(listOf(0), store.numbers(StorageFixtures.SECOND))
+    }
 }

@@ -35,4 +35,9 @@ interface MediaStore : MediaSource, MediaSink {
 
     /** The numbers of all media of a reference, ascending; empty if the reference has none. */
     fun numbers(reference: String): List<Int>
+
+    /** Removes all media of a reference; a reference without media is no error. */
+    fun deleteReference(reference: String) {
+        for (number in numbers(reference)) delete(reference, number)
+    }
 }

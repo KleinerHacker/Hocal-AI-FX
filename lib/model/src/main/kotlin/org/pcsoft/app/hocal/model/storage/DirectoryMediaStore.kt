@@ -14,6 +14,7 @@ package org.pcsoft.app.hocal.model.storage
 import org.pcsoft.app.hocal.model.project.ProjectFormat
 import java.io.InputStream
 import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.DirectoryNotEmptyException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
@@ -73,6 +74,15 @@ class DirectoryMediaStore(private val root: Path) : MediaStore {
         if (find(reference, to) != null) throw FileAlreadyExistsException(describe(reference, to))
         val extension = source.fileName.toString().substringAfter('.')
         Files.move(source, folder(reference).resolve("${key(to)}.$extension"))
+    }
+
+    override fun deleteReference(reference: String) {
+        super.deleteReference(reference)
+        try {
+            Files.deleteIfExists(folder(reference))
+        } catch (e: DirectoryNotEmptyException) {
+            // foreign files stay, the folder stays with them
+        }
     }
 
     override fun numbers(reference: String): List<Int> {

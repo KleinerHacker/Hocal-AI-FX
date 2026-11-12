@@ -6,6 +6,7 @@ module org.pcsoft.app.hocal.model {
 
     exports org.pcsoft.app.hocal.model.project;
     exports org.pcsoft.app.hocal.model.storage;
+    exports org.pcsoft.app.hocal.model.tree;
 
     // Jackson reads and writes the POJOs reflectively through their getters and setters.
     opens org.pcsoft.app.hocal.model.project to tools.jackson.databind;

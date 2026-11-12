@@ -119,4 +119,19 @@ class MediaHistoryDirectoryTest : MediaHistoryContract() {
 
         assertEquals(listOf(0), store.numbers(FIRST))
     }
+
+    /** Removing a reference removes its folder too, unless foreign files are in it. */
+    @Test
+    fun deleteReferenceRemovesTheFolder() {
+        val store = DirectoryMediaStore(directory)
+        store.accept(FIRST, 0, "png", input(1))
+        store.accept(SECOND, 0, "png", input(1))
+        Files.writeString(directory.resolve(SECOND).resolve("notes.txt"), "x")
+
+        store.deleteReference(FIRST)
+        store.deleteReference(SECOND)
+
+        assertEquals(false, Files.exists(directory.resolve(FIRST)))
+        assertEquals(listOf("notes.txt"), Files.list(directory.resolve(SECOND)).use { s -> s.map { it.fileName.toString() }.toList() })
+    }
 }
