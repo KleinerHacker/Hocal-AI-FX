@@ -294,8 +294,7 @@ Every POJO has a tested property counterpart; a change deep in the tree reaches 
 **As Built**
 
 * Module `lib/fx-model` (`hocal-fx-model`, module `org.pcsoft.app.hocal.fx.model`) on `javafx.base`
-  only; `BeanFields` and the test helper `ChangeRecorder` follow the pattern of the reference project
-  `a reference project`
+  only; `BeanFields` and the test helper `ChangeRecorder` are part of it
 * Property models in `org.pcsoft.app.hocal.fx.model.project`: `ProjectFileProperty` (root),
   `ProjectDataProperty`, `ReferenceProperty`, `MediumProperty`, `VirtualFolderProperty`,
   `VirtualEntryProperty`; the `of` factory wraps a picked list entry without copying it
