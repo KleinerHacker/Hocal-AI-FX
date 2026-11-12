@@ -196,7 +196,7 @@ The key names are fixed by IP-01.
 | IP-01 ✅ | Model Library And POJOs  | Create `lib/model` with project data, reference list and tree POJOs     | -            |
 | IP-02 ✅ | FX Property Models       | Create `lib/fx-model` mirroring all POJOs                              | IP-01        |
 | IP-03 ✅ | Project ZIP Storage      | Read and write ZIP and `project.json`, validation, atomic save          | IP-01        |
-| IP-04 | Reference Media History  | Reference folders, continuous numbering 000-999, current medium, add and remove media | IP-01, IP-03 |
+| IP-04 ✅ | Reference Media History | Reference folders, continuous numbering 000-999, current medium, add and remove media | IP-01, IP-03 |
 | IP-05 | Virtual Tree Operations  | Edit the virtual directory structure consistently with the references   | IP-01        |
 | IP-06 ✅ | Project File Encryption | Optional AES encryption of the project file through cipher streams      | IP-03        |
 | IP-07 | Project Manager          | Singleton manager holding the one loaded project and handling all changes | IP-02, IP-03, IP-04, IP-05, IP-06 |
@@ -367,7 +367,7 @@ The file written is read back identically; broken files fail with a clear error.
 * Tests include the deletion cases: after a medium is removed, numbers and media still belong together;
   the regression test reads a fixed ZIP from the test resources
 
-### IP-04: Reference Media History
+### IP-04: Reference Media History ✅ COMPLETED
 
 **Objective**
 
@@ -415,6 +415,24 @@ removing a medium leaves a continuous numbering, and a reference never ends up w
 * Removing the current medium makes its predecessor current; `000` stays the original at all times
 * Test cases: append, overflow at `999`, remove in the middle, remove the current medium,
   remove `000` (rejected), folder with gap, folder without medium, mixed extensions
+
+**As Built**
+
+* The history is the `media` list of the `Reference` POJO (the index is the medium number), not a folder
+  scanned in the ZIP; the content lives in a `MediaStore`, the place of the media while a project is open
+* `MediaStore` extends `MediaSource` and `MediaSink` by `delete`, `move` and `numbers`;
+  `DirectoryMediaStore` keeps the media as `<root>/<uuid>/<NNN>.<extension>`, writes through a temporary
+  file and checks UUID, number and extension against path tricks
+* Operations are extension functions of `Reference` in `MediaHistory.kt`: `currentMedium`, `currentNumber`,
+  `appendMedium`, `removeMedium` and `verifyMedia`
+* Appending puts the content into the store first and extends the list afterwards, so a failing store
+  leaves the list untouched; a removal deletes the medium, moves the following ones down one by one
+  and shortens the list
+* Typed errors: `MediaHistoryFullException`, `OriginalMediumException`, `MediumNotFoundException`,
+  `InconsistentHistoryException`
+* No POJO field was added, so `lib/fx-model` is unchanged
+* The same cases run against an in-memory and the directory store; one test saves the history as ZIP
+  and reads it back with numbers and media still matching
 
 ### IP-05: Virtual Tree Operations
 
@@ -555,13 +573,13 @@ One place owns the loaded project; no other code writes to the storage or edits 
 IP-01 ✅
 ├── IP-02 ✅
 ├── IP-03 ✅
-│   ├── IP-04
+│   ├── IP-04 ✅
 │   └── IP-06 ✅
 └── IP-05
 IP-07 follows after IP-02, IP-03, IP-04, IP-05 and IP-06 are completed.
 ```
 
-Completed plans: IP-01, IP-02, IP-03, IP-06.
+Completed plans: IP-01, IP-02, IP-03, IP-04, IP-06.
 
 IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in parallel after IP-03.
 
