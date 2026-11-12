@@ -11,12 +11,14 @@
  */
 
 plugins {
+    `java-library`
     id("org.javamodularity.moduleplugin") version "2.0.1"
 }
 
 dependencies {
     // JSON handling of the project file; the POJOs are read and written through their getters and setters.
-    implementation("tools.jackson.core:jackson-databind:3.3.0")
+    // Part of the API: the module descriptor requires the Jackson annotations, so consumers need them too.
+    api("tools.jackson.core:jackson-databind:3.3.0")
 }
 
 // Like app/ui, the tests run on the classpath; the module plugin would otherwise patch them into the module.

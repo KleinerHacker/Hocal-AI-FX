@@ -10,13 +10,23 @@
  * See the License for the specific language governing permissions and limitations.
  */
 package org.pcsoft.app.hocal.model.project
+package org.pcsoft.app.hocal.model.project
 
 /**
  * An entry of the virtual directory structure. It links exactly one reference and has no children.
  * One reference can be linked by several entries.
+ *
+ * Two entries are equal when their name and their reference are equal.
  */
 class VirtualEntry : VirtualNode() {
 
     /** UUID of the linked reference. */
     var reference: String = ""
+
+    override fun equals(other: Any?): Boolean =
+        this === other || (other is VirtualEntry && name == other.name && reference == other.reference)
+
+    override fun hashCode(): Int = 31 * name.hashCode() + reference.hashCode()
+
+    override fun toString(): String = "VirtualEntry(name=$name, reference=$reference)"
 }

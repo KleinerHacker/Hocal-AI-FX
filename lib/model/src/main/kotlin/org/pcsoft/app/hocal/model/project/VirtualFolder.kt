@@ -10,13 +10,24 @@
  * See the License for the specific language governing permissions and limitations.
  */
 package org.pcsoft.app.hocal.model.project
+package org.pcsoft.app.hocal.model.project
 
 /**
  * A folder of the virtual directory structure. It holds children and no reference; the tree is
  * recursive.
+ *
+ * Two folders are equal when their name and their children are equal. The text form covers the whole
+ * subtree, so a change deep inside it shows up in the text form of every folder above.
  */
 class VirtualFolder : VirtualNode() {
 
     /** The children of the folder, folders and entries. */
     var children: MutableList<VirtualNode> = mutableListOf()
+
+    override fun equals(other: Any?): Boolean =
+        this === other || (other is VirtualFolder && name == other.name && children == other.children)
+
+    override fun hashCode(): Int = 31 * name.hashCode() + children.hashCode()
+
+    override fun toString(): String = "VirtualFolder(name=$name, children=$children)"
 }

@@ -28,6 +28,7 @@ runs without building a ComfyUI graph.
 
 * `app/ui` (`hocal-ui`) - the JavaFX application (Kotlin, MVVM FX)
 * `lib/model` (`hocal-model`) - the JavaFX-free data model of the project file
+* `lib/fx-model` (`hocal-fx-model`) - the Java FX property models mirroring the data model
 * `docs` - the MkDocs user documentation
 
 ## Prerequisites

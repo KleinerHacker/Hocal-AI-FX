@@ -13,6 +13,7 @@ package org.pcsoft.app.hocal.model.project
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -100,5 +101,45 @@ class VirtualNodeTest {
         assertEquals("animals", animals.name)
         assertEquals("fox", fox.name)
         assertEquals("ref-1", fox.reference)
+    }
+
+    /** Two folders with equal name and equal children are equal, a different child makes them differ. */
+    @Test
+    fun folderEqualityByValue() {
+        fun folder(child: String) = VirtualFolder().apply {
+            name = "animals"
+            children.add(VirtualEntry().apply { name = child; reference = "ref" })
+        }
+
+        assertEquals(folder("fox"), folder("fox"))
+        assertEquals(folder("fox").hashCode(), folder("fox").hashCode())
+        assertNotEquals(folder("fox"), folder("wolf"))
+    }
+
+    /** Two entries are equal by name and reference, and an entry never equals a folder. */
+    @Test
+    fun entryEqualityByValue() {
+        val first = VirtualEntry().apply { name = "fox"; reference = "ref" }
+        val second = VirtualEntry().apply { name = "fox"; reference = "ref" }
+        val other = VirtualEntry().apply { name = "fox"; reference = "other" }
+
+        assertEquals(first, second)
+        assertEquals(first.hashCode(), second.hashCode())
+        assertNotEquals(first, other)
+        assertNotEquals(first, VirtualFolder().apply { name = "fox" })
+    }
+
+    /** The text form of a folder covers its whole subtree. */
+    @Test
+    fun textFormCoversTheSubtree() {
+        val folder = VirtualFolder().apply {
+            name = "animals"
+            children.add(VirtualEntry().apply { name = "fox"; reference = "ref-1" })
+        }
+
+        assertEquals(
+            "VirtualFolder(name=animals, children=[VirtualEntry(name=fox, reference=ref-1)])",
+            folder.toString(),
+        )
     }
 }
