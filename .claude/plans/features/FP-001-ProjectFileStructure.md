@@ -586,9 +586,8 @@ IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in paral
 * Decided: `ProjectManager` lives in `lib/fx-model`; opening or creating needs a closed project, and
   unsaved changes fail unless discarding is allowed explicitly
 * Decided: unencrypted and encrypted files are read by the same stream-only reader (one code path)
-* Not blocking, to be settled in IP-04 / IP-06: a medium read through the stream is held back until
-  the GCM tag of the whole file is verified, so a very large medium costs memory; whether a size
-  limit is needed
+* Settled in IP-06: block-wise GCM verifies every block before use, so a large medium no longer costs
+  memory; the read limits of IP-03 (`StorageLimits`) stay in place
 * Is the existence of `project.json` visible without the password? Planned: no, everything is
   encrypted except the header
 * Lost password: no recovery is possible by design
