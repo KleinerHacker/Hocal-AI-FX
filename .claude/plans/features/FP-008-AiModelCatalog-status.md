@@ -12,6 +12,7 @@ Status: NOT_STARTED
 | IP-04 | Catalog Binding In The Application | NOT_STARTED |
 | IP-05 | Model Download And Removal         | NOT_STARTED |
 | IP-06 | Model Management List              | NOT_STARTED |
+| IP-07 | Model And Flow Integration Tooling | NOT_STARTED |
 
 ## Overall Progress
 
@@ -21,4 +22,4 @@ Status: NOT_STARTED
 
 Feature Plan created and revised (flow metadata in the model file, model download included). No
 implementation plan has been started yet. IP-03, IP-04 and IP-05 can run in parallel after IP-02.
-IP-04 has to be aligned with FP-002 IP-06 and FP-006 IP-01.
+IP-07 follows IP-03. IP-04 has to be aligned with FP-002 IP-06 and FP-006 IP-01.
