@@ -9,7 +9,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations.
  */
-
 package org.pcsoft.app.hocal.model.project
 
 import java.time.Instant
@@ -63,5 +62,15 @@ class ProjectDataTest {
         assertEquals(listOf("one", "two"), data.tags)
         assertEquals(3, data.formatVersion)
         assertEquals("1.2.3", data.applicationVersion)
+    }
+
+    /** Two objects with equal values are equal, and a copy changes only what is named. */
+    @Test
+    fun equalityAndCopy() {
+        val data = ProjectData(name = "Sample", author = "Jane Doe")
+
+        assertEquals(ProjectData(name = "Sample", author = "Jane Doe"), data)
+        assertEquals("Sample", data.copy(author = "John Doe").name)
+        assertEquals("John Doe", data.copy(author = "John Doe").author)
     }
 }

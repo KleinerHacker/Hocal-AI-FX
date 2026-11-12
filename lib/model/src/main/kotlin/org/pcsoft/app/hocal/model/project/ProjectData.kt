@@ -9,7 +9,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations.
  */
-
 package org.pcsoft.app.hocal.model.project
 
 import java.time.Instant
@@ -18,33 +17,25 @@ import java.time.Instant
  * The general data of a project, the `project` part of `project.json`.
  *
  * Time stamps are UTC instants and are written in ISO-8601.
+ *
+ * @property name Name of the project.
+ * @property description Free description of the project.
+ * @property uuid Unique id of the project, as text.
+ * @property author Author of the project.
+ * @property created Time the project was created, `null` while unknown.
+ * @property modified Time of the last change, `null` while unknown.
+ * @property tags Tags of the project.
+ * @property formatVersion Version of the file format the project was written with.
+ * @property applicationVersion Version of the application that saved the file last.
  */
-class ProjectData {
-
-    /** Name of the project. */
-    var name: String = ""
-
-    /** Free description of the project. */
-    var description: String = ""
-
-    /** Unique id of the project, as text. */
-    var uuid: String = ""
-
-    /** Author of the project. */
-    var author: String = ""
-
-    /** Time the project was created, `null` while unknown. */
-    var created: Instant? = null
-
-    /** Time of the last change, `null` while unknown. */
-    var modified: Instant? = null
-
-    /** Tags of the project. */
-    var tags: MutableList<String> = mutableListOf()
-
-    /** Version of the file format the project was written with. */
-    var formatVersion: Int = ProjectFormat.FORMAT_VERSION
-
-    /** Version of the application that saved the file last. */
-    var applicationVersion: String = ""
-}
+data class ProjectData(
+    var name: String = "",
+    var description: String = "",
+    var uuid: String = "",
+    var author: String = "",
+    var created: Instant? = null,
+    var modified: Instant? = null,
+    var tags: MutableList<String> = mutableListOf(),
+    var formatVersion: Int = ProjectFormat.FORMAT_VERSION,
+    var applicationVersion: String = "",
+)

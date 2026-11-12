@@ -9,20 +9,17 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations.
  */
-
 package org.pcsoft.app.hocal.model.project
 
 /**
- * A reference of the project: the id of a medium history and the history details of its media.
+ * A reference of the project: the id of a medium history and its media with their details.
+ *
+ * @property uuid Unique id of the reference, as text; it names the folder of the reference in the ZIP.
+ * @property media The media of the reference as a history. The position in the list is the medium
+ *   number: index `0` is the original `000`, the last one is the current medium. The numbering is
+ *   continuous by construction, so the medium number is never stored on its own.
  */
-class Reference {
-
-    /** Unique id of the reference, as text; it names the folder of the reference in the ZIP. */
-    var uuid: String = ""
-
-    /**
-     * The history details of the media of this reference, keyed by the three digit medium number
-     * `000` to `999` (see [ProjectFormat.mediumKey]).
-     */
-    var media: MutableMap<String, MediumDetails> = linkedMapOf()
-}
+data class Reference(
+    var uuid: String = "",
+    var media: MutableList<Medium> = mutableListOf(),
+)

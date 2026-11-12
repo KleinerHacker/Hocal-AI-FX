@@ -9,7 +9,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations.
  */
-
 package org.pcsoft.app.hocal.model.project
 
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -28,7 +27,6 @@ class ProjectFileTest {
 
         assertNotNull(file.project)
         assertTrue(file.references.isEmpty())
-        assertEquals(VirtualNodeType.FOLDER, file.tree.type)
         assertTrue(file.tree.children.isEmpty())
     }
 
@@ -36,9 +34,9 @@ class ProjectFileTest {
     @Test
     fun partsCanBeSet() {
         val file = ProjectFile()
-        val data = ProjectData().apply { name = "Sample" }
-        val reference = Reference().apply { uuid = "6f1c1f0e-0000-4000-8000-000000000006" }
-        val tree = VirtualNode().apply { name = "root" }
+        val data = ProjectData(name = "Sample")
+        val reference = Reference(uuid = "6f1c1f0e-0000-4000-8000-000000000006")
+        val tree = VirtualFolder().apply { name = "root" }
 
         file.project = data
         file.references = mutableListOf(reference)
@@ -47,5 +45,14 @@ class ProjectFileTest {
         assertSame(data, file.project)
         assertSame(reference, file.references[0])
         assertSame(tree, file.tree)
+    }
+
+    /** Two roots with equal parts are equal. */
+    @Test
+    fun equalityByValue() {
+        assertEquals(
+            ProjectFile(ProjectData(name = "Sample")),
+            ProjectFile(ProjectData(name = "Sample")),
+        )
     }
 }

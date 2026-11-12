@@ -9,15 +9,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations.
  */
-
 package org.pcsoft.app.hocal.model.project
 
-/** The kind of a [VirtualNode]. */
-enum class VirtualNodeType {
+/**
+ * A folder of the virtual directory structure. It holds children and no reference; the tree is
+ * recursive.
+ */
+class VirtualFolder : VirtualNode() {
 
-    /** A folder; it holds children and no reference. */
-    FOLDER,
-
-    /** An entry; it links exactly one reference and has no children. */
-    ENTRY,
+    /** The children of the folder, folders and entries. */
+    var children: MutableList<VirtualNode> = mutableListOf()
 }

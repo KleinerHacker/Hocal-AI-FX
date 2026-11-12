@@ -33,8 +33,17 @@ object ProjectFormat {
     /** Key of the virtual directory tree in `project.json`. */
     const val KEY_TREE: String = "tree"
 
-    /** Key of the media history details below a reference. */
+    /** Key of the media history below a reference. */
     const val KEY_MEDIA: String = "media"
+
+    /** Key of the kind of a virtual node. */
+    const val KEY_TYPE: String = "type"
+
+    /** Value of [KEY_TYPE] for a folder. */
+    const val TYPE_FOLDER: String = "folder"
+
+    /** Value of [KEY_TYPE] for an entry. */
+    const val TYPE_ENTRY: String = "entry"
 
     /** Number of the first medium of a reference, the original. */
     const val MEDIUM_MIN: Int = 0

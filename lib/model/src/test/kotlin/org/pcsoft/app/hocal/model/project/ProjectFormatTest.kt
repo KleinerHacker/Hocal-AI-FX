@@ -27,6 +27,9 @@ class ProjectFormatTest {
         assertEquals("references", ProjectFormat.KEY_REFERENCES)
         assertEquals("tree", ProjectFormat.KEY_TREE)
         assertEquals("media", ProjectFormat.KEY_MEDIA)
+        assertEquals("type", ProjectFormat.KEY_TYPE)
+        assertEquals("folder", ProjectFormat.TYPE_FOLDER)
+        assertEquals("entry", ProjectFormat.TYPE_ENTRY)
     }
 
     /** The format starts at version 1. */

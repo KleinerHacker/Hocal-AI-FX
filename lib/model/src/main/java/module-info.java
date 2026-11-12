@@ -1,5 +1,6 @@
 module org.pcsoft.app.hocal.model {
     requires kotlin.stdlib;
+    requires com.fasterxml.jackson.annotation;
 
     exports org.pcsoft.app.hocal.model.project;
 

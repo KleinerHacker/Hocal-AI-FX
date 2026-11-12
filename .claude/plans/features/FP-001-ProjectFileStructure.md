@@ -48,8 +48,8 @@ libraries and code that read, write and edit it:
         * tags
         * format version
         * version of the application that saved the file last
-    * the references - a list; each reference holds its UUID and, below it, the history details of
-      its media, keyed by the medium number `000` to `999`
+    * the references - a list; each reference holds its UUID and its media as a list; each medium
+      carries its own history details, its number `000` to `999` is its position in the list
     * the virtual directory structure
 * Every reference has a folder in the ZIP, named after its UUID, holding the media of the reference
 * The media of a reference are numbered by file name from `000` to `999`, followed by the file
@@ -171,8 +171,8 @@ ZIP structure and `project.json` included, is encrypted.
 ```text
 {
   "project":    { name, description, uuid, author, created, modified, tags, formatVersion, applicationVersion },
-  "references": [ { "uuid": "<uuid>", "media": { "000": { prompt, model, flow, seed, parameters }, "001": { ... } } }, ... ],
-  "tree":       folders and entries; an entry holds one "<uuid>"
+  "references": [ { "uuid": "<uuid>", "media": [ { prompt, model, flow, seed, parameters }, { ... } ] }, ... ],
+  "tree":       folder with children; a node has "type": "folder" (children) or "entry" (one "reference": "<uuid>")
 }
 ```
 
@@ -215,7 +215,7 @@ Create `lib/model` (`hocal-model`) and the POJOs of `project.json`.
   check, Kover, tests)
 * POJOs for the project data object, the root, the virtual tree (folder, entry) and the history
   details of a medium (prompt, model, flow, seed, parameter values)
-* Reference POJO: UUID and the history details by medium number (`000` to `999`)
+* Reference POJO: UUID and the media as a list, each medium carrying its history details
 * Format version constant and the fixed key names
 * NOT: serialization, ZIP handling, encryption, FX models
 
@@ -241,17 +241,23 @@ A JavaFX-free, documented and unit-tested data model of the file.
 
 **As Built**
 
-* Package `org.pcsoft.app.hocal.model.project`: `ProjectFile` (root), `ProjectData`, `Reference`,
-  `MediumDetails`, `VirtualNode`, `VirtualNodeType` (`FOLDER`, `ENTRY`) and the constants object
-  `ProjectFormat` (format version 1, file name, key names, medium range `000` to `999`,
-  `mediumKey()`)
+* Package `org.pcsoft.app.hocal.model.project`: the constants object `ProjectFormat` (format version 1,
+  file name, key names, JSON types, medium range `000` to `999`, `mediumKey()`) and the POJOs
+    * Data classes (`var` properties with defaults, so getters, setters and a no-argument constructor
+      exist): `ProjectFile` (root), `ProjectData`, `Reference`, `Medium`
+    * `Reference.media` is a list of `Medium`; a medium carries its history details itself and its
+      number is its position, so no key is stored
+    * Virtual tree: `sealed class VirtualNode` (name) with the plain classes `VirtualFolder`
+      (children) and `VirtualEntry` (reference); the JSON field `type` (`folder` / `entry`) decides
+      the class when reading; `ProjectFile.tree` is a `VirtualFolder`
 * Jackson 3 (`tools.jackson.core:jackson-databind:3.3.0`); the model packages are opened to the
-  module `tools.jackson.databind`
+  module `tools.jackson.databind`, the annotations come from the module
+  `com.fasterxml.jackson.annotation`
 * UUIDs are stored as text (`String`), time stamps as `Instant?`
-* `MediumDetails.seed` is `Long?` (ComfyUI seeds are 64 bit); IP-02 must find a property form for it
-* `MediumDetails.parameters` is `Map<String, String>`: every value is stored as text, the parameter
+* `Medium.seed` is `Long?` (ComfyUI seeds are 64 bit); IP-02 must find a property form for it
+* `Medium.parameters` is `Map<String, String>`: every value is stored as text, the parameter
   definition of the flow (FP-008) tells how it is read
-* The tree is one root `VirtualNode` of type `FOLDER`
+* IP-02 mirrors the node hierarchy with a property model per class
 * The pipeline needed no change: it calls Gradle tasks that cover every module
 
 ### IP-02: FX Property Models
@@ -337,7 +343,7 @@ Implement the media history of a reference inside the ZIP.
 * Read the current medium and the whole history
 * Append a new medium as highest number + 1; an overflow beyond `999` is an error
 * Remove a medium and renumber the following ones, so the numbering stays continuous
-* Keep the history details, keyed by medium number, in step with append, remove and renumbering
+* The history details are part of the medium, so they follow it through append, remove and renumbering
 * The original `000` cannot be removed; consequently the last remaining medium of a reference
   cannot be removed either, the whole reference has to be removed, which drops its UUID and its
   folder
@@ -535,8 +541,8 @@ IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in paral
   feature
 * Decided: the history details (prompt, model, flow; no additional images) are part of this
   feature and are done first, as FP-002 shows them
-* Decided: the history details are stored in `project.json` below each reference, keyed by the
-  medium number `000` to `999`
+* Decided: the history details are part of the medium; `project.json` holds the media of a reference
+  as a list, the medium number `000` to `999` is the position in that list
 * Decided (FP-008): the history details also hold the used seed and the values of the `EDITABLE`
   parameters of the flow by parameter id; image inputs and constants are not stored; the type of
   the values (text, number, boolean) is settled with the `fx-model` skill in IP-01

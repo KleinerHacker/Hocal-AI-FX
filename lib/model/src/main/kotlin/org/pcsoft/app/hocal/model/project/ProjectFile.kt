@@ -9,21 +9,18 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations.
  */
-
 package org.pcsoft.app.hocal.model.project
 
 /**
- * The root of `project.json`: the project data, the references with their history details and the
- * virtual directory structure.
+ * The root of `project.json`: the project data, the references with their media and the virtual
+ * directory structure.
+ *
+ * @property project The general data of the project.
+ * @property references The references of the project.
+ * @property tree The root folder of the virtual directory structure.
  */
-class ProjectFile {
-
-    /** The general data of the project. */
-    var project: ProjectData = ProjectData()
-
-    /** The references of the project. */
-    var references: MutableList<Reference> = mutableListOf()
-
-    /** The root folder of the virtual directory structure. */
-    var tree: VirtualNode = VirtualNode()
-}
+data class ProjectFile(
+    var project: ProjectData = ProjectData(),
+    var references: MutableList<Reference> = mutableListOf(),
+    var tree: VirtualFolder = VirtualFolder(),
+)
