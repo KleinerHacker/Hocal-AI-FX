@@ -263,6 +263,8 @@ Run ComfyUI as a controlled background service.
 * hand `GemmaAPITextEncode` to the built-in list of disabled nodes of ComfyUI 0.42, in the way that
   version provides it (checked against the documentation at implementation)
 * start environment: `DO_NOT_TRACK=1`, `HF_HUB_DISABLE_TELEMETRY=1` set on the child process
+* README: a section says that ComfyUI runs offline without paid API nodes, that telemetry is switched
+  off and that the node `GemmaAPITextEncode` is blocked
 * not: installation, user interface
 
 **Affected Areas**

@@ -31,12 +31,14 @@
 ## Aufgabe 5: Ende und Abbruch
 
 * [ ] Nach dem Endereignis History lesen und Ergebnis herunterladen
+* [ ] Gesperrten Knoten aus der Fassade als Zustand „fehlgeschlagen“ mit Grund und Knotentyp melden
 * [ ] Abbruch über `interrupt`, wartende Aufträge über das Löschen in der Warteschlange entfernen
 * [ ] Neustart des Dienstes markiert alle Aufträge als abgebrochen
 
 ## Aufgabe 6: Tests und Doku
 
 * [ ] Tests mit Attrappen für `ComfyClient` und `ComfyEventHook`: Ablauf, Warteschlange, Fehler, Abbruch, Verlust
+* [ ] Test: gesperrter Knoten ergibt „fehlgeschlagen“ mit Grund, ohne Aufruf am Server
 * [ ] KDoc und README prüfen
 
 ## Abschluss

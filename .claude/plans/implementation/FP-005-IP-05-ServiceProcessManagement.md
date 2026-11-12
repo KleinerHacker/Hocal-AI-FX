@@ -46,7 +46,8 @@
 
 * [ ] Tests mit Attrappenprozess: Start, Bereitschaft, Zeitlimit, Stop, Neustart, Verwaisung
 * [ ] Tests: Schalterwahl bei beiden Engine-Arten, kein Schalter bekannt, Umgebungsvariablen am Prozess
-* [ ] KDoc und README prüfen
+* [ ] KDoc prüfen
+* [ ] README-Abschnitt: ComfyUI läuft offline ohne Bezahl-Knoten, Telemetrie aus, `GemmaAPITextEncode` gesperrt
 
 ## Abschluss
 
