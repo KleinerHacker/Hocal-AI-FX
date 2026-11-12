@@ -193,7 +193,7 @@ The key names are fixed by IP-01.
 
 | ID    | Implementation Plan      | Objective                                                              | Dependencies |
 |-------|--------------------------|------------------------------------------------------------------------|--------------|
-| IP-01 | Model Library And POJOs  | Create `lib/model` with project data, reference list and tree POJOs     | -            |
+| IP-01 ✅ | Model Library And POJOs  | Create `lib/model` with project data, reference list and tree POJOs     | -            |
 | IP-02 | FX Property Models       | Create `lib/fx-model` mirroring all POJOs                              | IP-01        |
 | IP-03 | Project ZIP Storage      | Read and write ZIP and `project.json`, validation, atomic save          | IP-01        |
 | IP-04 | Reference Media History  | Reference folders, continuous numbering 000-999, current medium, add and remove media | IP-01, IP-03 |
@@ -203,7 +203,7 @@ The key names are fixed by IP-01.
 
 ## 7. Implementation Plans
 
-### IP-01: Model Library And POJOs
+### IP-01: Model Library And POJOs ✅ COMPLETED
 
 **Objective**
 
@@ -238,6 +238,21 @@ A JavaFX-free, documented and unit-tested data model of the file.
 * An entry links a UUID that must exist in the reference list; checking this belongs to the storage
   validation and the tree operations
 * README structure section and pipeline are checked after adding the module
+
+**As Built**
+
+* Package `org.pcsoft.app.hocal.model.project`: `ProjectFile` (root), `ProjectData`, `Reference`,
+  `MediumDetails`, `VirtualNode`, `VirtualNodeType` (`FOLDER`, `ENTRY`) and the constants object
+  `ProjectFormat` (format version 1, file name, key names, medium range `000` to `999`,
+  `mediumKey()`)
+* Jackson 3 (`tools.jackson.core:jackson-databind:3.3.0`); the model packages are opened to the
+  module `tools.jackson.databind`
+* UUIDs are stored as text (`String`), time stamps as `Instant?`
+* `MediumDetails.seed` is `Long?` (ComfyUI seeds are 64 bit); IP-02 must find a property form for it
+* `MediumDetails.parameters` is `Map<String, String>`: every value is stored as text, the parameter
+  definition of the flow (FP-008) tells how it is read
+* The tree is one root `VirtualNode` of type `FOLDER`
+* The pipeline needed no change: it calls Gradle tasks that cover every module
 
 ### IP-02: FX Property Models
 
@@ -476,7 +491,7 @@ One place owns the loaded project; no other code writes to the storage or edits 
 ## 8. Dependency Graph
 
 ```text
-IP-01
+IP-01 ✅
 ├── IP-02
 ├── IP-03
 │   ├── IP-04
@@ -484,6 +499,8 @@ IP-01
 └── IP-05
 IP-07 follows after IP-02, IP-03, IP-04, IP-05 and IP-06 are completed.
 ```
+
+Completed plans: IP-01.
 
 IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in parallel after IP-03.
 

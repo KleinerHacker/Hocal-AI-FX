@@ -1,12 +1,12 @@
 # Feature Status: Project File Structure
 
-Status: NOT_STARTED
+Status: IN_PROGRESS
 
 ## Implementation Plans
 
 | ID    | Implementation Plan     | Status      |
 |-------|-------------------------|-------------|
-| IP-01 | Model Library And POJOs | NOT_STARTED |
+| IP-01 | Model Library And POJOs | COMPLETED   |
 | IP-02 | FX Property Models      | NOT_STARTED |
 | IP-03 | Project ZIP Storage     | NOT_STARTED |
 | IP-04 | Reference Media History | NOT_STARTED |
@@ -16,8 +16,8 @@ Status: NOT_STARTED
 
 ## Overall Progress
 
-0%
+14%  (1 of 7 implementation plans completed)
 
 ## Notes
 
-Feature Plan created and revised. No implementation plan has been started yet.
+IP-01 completed; the GitHub build of PR #7 was green on all jobs.
