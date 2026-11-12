@@ -18,5 +18,5 @@ Status: NOT_STARTED
 
 ## Notes
 
-Feature Plan created. No implementation plan has been started yet. IP-02 and IP-03 can run in
+Feature Plan created, implementation plans derived. No implementation plan has been started yet. IP-02 and IP-03 can run in
 parallel after IP-01; IP-05 can run in parallel to IP-02 after IP-03.
