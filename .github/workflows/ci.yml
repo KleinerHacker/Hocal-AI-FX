@@ -170,7 +170,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        # macos-latest is left out for now: its runner did not pick up the job in time.
+        # Add it again to the list below once the macOS runners are available.
+        os: [ ubuntu-latest, windows-latest ]
 
     steps:
       - name: Checkout repository
