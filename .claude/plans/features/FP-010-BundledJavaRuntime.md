@@ -48,6 +48,7 @@ starts the application; nothing else is required.
   FXML and resource bundles load, logging writes, English and German texts appear, themes apply
 * The launcher passes the same JVM options as today (`--enable-native-access=javafx.graphics`)
 * One archive per platform (Linux, Windows, macOS) is attached to the GitHub release
+* The JRE-dependent `packageDist` archive and its start scripts are removed (decision of the user)
 
 ### Technical Requirements
 
@@ -64,8 +65,8 @@ starts the application; nothing else is required.
 ## 5. Architecture
 
 * Module `app/ui` stays the only module with the toolkit; no new module is needed
-* Build: the `jlink` configuration in `app/ui/build.gradle.kts` becomes the main distribution path;
-  `packageDist` either wraps the image or is kept as secondary archive (see open questions)
+* Build: the `jlink` configuration in `app/ui/build.gradle.kts` becomes the only distribution path;
+  `packageDist`, `src/dist` and the disabled `distZip`/`distTar` handling are removed
 * Required runtime modules: JavaFX (`controls`, `fxml` and their requirements), Kotlin stdlib and
   `mvvmfx` merged module, `org.slf4j`, Log4j 2 providers (service providers via `uses`/`provides`),
   `jdk.localedata` (German and all further languages of FP-009 IP-11), plus what `jdeps` reports
@@ -171,7 +172,7 @@ Turn the image into the release archive for each platform.
 **Scope**
 
 * Archive name `hocal-ui-<version>-<platform>.zip` containing the image (runtime, modules, launcher)
-* Decide the fate of the JRE-dependent `packageDist` archive and `src/dist` scripts
+* Remove the JRE-dependent `packageDist` task and the `src/dist` scripts (decision of the user)
 * `assemble` / `build` produce the new archive
 * Not in scope: upload to the release (IP-04)
 
@@ -270,9 +271,8 @@ IP-01
 
 ## 9. Risks and Open Questions
 
-* Open: Keep the JRE-dependent `packageDist` archive next to the image archive, or replace it?
-  Proposal: replace it, one archive per platform
-* Open: Is a native installer (`jpackage`: MSI/DMG/DEB) wanted later? Not part of this feature
+* Decided: the JRE-dependent `packageDist` archive is removed; one image archive per platform
+* Decided: no native installer (`jpackage`) - neither in this feature nor planned
 * Risk: the merged module of `mvvmfx`/`typetools` may not link with JDK 25 / JavaFX 25
 * Risk: service providers or reflective access missing in the image only show at run time - IP-02
   must start the real application, not only list modules
@@ -287,6 +287,6 @@ IP-01
 
 * The archive of each of the three platforms starts the application on a machine without Java
 * The pipeline builds and checks the image on every host family; a defect of the image fails the build
-* A release attaches only archives that carry their own runtime (or the JRE-dependent archive too, per
-  the decision in the open questions)
+* A release attaches only archives that carry their own runtime; `packageDist` and `src/dist` no
+  longer exist
 * README, MkDocs, CHANGELOG and licence information state that no Java installation is needed
