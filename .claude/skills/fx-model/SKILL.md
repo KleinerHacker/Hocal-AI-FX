@@ -28,7 +28,8 @@ description: Mirroring rule between the plain model POJOs in lib/model (hocal-mo
 * A storage of `lib/model` gets NO counterpart in `lib/fx-model`
   * A storage only reads and writes; it keeps nothing, so there is no state to offer as a property
   * Whoever holds the loaded object holds it as a property model of `lib/fx-model` - the settings in
-    `IoController`, the open project in `MainWindowViewModel`
+    `IoController`, the open project in `ProjectManager` (`lib/fx-model`), which is bound by the view
+    models
 
 ## Structure Of An FX Model
 

@@ -188,7 +188,7 @@ class ProjectManagerTest {
 
         assertEquals(created, manager.project.projectProperty.created)
         assertEquals("9.9.9", manager.project.projectProperty.applicationVersion)
-        assertTrue(!manager.project.projectProperty.modified!!.isBefore(created))
+        assertTrue(!manager.project.projectProperty.modified!!.isBefore(created!!))
         assertTrue(manager.project.projectProperty.modified!!.isBefore(Instant.now().plusSeconds(60)))
     }
 
@@ -336,9 +336,7 @@ class ProjectManagerTest {
 
         assertEquals(listOf(true, false), loaded)
         assertEquals(listOf(target, null), paths)
-        assertEquals(listOf(true, false, true, false).take(dirty.size), dirty.take(4).let { dirty })
-        assertEquals(true, dirty.first())
-        assertEquals(false, dirty.last())
+        assertEquals(listOf(true, false), dirty)
     }
 
     /** Without a loaded project every change and every read of the media fails. */
