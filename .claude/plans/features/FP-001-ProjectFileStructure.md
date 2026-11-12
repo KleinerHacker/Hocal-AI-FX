@@ -194,7 +194,7 @@ The key names are fixed by IP-01.
 | ID    | Implementation Plan      | Objective                                                              | Dependencies |
 |-------|--------------------------|------------------------------------------------------------------------|--------------|
 | IP-01 ✅ | Model Library And POJOs  | Create `lib/model` with project data, reference list and tree POJOs     | -            |
-| IP-02 | FX Property Models       | Create `lib/fx-model` mirroring all POJOs                              | IP-01        |
+| IP-02 ✅ | FX Property Models       | Create `lib/fx-model` mirroring all POJOs                              | IP-01        |
 | IP-03 | Project ZIP Storage      | Read and write ZIP and `project.json`, validation, atomic save          | IP-01        |
 | IP-04 | Reference Media History  | Reference folders, continuous numbering 000-999, current medium, add and remove media | IP-01, IP-03 |
 | IP-05 | Virtual Tree Operations  | Edit the virtual directory structure consistently with the references   | IP-01        |
@@ -260,7 +260,7 @@ A JavaFX-free, documented and unit-tested data model of the file.
 * IP-02 mirrors the node hierarchy with a property model per class
 * The pipeline needed no change: it calls Gradle tasks that cover every module
 
-### IP-02: FX Property Models
+### IP-02: FX Property Models ✅ COMPLETED
 
 **Objective**
 
@@ -290,6 +290,25 @@ Every POJO has a tested property counterpart; a change deep in the tree reaches 
 * Executed with the `model-explore` and `model-creator` agents (agent rules)
 * Recursive tree needs a multi-level propagation test
 * UUID lists are registered as `list`
+
+**As Built**
+
+* Module `lib/fx-model` (`hocal-fx-model`, module `org.pcsoft.app.hocal.fx.model`) on `javafx.base`
+  only; `BeanFields` and the test helper `ChangeRecorder` follow the pattern of the reference project
+  `a reference project`
+* Property models in `org.pcsoft.app.hocal.fx.model.project`: `ProjectFileProperty` (root),
+  `ProjectDataProperty`, `ReferenceProperty`, `MediumProperty`, `VirtualFolderProperty`,
+  `VirtualEntryProperty`; the `of` factory wraps a picked list entry without copying it
+* Lists (`references`, `media`, `children`, `tags`) are registered as plain lists; a change INSIDE a
+  list entry is only picked up by `refresh()`
+* `seed` (`Long?`), `created` / `modified` (`Instant?`) and `parameters` (`Map<String, String>`) are
+  registered through `reference`
+* `VirtualFolder` and `VirtualEntry` got hand-written `equals`, `hashCode` and `toString` by value
+* The field properties are rebound through an `InvalidationListener`: a `ChangeListener` stays silent
+  when the new object equals the old one (data classes) and the fields would stay tied to the old object
+* `lib/model` exposes Jackson as `api`, because its module descriptor requires the Jackson annotations
+* Known limitation: exchanging a nested model object against an equal one keeps the old instance in
+  the parent POJO, as `BeanFields.write()` compares by `==`
 
 ### IP-03: Project ZIP Storage
 
@@ -498,7 +517,7 @@ One place owns the loaded project; no other code writes to the storage or edits 
 
 ```text
 IP-01 ✅
-├── IP-02
+├── IP-02 ✅
 ├── IP-03
 │   ├── IP-04
 │   └── IP-06
@@ -506,7 +525,7 @@ IP-01 ✅
 IP-07 follows after IP-02, IP-03, IP-04, IP-05 and IP-06 are completed.
 ```
 
-Completed plans: IP-01.
+Completed plans: IP-01, IP-02.
 
 IP-02, IP-03 and IP-05 can run in parallel after IP-01; IP-04 and IP-06 in parallel after IP-03.
 

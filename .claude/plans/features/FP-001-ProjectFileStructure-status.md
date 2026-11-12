@@ -7,7 +7,7 @@ Status: IN_PROGRESS
 | ID    | Implementation Plan     | Status      |
 |-------|-------------------------|-------------|
 | IP-01 | Model Library And POJOs | COMPLETED   |
-| IP-02 | FX Property Models      | NOT_STARTED |
+| IP-02 | FX Property Models      | COMPLETED   |
 | IP-03 | Project ZIP Storage     | NOT_STARTED |
 | IP-04 | Reference Media History | NOT_STARTED |
 | IP-05 | Virtual Tree Operations | NOT_STARTED |
@@ -16,8 +16,8 @@ Status: IN_PROGRESS
 
 ## Overall Progress
 
-14%  (1 of 7 implementation plans completed)
+29%  (2 of 7 implementation plans completed)
 
 ## Notes
 
-IP-01 completed; the GitHub build of PR #7 was green on all jobs.
+IP-01 and IP-02 completed; the GitHub build of PR #7 was green on all jobs.
