@@ -24,7 +24,7 @@ internal object ProjectValidator {
     val NAME_PATTERN: Regex = Regex("[A-Za-z0-9-]{1,64}")
 
     /**
-     * Validates the format version, the references and the links of the tree.
+     * Validates the format version, the references, the empty name of the root folder and the links of the tree.
      *
      * @throws UnsupportedFormatVersionException if the format version is newer than known.
      * @throws InvalidProjectFileException on every other violation.
@@ -53,6 +53,10 @@ internal object ProjectValidator {
             if (count > ProjectFormat.MEDIUM_MAX + 1) {
                 throw InvalidProjectFileException("Reference '${reference.uuid}' has more than 1000 media")
             }
+        }
+
+        if (file.tree.name.isNotEmpty()) {
+            throw InvalidProjectFileException("The root folder must have no name, found '${file.tree.name}'")
         }
 
         val pending = ArrayDeque<VirtualNode>()

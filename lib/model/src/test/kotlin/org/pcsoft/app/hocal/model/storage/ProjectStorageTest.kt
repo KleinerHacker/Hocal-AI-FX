@@ -151,6 +151,20 @@ class ProjectStorageTest {
         }
     }
 
+    /** The root folder must have no name, when reading and when writing. */
+    @Test
+    fun rootFolderMustHaveNoName() {
+        val tree = """{"type":"folder","name":"root","children":[]}"""
+        val bytes = zip(linkedMapOf("project.json" to json(tree = tree), "ref-1/000.png" to png))
+        val project = StorageFixtures.project()
+        project.tree.name = "root"
+
+        assertThrows(InvalidProjectFileException::class.java) { read(bytes) }
+        assertThrows(InvalidProjectFileException::class.java) {
+            StorageFixtures.save(project, StorageFixtures.media(project))
+        }
+    }
+
     /** A file with a newer format version is rejected, even when it holds fields unknown today. */
     @Test
     fun newerFormatVersionIsRejected() {

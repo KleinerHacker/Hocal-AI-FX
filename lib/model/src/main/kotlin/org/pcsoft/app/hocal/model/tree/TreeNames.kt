@@ -22,7 +22,7 @@ package org.pcsoft.app.hocal.model.tree
  * * is neither `.` nor `..`.
  *
  * Names are unique among the siblings of a folder, folders and entries sharing one name space, and
- * upper and lower case are not told apart. The root folder has the empty name and is exempt.
+ * upper and lower case are not told apart. The root folder has the empty name and is exempt; reading and writing a project file reject any other name for it.
  */
 object TreeNames {
 

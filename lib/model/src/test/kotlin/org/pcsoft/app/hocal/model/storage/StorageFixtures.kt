@@ -102,7 +102,6 @@ object StorageFixtures {
             Reference(SECOND, mutableListOf(medium("d"))),
         ),
         tree = VirtualFolder().apply {
-            name = "root"
             children.add(VirtualFolder().apply {
                 name = "animals"
                 children.add(VirtualEntry().apply { name = "fox"; reference = FIRST })

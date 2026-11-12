@@ -41,7 +41,7 @@ class ProjectStorageRT {
         assertEquals(42L, project.references[0].media[0].seed)
         assertNull(project.references[0].media[1].seed)
         assertEquals(mapOf("steps" to "20"), project.references[0].media[0].parameters)
-        assertEquals("root", project.tree.name)
+        assertEquals("", project.tree.name)
         assertEquals("golden-original", String(sink.contentOf(FIRST, 0)))
         assertEquals("golden-variant", String(sink.contentOf(FIRST, 1)))
         assertEquals("golden-wolf", String(sink.contentOf(SECOND, 0)))
