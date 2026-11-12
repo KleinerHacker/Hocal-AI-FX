@@ -368,7 +368,8 @@ Fetch the files of a model from Hugging Face into the ComfyUI installation and r
 * `ModelInstaller` in `lib/comfy-runtime`: target paths per file, installed check
 * download of every file from the pinned revision with progress, cancel and resume
 * several models download at the same time, one download per model; the same model cannot start twice;
-  the number of parallel downloads is not limited for now
+  the number of parallel downloads is not limited for now; FP-009 IP-06 adds an optional slot limit
+  with the state "waiting", so the download takes a slot count as a parameter
 * verification of size and SHA-256 before a file is moved into place
 * partial files lie in a temporary area of the data directory, so a resume is possible and the model
   directories never contain a partial file; they are removed after a cancel; free disk space is

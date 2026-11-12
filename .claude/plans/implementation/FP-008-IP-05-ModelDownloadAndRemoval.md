@@ -22,6 +22,7 @@
 * [ ] Teildateien im temporären Bereich des Datenverzeichnisses, nie in den Modellordnern
 * [ ] Größe und SHA-256 vor dem Verschieben prüfen, freien Speicher vorab prüfen
 * [ ] Mehrere Modelle gleichzeitig, ein Download je Modell, ohne Begrenzung
+* [ ] Anzahl der Plätze als Parameter vorsehen, ohne Wert unbegrenzt, Zustand „wartend“ für FP-009 IP-06
 * [ ] Dasselbe Modell kann nicht zweimal starten
 
 ## Aufgabe 4: Entfernen und Fehler
