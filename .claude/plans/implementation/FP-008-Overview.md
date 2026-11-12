@@ -10,6 +10,7 @@ Feature-Plan: `.claude/plans/features/FP-008-AiModelCatalog.md`
 * IP-04 Katalog-Anbindung in der Anwendung: `FP-008-IP-04-CatalogBindingInTheApplication.md`
 * IP-05 Modell-Download und Entfernen: `FP-008-IP-05-ModelDownloadAndRemoval.md`
 * IP-06 Modell-Verwaltungsliste: `FP-008-IP-06-ModelManagementList.md`
+* IP-07 Werkzeuge zur Modell- und Flow-Integration: `FP-008-IP-07-ModelAndFlowIntegrationTooling.md`
 
 ## Reihenfolge
 
@@ -19,3 +20,4 @@ Feature-Plan: `.claude/plans/features/FP-008-AiModelCatalog.md`
 * IP-04: Voraussetzung IP-02, FP-002 IP-06, FP-006 IP-01; parallel zu IP-03 und IP-05 möglich
 * IP-05: Voraussetzung IP-02, FP-005 IP-01, IP-02, IP-04; parallel zu IP-03 und IP-04 möglich
 * IP-06: Voraussetzung IP-04, IP-05, FP-003 IP-02, IP-04
+* IP-07: Voraussetzung IP-02, IP-03; parallel zu IP-04 bis IP-06 möglich

@@ -42,6 +42,8 @@ Hugging Face on demand).
 * Model files are downloaded only on demand by the user, after he has seen the licence, never
   automatically and never all at once; models that are not installed are shown as such
 * The values stored in the history details (`model`, `flow`) are the stable ids of the catalog
+* A skill, an agent and two commands for Claude guide the integration of a new model and of a new
+  flow for an existing model, so both follow the format and the checks of the catalog
 
 ## 4. Requirements
 
@@ -111,6 +113,17 @@ Hugging Face on demand).
 * The demonstration model is Krea 2 (named by the user); its licence and conditions, whether it is
   gated, its files, sizes and checksums are verified before IP-03
 
+* Integration tooling for Claude (files under `.claude`):
+    * skill `ai-model`: the format of model and flow files, the rules and the two procedures
+      (new model, new flow for an existing model), loaded before a file under `models` or `flows`
+      is created or changed
+    * agent `ai-model-integrator`: carries out one of the two procedures after the user named the
+      model or the flow and the sources
+    * commands `/add-model` and `/add-flow`: entry points that load the skill and start the agent
+    * the procedures name the steps in a fixed order: source and licence check, files with checksums,
+      model file, flow file, index entry, catalog test, documentation; the agent asks the user for
+      every fact it cannot verify and never invents a URL, revision, checksum or node binding
+
 ### Technical Requirements
 
 * Module `lib/ai-model`, Gradle project `hocal-ai-model`, free of Java FX; it has no dependency on
@@ -147,6 +160,8 @@ Hugging Face on demand).
     * `app/ui`: the model list interface of FP-002 IP-06 is implemented by the catalog; the toggle bar
       shows the flows of the selected model; the model list with download and delete
     * `lib/comfy`: the workflow builder of FP-006 IP-01 gets its templates from the catalog
+* `.claude`: skill `ai-model`, agent `ai-model-integrator`, commands `add-model` and `add-flow`; they
+  change only resources and tests of `lib/ai-model` and documentation, no production code
 * Data flow: resources -> loader -> catalog -> UI lists / builder -> history details (ids); catalog
   entry -> `ModelInstaller` -> Hugging Face -> model directories of ComfyUI
 * Persistence: none for the catalog (fixed per application version); the downloaded file lies in the
@@ -198,6 +213,7 @@ Example, only to illustrate the shape (not a decision on the final field names):
 | IP-04 | Catalog Binding In The Application | Model list, flow toggle bar and workflow templates from the catalog    | IP-02, FP-002 IP-06, FP-006 IP-01              |
 | IP-05 | Model Download And Removal        | Download and verify the model files, installed check, delete, partial cleanup | IP-02, FP-005 IP-01, IP-02, IP-04 |
 | IP-06 | Model Management List             | List of all models in the main window with download and delete buttons | IP-04, IP-05, FP-003 IP-02, IP-04 |
+| IP-07 | Model And Flow Integration Tooling | Skill, agent and commands to add a model or a flow to the catalog      | IP-02, IP-03                                   |
 
 ## 7. Implementation Plans
 
@@ -429,6 +445,45 @@ IP-04, IP-05, FP-003 IP-02 (menu structure), FP-003 IP-04 (progress and error di
 * the menu entry carries no icon (icons are only planned for the File menu)
 * skills: `dialog`, `component`, `ui-styling`, `fx-component-lifecycle`, `translation`
 
+### IP-07: Model And Flow Integration Tooling
+
+**Objective**
+
+Give Claude a repeatable way to add a new model, or a new flow for an existing model, to the catalog.
+
+**Scope**
+
+* skill `ai-model`: format, validation rules, naming of ids and files, both procedures as ordered
+  steps, the list of facts that must be verified by hand
+* agent `ai-model-integrator`: runs a procedure, writes the files, runs the catalog test, reports
+  what is verified and what is not
+* commands `/add-model` and `/add-flow` as entry points with arguments
+* the procedures for a new flow: the flow file as an unchanged ComfyUI export, the flow entry in the
+  model file with standard keys, parameters and targets
+* the procedures for a new model: licence and gating check, repository, pinned revision, files with
+  target directory, size and checksum, model file, index entry, at least one flow
+* the demonstration model of IP-03 serves as the worked example
+* not: changes of production code, download or run of a model, adding gated models
+
+**Affected Areas**
+
+* `.claude/skills/ai-model`, `.claude/agents`, `.claude/commands`, `.claude/CLAUDE.md` (skill list)
+
+**Dependencies**
+
+IP-02 (rules and checks), IP-03 (worked example).
+
+**Expected Result**
+
+* `/add-model` and `/add-flow` lead through the steps; the result loads and validates in the catalog test
+
+**Technical Considerations**
+
+* the skill repeats no rule of the format twice: it points to the KDoc and the docs page of IP-01
+* the agent does not touch the network where the project rules forbid it; checksums are computed
+  only from files the user provides or downloads, and are otherwise requested from the user
+* every new model or flow ends with the catalog test and the documentation check
+
 ## 8. Dependency Graph
 
 ```text
@@ -436,6 +491,7 @@ FP-001 IP-01 (Jackson)
 └── IP-01
     └── IP-02
         ├── IP-03
+        │   └── IP-07 (also IP-02)
         ├── IP-04 (also FP-002 IP-06, FP-006 IP-01)
         │   └── IP-06 (also IP-05, FP-003 IP-02, IP-04)
         └── IP-05 (also FP-005 IP-01, IP-02, IP-04)
@@ -474,6 +530,8 @@ Decided:
 * Several downloads can run at the same time, not limited for now; the progress is shown in the rows of
   the list and in an indicator at the top right of the window (circle with percent inside and the
   number of downloads), never in the bottom right corner (generation tile, queue)
+* A skill, an agent and two commands cover the integration of a new model and of a new flow for an
+  existing model; they are the last step of this feature (IP-07)
 * Package and project name: `hocal-ai-model` and `org.pcsoft.app.hocal.aimodel`
 
 Risks:
@@ -512,4 +570,6 @@ Open questions:
   in the model directories
 * A model that is not installed is shown as such and cannot be used for a send
 * Several downloads run in parallel; the rows and the indicator at the top right show their progress
+* The skill, the agent and the commands exist; a new model and a new flow for an existing model can be
+  added with them and pass the catalog test
 * The Gradle `build` passes; README, KDoc, the architecture rule and the CI pipeline describe the new module
