@@ -26,11 +26,12 @@
 * [ ] Daten sammeln: Prompt, Modell, Flow, Seed, Parameterwerte, im Hauptfenster angezeigtes Medium, weitere Galerie-Bilder
 * [ ] Daten an den `GenerationService` übergeben, Textbox bleibt gefüllt
 * [ ] Fehlerdialoge: Dienst nicht verfügbar, Workflow abgelehnt, keine Verbindung
+* [ ] Eigener Fehlerdialog für gesperrten Knoten: nennt den Knotentyp, sagt dass er in der Anwendung nicht erlaubt ist
 
 ## Aufgabe 5: Texte, Tests und Doku
 
 * [ ] Nachrichtenschlüssel anlegen, Übersetzung nur über den Agenten `translator`
-* [ ] Tests: Aktivierungsregeln, Datensammlung, Tastenkürzel, Fehlerdialog
+* [ ] Tests: Aktivierungsregeln, Datensammlung, Tastenkürzel, Fehlerdialog, Dialog bei gesperrtem Knoten
 * [ ] KDoc und README prüfen
 
 ## Abschluss

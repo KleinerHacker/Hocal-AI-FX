@@ -168,7 +168,9 @@ Run one generation from send to result and report its state.
 * percent: sampler step progress plus the share of finished nodes, cached nodes counted as done
 * preview bytes as latest preview of the job; coalescing is up to the UI
 * cancel through `interrupt` and removal from the queue; closing the tile with `x` triggers it
-* result download after the end event; typed errors from FP-004
+* result download after the end event; typed errors from FP-004; a workflow refused by the facade
+  because it contains a blocked node (for example `GemmaAPITextEncode`) ends the job as failed with
+  that reason; nothing is sent to the server
 * not: user interface, storage in the project
 
 **Affected Areas**
@@ -207,7 +209,9 @@ Let the user start a generation from the prompt input part.
   in FP-002 IP-06, which now carries the real flows
 * collect the data (including the values of the parameter area of FP-008 IP-04) and hand it to the
   `GenerationService`; text box stays filled, send does not clear
-* error dialogs for a failed send (service not available, rejected workflow, no connection)
+* error dialogs for a failed send (service not available, rejected workflow, no connection, workflow
+  with a blocked node); the blocked-node dialog names the node and says it is not allowed in the
+  application
 * not: tile, storage
 
 **Affected Areas**
