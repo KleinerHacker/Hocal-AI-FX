@@ -14,26 +14,38 @@ package org.pcsoft.app.hocal.app.ui.window
 
 import de.saxsys.mvvmfx.FxmlView
 import de.saxsys.mvvmfx.InjectViewModel
+import javafx.beans.value.ChangeListener
+import javafx.beans.value.ObservableValue
 import javafx.fxml.FXML
 import javafx.fxml.Initializable
-import javafx.scene.control.Label
+import javafx.geometry.Orientation
+import javafx.scene.control.SplitPane
 import javafx.scene.layout.BorderPane
-import org.pcsoft.app.hocal.app.ui.component.FlowList
 import java.net.URL
 import java.util.ResourceBundle
 
 /**
- * View of the application main window, holding the menu bar, the flow list and the content area.
+ * View of the application main window, holding the menu bar and the splitter layout.
  *
- * Texts come from the global resource bundle via the `%key` syntax of the FXML file.
+ * The layout is made of three nested split panes:
+ *
+ * * [splMain] divides the project side (left, 30 %) from the content area (right, 70 %)
+ * * [splProject] divides the project side into the tree (top) and the file list (bottom), 50 % each
+ * * [splContent] divides the content area into the generation details (20 %), the media with the
+ *   prompt input (60 %) and the history list (20 %)
+ *
+ * The parts are placeholders until their components are built. Texts come from the global resource
+ * bundle via the `%key` syntax of the FXML file.
  */
 class MainWindowView : FxmlView<MainWindowViewModel>, Initializable {
     @FXML
     private lateinit var pnlRoot: BorderPane
     @FXML
-    private lateinit var flowList: FlowList
+    private lateinit var splMain: SplitPane
     @FXML
-    private lateinit var lblSelection: Label
+    private lateinit var splProject: SplitPane
+    @FXML
+    private lateinit var splContent: SplitPane
 
     @InjectViewModel
     private lateinit var viewModel: MainWindowViewModel
@@ -41,17 +53,37 @@ class MainWindowView : FxmlView<MainWindowViewModel>, Initializable {
     /**
      * Initializes the view after the FXML file has been loaded.
      *
-     * Hands the flows of the window to the flow list, follows the flow picked there and shows the
-     * text for the current selection.
+     * Sets the divider positions of the three split panes as soon as each of them has a size.
      *
      * @param location The location used to resolve relative paths for the root object, or null if unknown.
      * @param resources The resources used to localize the root object, or null if not localized.
      */
     override fun initialize(location: URL?, resources: ResourceBundle?) {
-        flowList.bindFlows(viewModel.flows)
-        viewModel.selectedFlow.bind(flowList.selectedFlow)
+        applyWhenSized(splMain, MAIN_DIVIDERS)
+        applyWhenSized(splProject, PROJECT_DIVIDERS)
+        applyWhenSized(splContent, CONTENT_DIVIDERS)
+    }
 
-        lblSelection.textProperty().bind(viewModel.selectionText)
+    /**
+     * Sets the divider positions once the split pane has a size along its orientation.
+     *
+     * Positions are fractions of that size, so they only make sense after the first layout pass.
+     */
+    private fun applyWhenSized(pane: SplitPane, positions: DoubleArray) {
+        val size = if (pane.orientation == Orientation.VERTICAL) pane.heightProperty() else pane.widthProperty()
+        if (size.get() > 0.0) {
+            pane.setDividerPositions(*positions)
+            return
+        }
+
+        size.addListener(object : ChangeListener<Number> {
+            override fun changed(observable: ObservableValue<out Number>, oldValue: Number, newValue: Number) {
+                if (newValue.toDouble() > 0.0) {
+                    observable.removeListener(this)
+                    pane.setDividerPositions(*positions)
+                }
+            }
+        })
     }
 
     /**
@@ -63,5 +95,11 @@ class MainWindowView : FxmlView<MainWindowViewModel>, Initializable {
     @FXML
     private fun actionExit() {
         pnlRoot.scene.window.hide()
+    }
+
+    private companion object {
+        val MAIN_DIVIDERS = doubleArrayOf(0.3)
+        val PROJECT_DIVIDERS = doubleArrayOf(0.5)
+        val CONTENT_DIVIDERS = doubleArrayOf(0.2, 0.8)
     }
 }

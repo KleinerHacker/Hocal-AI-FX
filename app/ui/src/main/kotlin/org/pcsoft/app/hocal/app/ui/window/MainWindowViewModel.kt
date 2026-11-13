@@ -13,43 +13,10 @@
 package org.pcsoft.app.hocal.app.ui.window
 
 import de.saxsys.mvvmfx.ViewModel
-import javafx.beans.binding.Bindings
-import javafx.beans.binding.StringBinding
-import javafx.beans.property.ObjectProperty
-import javafx.beans.property.SimpleObjectProperty
-import javafx.collections.FXCollections
-import javafx.collections.ObservableList
-import org.pcsoft.app.hocal.app.Messages
-import java.text.MessageFormat
 
 /**
  * View model of the application main window.
  *
- * The window owns the flows the user can choose from: [flows] is handed to the flow list, and the
- * flow picked there is followed through [selectedFlow]. [selectionText] is the text the content area
- * shows for the current selection.
- *
- * The flows are a fixed example list until the application reads the flows ComfyUI offers.
+ * It holds no state yet: the parts of the window get their data once their components are built.
  */
-class MainWindowViewModel : ViewModel {
-
-    /** The names of the flows the user can choose from, in the order they are shown. */
-    val flows: ObservableList<String> = FXCollections.observableArrayList(
-        Messages["window.main.flow.textToImage"],
-        Messages["window.main.flow.imageToImage"],
-        Messages["window.main.flow.upscale"]
-    )
-
-    /** The flow the user picked, absent while nothing is selected. */
-    val selectedFlow: ObjectProperty<String?> = SimpleObjectProperty(this, "selectedFlow", null)
-
-    /** Text of the content area: a hint while nothing is selected, the picked flow otherwise. */
-    val selectionText: StringBinding = Bindings.createStringBinding(
-        {
-            selectedFlow.value
-                ?.let { MessageFormat.format(Messages["window.main.selection.selected"], it) }
-                ?: Messages["window.main.selection.none"]
-        },
-        selectedFlow
-    )
-}
+class MainWindowViewModel : ViewModel

@@ -23,12 +23,12 @@ runs without building a ComfyUI graph.
 | Feature                                                        | State       |
 |----------------------------------------------------------------|-------------|
 | Main window with File menu (Exit)                              | Implemented |
-| Flow list component with example flows                         | Implemented |
+| Main window splitter layout (placeholder parts)                | Implemented |
 | English and German user interface                              | Implemented |
 | Application icon in the main window                            | Implemented |
 | Portable distribution archive (ZIP) and jlink image            | Implemented |
 | Connection to a local ComfyUI process                          | Planned     |
-| Flows read from ComfyUI instead of the example list            | Planned     |
+| Flows read from ComfyUI                                        | Planned     |
 | Running a flow with its inputs and showing the result          | Planned     |
 | Model download and installation                                | Planned     |
 

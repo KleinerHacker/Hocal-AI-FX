@@ -13,19 +13,20 @@
 package org.pcsoft.app.hocal.app.ui.window
 
 import de.saxsys.mvvmfx.MvvmFX
-import javafx.scene.control.Label
-import javafx.scene.control.ListView
+import javafx.geometry.Orientation
+import javafx.scene.Node
 import javafx.scene.control.MenuBar
+import javafx.scene.control.SplitPane
 import javafx.stage.Stage
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.pcsoft.app.hocal.app.HocalIcons
 import org.pcsoft.app.hocal.app.Messages
 import org.testfx.framework.junit5.ApplicationTest
-import java.text.MessageFormat
 import java.util.Locale
 import java.util.ResourceBundle
 
@@ -51,12 +52,16 @@ class MainWindowIT : ApplicationTest() {
     private val menuBar: MenuBar
         get() = window.scene.root.lookup(".menu-bar") as MenuBar
 
-    @Suppress("UNCHECKED_CAST")
-    private val flowListView: ListView<String>
-        get() = window.scene.root.lookup(".list-view") as ListView<String>
+    private val splMain: SplitPane
+        get() = window.scene.root.lookup("#splMain") as SplitPane
 
-    private val selectionLabel: Label
-        get() = window.scene.root.lookup(".selection-hint") as Label
+    private val splProject: SplitPane
+        get() = window.scene.root.lookup("#splProject") as SplitPane
+
+    private val splContent: SplitPane
+        get() = window.scene.root.lookup("#splContent") as SplitPane
+
+    private fun part(id: String): Node = window.scene.root.lookup("#$id")
 
     /**
      * Use case: starting the application shows a window titled after the product.
@@ -87,25 +92,57 @@ class MainWindowIT : ApplicationTest() {
     }
 
     /**
-     * Use case: the window offers its flows in the flow list, and the content area asks for a pick
-     * while nothing is selected.
+     * Use case: the window opens with a size of 1280 x 800 pixels.
      */
     @Test
-    fun windowShowsTheFlowsAndTheHint() {
-        assertEquals(3, flowListView.items.size)
-        assertEquals(Messages["window.main.selection.none"], selectionLabel.text)
+    fun windowOpensWithTheDefaultSize() {
+        assertEquals(1280.0, window.scene.width, 1.0)
+        assertEquals(800.0, window.scene.height, 1.0)
     }
 
     /**
-     * Use case: the user clicks a flow in the list, so the content area names the picked flow.
+     * Use case: the window shows the tree above the file list on the left, and the generation details,
+     * the media with the prompt input and the history list side by side on the right.
      */
     @Test
-    fun pickingAFlowShowsItInTheContentArea() {
-        val flow = Messages["window.main.flow.upscale"]
+    fun windowShowsAllPartsOfTheLayout() {
+        listOf("pnlTree", "pnlFiles", "pnlDetails", "pnlMedia", "pnlHistory").forEach {
+            assertNotNull(part(it), "part $it is missing")
+        }
 
-        clickOn(flow)
+        assertEquals(Orientation.HORIZONTAL, splMain.orientation)
+        assertEquals(Orientation.VERTICAL, splProject.orientation)
+        assertEquals(Orientation.HORIZONTAL, splContent.orientation)
+        assertEquals(listOf(part("pnlTree"), part("pnlFiles")), splProject.items)
+        assertEquals(listOf(part("pnlDetails"), part("pnlMedia"), part("pnlHistory")), splContent.items)
+        assertEquals(listOf<Node>(splProject, splContent), splMain.items)
+    }
 
-        assertEquals(MessageFormat.format(Messages["window.main.selection.selected"], flow), selectionLabel.text)
+    /**
+     * Use case: the window opens with the dividers at 30 % (project side), 50 % (tree and file list)
+     * and 20 % / 80 % (content area).
+     */
+    @Test
+    fun dividersStartAtTheDefaultPositions() {
+        assertEquals(listOf(0.3), splMain.dividerPositions.toList().map { it.rounded() })
+        assertEquals(listOf(0.5), splProject.dividerPositions.toList().map { it.rounded() })
+        assertEquals(listOf(0.2, 0.8), splContent.dividerPositions.toList().map { it.rounded() })
+    }
+
+    /**
+     * Use case: the user enlarges the window, so the parts keep their proportions.
+     */
+    @Test
+    fun partsKeepTheirProportionsWhenTheWindowGrows() {
+        interact {
+            window.width += 400.0
+            window.height += 200.0
+        }
+
+        assertEquals(listOf(0.3), splMain.dividerPositions.toList().map { it.rounded() })
+        assertEquals(listOf(0.5), splProject.dividerPositions.toList().map { it.rounded() })
+        assertEquals(listOf(0.2, 0.8), splContent.dividerPositions.toList().map { it.rounded() })
+        assertEquals(splMain.width * 0.3, splProject.width, 20.0)
     }
 
     /**
@@ -117,4 +154,6 @@ class MainWindowIT : ApplicationTest() {
 
         assertFalse(window.isShowing)
     }
+
+    private fun Double.rounded(): Double = Math.round(this * 100.0) / 100.0
 }
