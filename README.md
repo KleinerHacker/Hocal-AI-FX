@@ -24,8 +24,8 @@ runs without building a ComfyUI graph.
 |----------------------------------------------------------------|-------------|
 | Main window with File menu (Exit)                              | Implemented |
 | Main window splitter layout (placeholder parts)                | Implemented |
-| Project folder tree component (not yet shown in the window)    | Implemented |
-| File list with media previews (not yet shown in the window)    | Implemented |
+| Folder tree of the project in the main window                  | Implemented |
+| File list of the selected folder with media previews           | Implemented |
 | Prompt input with gallery dialog, model and flow selection (placeholders) | Implemented |
 | English and German user interface                              | Implemented |
 | Application icon in the main window                            | Implemented |

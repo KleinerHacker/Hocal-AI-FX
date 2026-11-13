@@ -14,6 +14,7 @@ package org.pcsoft.app.hocal.app.ui.window
 
 import de.saxsys.mvvmfx.FxmlView
 import de.saxsys.mvvmfx.InjectViewModel
+import javafx.beans.binding.BooleanBinding
 import javafx.beans.value.ChangeListener
 import javafx.beans.value.ObservableValue
 import javafx.fxml.FXML
@@ -21,6 +22,10 @@ import javafx.fxml.Initializable
 import javafx.geometry.Orientation
 import javafx.scene.control.SplitPane
 import javafx.scene.layout.BorderPane
+import org.pcsoft.app.hocal.app.ui.component.ProjectFileList
+import org.pcsoft.app.hocal.app.ui.component.ProjectTree
+import org.pcsoft.app.hocal.app.ui.component.PromptInput
+import org.pcsoft.app.hocal.app.ui.showingBinding
 import java.net.URL
 import java.util.ResourceBundle
 
@@ -30,12 +35,14 @@ import java.util.ResourceBundle
  * The layout is made of three nested split panes:
  *
  * * [splMain] divides the project side (left, 30 %) from the content area (right, 70 %)
- * * [splProject] divides the project side into the tree (top) and the file list (bottom), 50 % each
+ * * [splProject] divides the project side into the folder tree (top) and the file list (bottom), 50 % each
  * * [splContent] divides the content area into the generation details (20 %), the media with the
  *   prompt input (60 %) and the history list (20 %)
  *
- * The parts are placeholders until their components are built. Texts come from the global resource
- * bundle via the `%key` syntax of the FXML file.
+ * The folder tree, the file list and the prompt input are bound to the project the view model follows: the tree
+ * shows its folders, the file list the files of the selected folder, and the prompt input offers its folders in
+ * the gallery. The other parts are placeholders until their components are built. Texts come from the global
+ * resource bundle via the `%key` syntax of the FXML file.
  */
 class MainWindowView : FxmlView<MainWindowViewModel>, Initializable {
     @FXML
@@ -46,14 +53,25 @@ class MainWindowView : FxmlView<MainWindowViewModel>, Initializable {
     private lateinit var splProject: SplitPane
     @FXML
     private lateinit var splContent: SplitPane
+    @FXML
+    private lateinit var trvProject: ProjectTree
+    @FXML
+    private lateinit var lstFiles: ProjectFileList
+    @FXML
+    private lateinit var promptInput: PromptInput
 
     @InjectViewModel
     private lateinit var viewModel: MainWindowViewModel
 
+    // Kept as a field: a garbage collected binding stops notifying, and the registration would stay.
+    private lateinit var showing: BooleanBinding
+
     /**
      * Initializes the view after the FXML file has been loaded.
      *
-     * Sets the divider positions of the three split panes as soon as each of them has a size.
+     * Sets the divider positions of the three split panes as soon as each of them has a size, binds the folder
+     * tree, the file list and the prompt input to the project, and registers the view model at the project
+     * only while the window is on screen.
      *
      * @param location The location used to resolve relative paths for the root object, or null if unknown.
      * @param resources The resources used to localize the root object, or null if not localized.
@@ -62,6 +80,24 @@ class MainWindowView : FxmlView<MainWindowViewModel>, Initializable {
         applyWhenSized(splMain, MAIN_DIVIDERS)
         applyWhenSized(splProject, PROJECT_DIVIDERS)
         applyWhenSized(splContent, CONTENT_DIVIDERS)
+
+        trvProject.folderProperty().bind(viewModel.tree)
+        viewModel.selectedFolder.bind(trvProject.selectedFolderProperty())
+
+        lstFiles.folderProperty().bind(viewModel.listFolder)
+        lstFiles.mediaSourceProperty().set(viewModel.mediaSource)
+        viewModel.selectedFile.bind(lstFiles.selectedFileProperty())
+
+        promptInput.folderProperty().bind(viewModel.tree)
+        promptInput.mediaSourceProperty().set(viewModel.mediaSource)
+
+        viewModel.onMediaChanged = { reference ->
+            lstFiles.invalidate(reference)
+            promptInput.invalidate(reference)
+        }
+
+        showing = pnlRoot.showingBinding()
+        showing.addListener { _, _, onScreen -> if (onScreen) viewModel.onShow() else viewModel.onHide() }
     }
 
     /**

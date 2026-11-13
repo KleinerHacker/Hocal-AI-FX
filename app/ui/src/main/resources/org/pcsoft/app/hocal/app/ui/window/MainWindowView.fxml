@@ -19,6 +19,8 @@
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.StackPane?>
+<?import org.pcsoft.app.hocal.app.ui.component.ProjectFileList?>
+<?import org.pcsoft.app.hocal.app.ui.component.ProjectTree?>
 <?import org.pcsoft.app.hocal.app.ui.component.PromptInput?>
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
@@ -40,8 +42,8 @@
                 <!-- Side areas keep their width when the window is resized, the rest takes the difference -->
                 <SplitPane fx:id="splProject" orientation="VERTICAL" SplitPane.resizableWithParent="false">
                     <items>
-                        <StackPane id="pnlTree" styleClass="placeholder"/>
-                        <StackPane id="pnlFiles" styleClass="placeholder"/>
+                        <ProjectTree fx:id="trvProject" id="pnlTree"/>
+                        <ProjectFileList fx:id="lstFiles" id="pnlFiles"/>
                     </items>
                 </SplitPane>
 
@@ -56,7 +58,7 @@
                                 <StackPane id="pnlImage" styleClass="placeholder"/>
                             </center>
                             <bottom>
-                                <PromptInput id="pnlPromptInput"/>
+                                <PromptInput fx:id="promptInput" id="pnlPromptInput"/>
                             </bottom>
                         </BorderPane>
                         <StackPane id="pnlHistory" styleClass="placeholder" SplitPane.resizableWithParent="false"/>

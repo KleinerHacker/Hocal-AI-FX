@@ -13,22 +13,41 @@
 package org.pcsoft.app.hocal.app.ui.window
 
 import de.saxsys.mvvmfx.MvvmFX
+import javafx.application.Platform
 import javafx.geometry.Orientation
 import javafx.scene.Node
+import javafx.scene.control.Label
+import javafx.scene.control.ListCell
 import javafx.scene.control.MenuBar
 import javafx.scene.control.SplitPane
+import javafx.scene.control.TreeCell
+import javafx.scene.image.ImageView
+import javafx.scene.layout.HBox
 import javafx.stage.Stage
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.pcsoft.app.hocal.app.HocalIcons
 import org.pcsoft.app.hocal.app.Messages
+import org.pcsoft.app.hocal.app.ui.component.ProjectFileList
+import org.pcsoft.app.hocal.app.ui.component.ProjectTree
+import org.pcsoft.app.hocal.app.ui.component.PromptInput
+import org.pcsoft.app.hocal.app.ui.preview.pngBytes
+import org.pcsoft.app.hocal.fx.model.manager.ProjectManager
+import org.pcsoft.app.hocal.model.project.Medium
+import org.pcsoft.app.hocal.model.project.VirtualEntry
+import org.pcsoft.app.hocal.model.project.VirtualFolder
 import org.testfx.framework.junit5.ApplicationTest
+import org.testfx.util.WaitForAsyncUtils
+import java.io.ByteArrayInputStream
 import java.util.Locale
 import java.util.ResourceBundle
+import java.util.concurrent.Callable
+import java.util.concurrent.TimeUnit
 
 /**
  * Integration tests starting the complete main window.
@@ -40,13 +59,72 @@ class MainWindowIT : ApplicationTest() {
     override fun start(stage: Stage) {
         MvvmFX.setGlobalResourceBundle(ResourceBundle.getBundle(Messages.BUNDLE_NAME, Locale.GERMAN))
 
+        // As the application does: the manager accepts the FX thread only, and a new project exists before the window.
+        ProjectManager.threadCheck = { Platform.isFxApplicationThread() }
+        ProjectManager.createNew("Test")
+
         window = MainWindow()
         window.show()
     }
 
     @AfterEach
     fun releaseWindow() {
-        interact { window.hide() }
+        interact {
+            window.hide()
+            ProjectManager.close(discardChanges = true)
+            ProjectManager.threadCheck = { true }
+        }
+    }
+
+    private fun <T> fx(block: () -> T): T = WaitForAsyncUtils.asyncFx(Callable { block() }).get()
+
+    private val tree: ProjectTree
+        get() = window.scene.root.lookup("#pnlTree") as ProjectTree
+
+    private val fileList: ProjectFileList
+        get() = window.scene.root.lookup("#pnlFiles") as ProjectFileList
+
+    private val promptInput: PromptInput
+        get() = window.scene.root.lookup("#pnlPromptInput") as PromptInput
+
+    private val rootFolder: VirtualFolder
+        get() = ProjectManager.project.treeProperty.get()!!
+
+    private fun addFolder(parent: VirtualFolder, name: String): VirtualFolder =
+        fx { ProjectManager.createFolder(parent, name) }
+
+    private fun addFile(parent: VirtualFolder, name: String, rgb: Int): VirtualEntry = fx {
+        val reference = ProjectManager.addReference(Medium(), "png", ByteArrayInputStream(pngBytes(60, 40, rgb)))
+        ProjectManager.createEntry(parent, name, reference)
+    }
+
+    private fun treeRows(): List<String> {
+        WaitForAsyncUtils.waitForFxEvents()
+        return tree.lookupAll(".tree-cell").filterIsInstance<TreeCell<*>>().filter { !it.isEmpty }
+            .sortedBy { it.layoutY }.map { cell ->
+                val children = (cell.graphic as HBox).children
+                "${(children[1] as Label).text} ${(children[2] as Label).text}"
+            }
+    }
+
+    private fun fileCells(): List<ListCell<*>> {
+        WaitForAsyncUtils.waitForFxEvents()
+        return fileList.lookupAll(".list-cell").filterIsInstance<ListCell<*>>().filter { !it.isEmpty }
+            .sortedBy { it.layoutY }
+    }
+
+    private fun fileNames(): List<String> = fileCells().map { (it.lookup(".file-name") as Label).text }
+
+    private fun previewColors(cell: ListCell<*>): List<Int?> =
+        cell.lookupAll(".image-view").filterIsInstance<ImageView>().map { it.image?.pixelReader?.getArgb(5, 5)?.and(0xFFFFFF) }
+
+    private fun selectFolder(folder: VirtualFolder) {
+        val item = tree.root.children.first { it.value === folder }
+        interact { tree.selectionModel.select(item) }
+    }
+
+    private fun awaitTrue(condition: () -> Boolean) {
+        WaitForAsyncUtils.waitFor(5, TimeUnit.SECONDS, Callable { condition() })
     }
 
     private val menuBar: MenuBar
@@ -187,6 +265,81 @@ class MainWindowIT : ApplicationTest() {
             "the prompt input must not overlap the image"
         )
         assertEquals(listOf(part("pnlDetails"), media, part("pnlHistory")), splContent.items)
+    }
+
+    /**
+     * Use case: the window opens with a new, empty project. The tree shows the root folder only, the file
+     * list is empty, and nothing fails.
+     */
+    @Test
+    fun newProjectShowsAnEmptyTreeAndAnEmptyList() {
+        assertEquals(listOf("${Messages["component.projectTree.root"]} (0)"), treeRows())
+        assertTrue(fileCells().isEmpty())
+    }
+
+    /**
+     * Use case: the project holds folders and files. The tree shows the folders with the number of their
+     * children, selecting a folder lists its files, and their previews are loaded from the project - in the
+     * background, although the project belongs to the FX thread.
+     */
+    @Test
+    fun filledProjectShowsFoldersFilesAndPreviews() {
+        val photos = addFolder(rootFolder, "Photos")
+        addFolder(rootFolder, "Videos")
+        addFile(photos, "A.png", 0xFF0000)
+        addFile(photos, "B.png", 0x00FF00)
+
+        val root = Messages["component.projectTree.root"]
+        assertEquals(listOf("$root (2)", "Photos (2)", "Videos (0)"), treeRows())
+
+        selectFolder(photos)
+        assertEquals(listOf("A.png", "B.png"), fileNames())
+        awaitTrue { fileCells().map { previewColors(it) } == listOf(listOf(0xFF0000, 0xFF0000), listOf(0x00FF00, 0x00FF00)) }
+    }
+
+    /**
+     * Use case: the user selects another folder. The file list shows the files of that folder only.
+     */
+    @Test
+    fun selectingAnotherFolderChangesTheList() {
+        val photos = addFolder(rootFolder, "Photos")
+        val videos = addFolder(rootFolder, "Videos")
+        addFile(photos, "A.png", 0xFF0000)
+        addFile(videos, "Clip.png", 0x0000FF)
+
+        selectFolder(photos)
+        assertEquals(listOf("A.png"), fileNames())
+
+        selectFolder(videos)
+        assertEquals(listOf("Clip.png"), fileNames())
+    }
+
+    /**
+     * Use case: a file is added to the folder that is shown. The tree and the file list follow the project
+     * without the user selecting anything again.
+     */
+    @Test
+    fun changeInTheSelectedFolderAppearsInTheList() {
+        val photos = addFolder(rootFolder, "Photos")
+        addFile(photos, "A.png", 0xFF0000)
+        selectFolder(photos)
+        assertEquals(listOf("A.png"), fileNames())
+
+        addFile(photos, "B.png", 0x00FF00)
+
+        assertEquals(listOf("A.png", "B.png"), fileNames())
+        assertTrue("Photos (2)" in treeRows())
+    }
+
+    /**
+     * Use case: the prompt input offers the gallery the folders of the project, and loads the previews of
+     * its chips from the project: it is bound to the root folder and to the media source of the window.
+     */
+    @Test
+    fun promptInputGetsTheFolderAndTheMediaSource() {
+        assertSame(rootFolder, promptInput.folderProperty().get())
+        assertNotNull(promptInput.mediaSourceProperty().get())
+        assertSame(promptInput.mediaSourceProperty().get(), fileList.mediaSourceProperty().get())
     }
 
     /**

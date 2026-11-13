@@ -4,6 +4,7 @@
 
 * Main window with a File menu ("Exit", `Ctrl+Q`) and a resizable layout of tree, file list,
   generation details, media with prompt input and history list (parts still empty placeholders)
+* Folder tree and file list of the project in the main window; a new, empty project is created at start
 * Input part below the image: prompt box, an add button that opens a gallery dialog to pick images from
   the project (shown as chips), model and flow selection (example entries) and a send button (does nothing yet)
 * Application icon in the title bar and task bar of the main window

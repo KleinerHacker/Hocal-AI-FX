@@ -14,19 +14,32 @@ package org.pcsoft.app.hocal.app
 
 import de.saxsys.mvvmfx.MvvmFX
 import javafx.application.Application
+import javafx.application.Platform
 import javafx.stage.Stage
 import org.apache.commons.lang3.SystemUtils
+import org.pcsoft.app.hocal.fx.model.manager.ProjectManager
 import org.pcsoft.app.hocal.app.ui.window.MainWindow
 import org.pcsoft.app.hocal.app.util.logger
 
 /**
  * JavaFX application entry point of Hocal AI.
  *
- * There is no startup area yet (see the `startup` skill), so the main window is shown directly.
+ * There is no startup area yet (see the `startup` skill), so the main window is shown directly. Before it,
+ * the [ProjectManager] is set up and a new, empty project is created: the window follows the project the
+ * manager holds and never creates one itself.
  */
 class HocalApplication : Application() {
     override fun start(stage: Stage) {
+        ProjectManager.threadCheck = { Platform.isFxApplicationThread() }
+        ProjectManager.applicationVersion = HocalApplication::class.java.`package`?.implementationVersion ?: "dev"
+        ProjectManager.createNew(Messages["project.new.name"])
+
         MainWindow().show()
+    }
+
+    /** Closes the project and removes its temporary folder when the application ends. */
+    override fun stop() {
+        ProjectManager.close(discardChanges = true)
     }
 }
 

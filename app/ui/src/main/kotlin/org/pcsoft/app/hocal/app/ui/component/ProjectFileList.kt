@@ -68,6 +68,16 @@ class ProjectFileList : ListView<VirtualEntry>() {
     fun selectedFileProperty(): ReadOnlyObjectProperty<VirtualEntry?> = viewModel.selectedFile
 
     /**
+     * Tells that the media of a reference changed, for instance because a medium of its history was deleted
+     * or appended: the previews of every entry that links the reference are loaded anew.
+     *
+     * @param reference UUID of the reference whose media changed
+     */
+    fun invalidate(reference: String) {
+        viewModel.invalidate(reference)
+    }
+
+    /**
      * Cancels all loading and ends the thread pool of the previews for good.
      *
      * To be called when the list is not used any more, for instance when the dialog holding it is hidden.

@@ -27,8 +27,20 @@ and the history list keep their width; the media with the prompt input takes the
 | Media with prompt input           | content area, centre             | 60 % of the content area     |
 | History list                      | content area, right              | 20 % of the content area     |
 
-The tree, the file list, the generation details and the image are still empty placeholders; their
-contents follow in later versions.
+The generation details, the image and the history list are still empty placeholders; their contents
+follow in later versions.
+
+## Project
+
+The application starts with a new, empty project. The window shows it:
+
+* the folder tree on the left shows the folders of the project, the project itself as the topmost
+  folder; behind every name, in gray, stands the number of the direct children of the folder
+* the file list below the tree shows the files of the selected folder. Every row has two preview
+  images - the original medium first and directly behind it the current medium, the last one created -
+  and the name of the file. A file with one medium only shows its image twice. Previews are loaded in
+  the background; until an image is there, and for a file that is no image, a placeholder is shown
+* the list follows the project: a file that is added to the selected folder appears at once
 
 ## Prompt input
 
