@@ -20,7 +20,7 @@ Status: NOT_STARTED
 
 ## Notes
 
-Feature Plan created. No implementation plan has been started yet. IP-02 and IP-03 can run in
+Feature Plan created, implementation plans derived. No implementation plan has been started yet. IP-02 and IP-03 can run in
 parallel after IP-01; IP-06 and IP-07 can run in parallel after IP-05. Inserted after FP-006; the
 former FP-007 to FP-010 were renumbered to FP-008 to FP-011 (files and cross references). Open
 questions are listed in section 9 of the Feature Plan; the engine decision is the gate of IP-03.
