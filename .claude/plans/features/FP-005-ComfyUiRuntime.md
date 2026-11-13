@@ -49,7 +49,7 @@ service on the first communication, stops it when the application ends and lets 
   `--disable-api-nodes` instead
 * The node `GemmaAPITextEncode` is blocked on two ways: through the built-in list of disabled nodes of
   ComfyUI 0.42 and in the application before a workflow is submitted (FP-004 IP-03); flow files that
-  contain it are rejected when the catalog is read (FP-008 IP-02)
+  contain it are rejected when the catalog is read (FP-009 IP-02)
 * Telemetry of the started process is switched off with the environment variables `DO_NOT_TRACK=1` and
   `HF_HUB_DISABLE_TELEMETRY=1`
 * States visible to the user: not installed, installing, stopped, starting, running, failed
@@ -289,7 +289,7 @@ IP-01, FP-004 IP-03. Can run in parallel to IP-02 to IP-04 with a configured exe
 * an unknown switch makes ComfyUI exit at once; the probe therefore runs before the real start and
   the version of the engine is not compared by number
 * `--offline` stops the paid nodes only; it does not make the process refuse the network for
-  downloads of models done by FP-008 (that is the application's own download)
+  downloads of models done by FP-009 (that is the application's own download)
 * the telemetry variables are set for the child process only, not for the application itself
 
 ### IP-06: First-Start Setup Flow
@@ -346,7 +346,7 @@ Let the user see and control the service, and tie its life to the application.
 * stop of the service on Exit, on closing the window and on a fatal error
 * accelerator and icon for the restart entry, following the `icons` skill
 * not: the installation, settings for port and directory
-* the restart control later moves into the `ComfyUI` page of the settings dialog (FP-009 IP-07)
+* the restart control later moves into the `ComfyUI` page of the settings dialog (FP-010 IP-07)
 
 **Affected Areas**
 
@@ -423,7 +423,7 @@ Open questions:
   at implementation (IP-03, IP-04)
 * Install location (default per operating system) and whether the user may choose it; to be
   clarified at implementation (IP-01)
-* Where models are stored and who downloads the first checkpoint: covered by FP-008 (model download)
+* Where models are stored and who downloads the first checkpoint: covered by FP-009 (model download)
 * Updates of ComfyUI and of the PyTorch backend (later feature)
 
 ## 10. Feature Completion Criteria

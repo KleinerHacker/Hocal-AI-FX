@@ -209,7 +209,7 @@ IP-02.
 * the facade is an interface plus an implementation, so the UI and tests can replace it
 * paths are built with encoding of `filename` and `subfolder`
 * the check sits in the facade so no code path can bypass it; the engine blocks the node as well
-  (FP-005 IP-05); the list is exposed so the catalog validation (FP-008 IP-02) can use the same list
+  (FP-005 IP-05); the list is exposed so the catalog validation (FP-009 IP-02) can use the same list
 
 ### IP-04: Execution Event Hook
 
