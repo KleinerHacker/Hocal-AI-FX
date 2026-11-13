@@ -180,7 +180,7 @@ SplitPane (horizontal, divider 0.3)
 
 | ID    | Implementation Plan                | Objective                                                           | Dependencies |
 |-------|------------------------------------|---------------------------------------------------------------------|--------------|
-| IP-01 | Main Window Splitter Layout        | Rebuild the main window layout with the splitters and placeholders   | -            |
+| IP-01 | Main Window Splitter Layout (COMPLETED) | Rebuild the main window layout with the splitters and placeholders   | -            |
 | IP-02 | Directory Tree Component           | Folder tree with child counts bound to the FX model, adapt the component rules | IP-01, FP-001 IP-02, FP-001 IP-07 |
 | IP-03 | File List And Media Preview        | File list with original and current icon and the preview extension point | IP-01, FP-001 IP-02 |
 | IP-04 | Project Binding And Window Wiring  | Follow the `ProjectManager`, connect tree, list and content area     | IP-02, IP-03, FP-001 IP-07 |
@@ -190,7 +190,7 @@ SplitPane (horizontal, divider 0.3)
 
 ## 7. Implementation Plans
 
-### IP-01: Main Window Splitter Layout
+### IP-01: Main Window Splitter Layout (COMPLETED)
 
 **Objective**
 
@@ -223,6 +223,16 @@ A resizable window with the nested splitters at their initial positions and the 
   history list are `resizableWithParent=false`, the media with the prompt input takes the difference
 * Placeholders carry no logic and are replaced by the following plans
 * Load `ui-styling`, `window` and `component` skills first
+
+**Built**
+
+* Differs from the plan: the resize behaviour. The project side, the generation details and the history
+  list are `resizableWithParent=false` and keep their width, instead of keeping the divider ratios
+* The placeholders are `StackPane`s with the ids `pnlTree`, `pnlFiles`, `pnlDetails`, `pnlMedia` and
+  `pnlHistory`, the splitters have the ids `splMain`, `splProject` and `splContent`
+* `MainWindowViewModel` stays as an empty class; the package `ui.component` is no longer opened or
+  exported in `module-info.java` until IP-02 adds the first component again
+* The `component` skill still names `FlowList` as template; IP-02 switches it
 
 ### IP-02: Directory Tree Component
 
@@ -451,7 +461,7 @@ without details.
 ## 8. Dependency Graph
 
 ```text
-IP-01
+IP-01 (COMPLETED)
 ├── IP-02 ──┐
 ├── IP-03 ──┴── IP-04 ── IP-05 ── IP-07
 └── IP-06
