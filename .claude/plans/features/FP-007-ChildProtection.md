@@ -3,13 +3,18 @@
 ## 1. Objective
 
 Build a protection of minors into the generation path. The application must not create or process
-nude or sexualized depictions of persons under 18. For every generation three checkpoints decide:
+nude or sexualized depictions of persons under 18. For every generation four checks decide:
 
-1. the text of the prompt (all prompt texts of the run, alone and together)
-2. all input images of the run (if any)
-3. the generated image
+1. the input prompt by itself (all prompt texts of the run, alone and together)
+2. the input images (every input image, if any)
+3. the input prompt and the input images together
+4. the generated image
 
-A generation that violates the golden rules (section 4) is stopped or its result is discarded. The
+Every check asks the same question: under 18 AND nudity or sexuality. Nudity and sexuality of adults
+(18 and older) are explicitly allowed. As a safety tolerance a person counts as an adult for the
+checks only from 20 years on.
+
+A generation that violates the rules (section 4) is stopped or its result is discarded. The
 protection cannot be switched off by the user, by a setting, by a flow file or by an environment
 variable. If it cannot decide, it blocks (fail closed).
 
@@ -40,13 +45,17 @@ variable. If it cannot decide, it blocks (fail closed).
   `ContentGuard`
 * An internal properties file in the resources of the library names the models used for the checks
   and the prompts given to them, so neither is scattered through the code
-* Every generation is checked at three points:
-    * before upload and submit: all prompt texts and all input images (pre-check)
-    * while the run lasts: sampled preview frames (optional protection against a long running
-      violation; see open questions)
-    * after the end event: the generated image, before it is shown as a result or stored (post-check)
-* The decision is the combination of two independent signals per source: "a person under 18 is meant
-  or depicted" and "nudity or a sexualized depiction is meant or depicted"
+* Every generation passes four checks:
+    * before upload and submit (pre-check): check 1 the prompt texts, check 2 the input images,
+      check 3 the prompt texts and the input images together
+    * after the end event (post-check): check 4 the generated image, before it is shown as a result
+      or stored
+    * in addition, while the run lasts: sampled preview frames (optional protection against a long
+      running violation; see open questions)
+* Every check decides on the same condition: "a person under 18 is meant or depicted" AND "nudity or
+  sexuality is meant or depicted"; one of the two alone never blocks
+* Nudity and sexuality of adults are allowed and pass without a notice; the safety tolerance treats
+  a person as an adult only from 20 years on
 * A blocked pre-check sends nothing to ComfyUI and uploads nothing; a blocked post-check discards the
   result: it is not stored in the project, not shown as an image, and its files in the data directory
   of ComfyUI are deleted
@@ -64,38 +73,48 @@ variable. If it cannot decide, it blocks (fail closed).
 
 Definitions:
 
-* signal M ("minor"): a person under 18 is meant (text) or depicted (image); includes realistic,
-  drawn, rendered and otherwise stylized depictions
-* signal S ("sexual"): nudity or a sexualized depiction is requested (text) or shown (image); nudity
-  alone is already S, it does not need to be sexual
+* protected age: under 18; safety age: 20; a person below the safety age counts as a minor for the
+  checks (the tolerance covers the error of an age estimate)
+* signal M ("minor"): a person below the safety age is meant (text) or depicted (image); includes
+  realistic, drawn, rendered and otherwise stylized depictions
+* signal S ("sexual"): nudity or sexuality is requested (text) or shown (image); nudity alone is
+  already S, it does not need to be sexual
 * each signal has the levels `NONE`, `POSSIBLE`, `LIKELY`
 * a source is one prompt text, one input image or the generated image
 
-Golden rules (the minimum that has to hold, given by the product owner):
+Rules (given by the product owner; every rule is "M AND S"):
 
-* G1 prompt: the text intentionally describes persons under 18 in connection with nudity or a
-  sexualized depiction: M and S within the prompt texts -> block
-* G2 prompt with images: the text describes nudity or a sexualized depiction while an input image
-  shows a person under 18: S of the prompt texts and M of an input image -> block
-* G3 image: a person under 18 is depicted in connection with nudity or a sexualized depiction: M and
-  S in the same image -> block; this applies to every input image and to the generated image
+* R1, check 1, input prompt by itself: the prompt texts intentionally describe a person under 18
+  together with nudity or sexuality -> block
+* R2, check 2, input images: an input image shows a person under 18 together with nudity or
+  sexuality -> block; every input image is checked
+* R3, check 3, input prompt and input images together: M and S come from different inputs, for
+  example the prompt asks for nudity or sexuality and an input image shows a person under 18, or
+  the prompt describes a person under 18 and an input image shows nudity or sexuality -> block;
+  the signals of all prompt texts and all input images are united for this check
+* R4, check 4, generated image: the generated image shows a person under 18 together with nudity
+  or sexuality -> block; the generated image is judged by itself
 
-Combination rule (proposed extension, to be confirmed, see open questions):
+Explicitly allowed:
 
-* the signals of a run are united over all sources: prompt texts, all input images, generated image;
-  the run is blocked when the union contains M and S together at the block level (below); G1 to G3
-  are special cases of it; further cases it adds: M from the prompt with S from an input image, and
-  M from an input image with S from another input image or from the generated image
+* nudity and sexuality of adults: S without M never blocks, raises no notice and is not logged as
+  an event
+* persons under 18 without nudity and sexuality: M without S never blocks
 
-Block level:
+Block level and safety tolerance:
 
 * block when (M is `LIKELY` and S is at least `POSSIBLE`) or (M is at least `POSSIBLE` and S is
   `LIKELY`)
-* an uncertain age is treated conservatively: a person who appears to be near 18 counts as `POSSIBLE`
-  for M
-* thresholds live in code, are covered by tests and are not user settings
+* images: a person whose apparent age is below 20 is M `LIKELY`; a person whose age cannot be
+  judged as safely 20 or older is M `POSSIBLE`
+* texts: a stated age below 18 and words for children and adolescents are M `LIKELY`; a stated age
+  of 18 or older is an adult; vague youth descriptions without an age ("very young looking") are
+  M `POSSIBLE` (see open questions for stated ages of 18 and 19)
+* the protected age 18 and the safety age 20 are constants of the policy; the prompts of
+  `guard.properties` take them as placeholders; thresholds are covered by tests and are not user
+  settings
 
-Prompt texts (checkpoint 1):
+Check 1, input prompt:
 
 * all text values that the model receives are checked: the prompt, the negative prompt, every text
   parameter of the flow (FP-009 fields) and every text input written into the built workflow; the
@@ -112,19 +131,25 @@ Prompt texts (checkpoint 1):
 * obfuscation is normalized before the check: spacing, leetspeak, homoglyphs, zero-width characters,
   unusual casing
 
-Input images (checkpoint 2):
+Check 2, input images:
 
 * every input image of the run is checked, also the medium shown in the main window (it is always an
   input) and every gallery image; images are checked before they are uploaded
-* per image: the highest M level of any person, the highest S level, and whether both belong to the
-  same image (G3); the combination of several images follows the combination rule
+* per image: the highest M level of any person and the highest S level; R2 applies when both are in
+  the same image
 * a verdict for an image is held in memory by its content hash for the lifetime of the application,
   so an unchanged image is not analyzed again; nothing is persisted
 
-Generated image (checkpoint 3):
+Check 3, input prompt and input images together:
+
+* uses the signals of check 1 and check 2, no further analysis; the M and S levels of all prompt
+  texts and all input images are united and judged with the block level
+* it is skipped when the run has no input image
+
+Check 4, generated image:
 
 * the result bytes are downloaded into memory and checked before they are shown, stored or handed to
-  the project; G3 applies to the result, and the union with the pre-check signals applies as well
+  the project; R4 applies to the result by itself
 * a blocked result is deleted from the data directory of ComfyUI (output, temp, input of the run) and
   never appended to the project history
 
@@ -182,7 +207,8 @@ Behaviour:
       RequestVerdict)` return a `Verdict` (`ALLOWED`, `BLOCKED` with rule id, `UNDECIDABLE` with
       reason); `RequestSnapshot` holds the typed prompt texts (positive, negative, other) and the
       input images; `GuardException` hierarchy
-    * `policy` - signals, levels, the golden rules G1 to G3, the combination rule, the thresholds;
+    * `policy` - signals, levels, the rules R1 to R4, the block level, the protected age and
+      the safety age;
       pure functions, no I/O
     * `text` - normalization, lexicons per language, age expression parser, negative prompt handling,
       joined evaluation; the rule layer of the text analysis
@@ -221,7 +247,7 @@ Behaviour:
 
 | ID    | Implementation Plan             | Objective                                                                 | Dependencies         |
 |-------|---------------------------------|---------------------------------------------------------------------------|----------------------|
-| IP-01 | Guard Library And Policy        | Module `lib/guard`, signals, golden rules, verdicts, facade, fail closed  | -                    |
+| IP-01 | Guard Library And Policy        | Module `lib/guard`, signals, rules R1 to R4, verdicts, facade, fail closed | -                    |
 | IP-02 | Text Analysis                   | Rule layer for prompt texts, joined evaluation, intent and age detection  | IP-01                |
 | IP-03 | Classification Engine Process   | Local engine process, protocol, model provisioning, engine decision       | IP-01, FP-005 IP-02, IP-03, IP-05 |
 | IP-04 | Image Analysis                  | M and S levels per image, hash cache, preview sampling                    | IP-03                |
@@ -241,7 +267,7 @@ Create the library with the decision logic, independent of any engine.
 
 * module `lib/guard` in `settings.gradle.kts`, build file, `module-info.java`
 * signals M and S, levels, `RequestSnapshot`, `Verdict`, rule ids
-* policy: G1 to G3, the combination rule, the block level and the thresholds
+* policy: R1 to R4, the block level, the protected age 18 and the safety age 20
 * facade `ContentGuard` with `checkRequest`, `checkResult`, `checkPreview`; interface
   `ClassifierEngine`
 * fail closed: an engine error, timeout or missing engine gives `UNDECIDABLE`, never `ALLOWED`
@@ -261,13 +287,13 @@ None. Shares the Jackson and SLF4J dependencies with FP-001 and FP-004.
 
 **Expected Result**
 
-* with fake engines every combination of the golden rules and the union rule gives the expected
-  verdict; the module builds and the licence check passes
+* with fake engines every combination of the rules R1 to R4 gives the expected verdict; S alone and
+  M alone are allowed; the module builds and the licence check passes
 
 **Technical Considerations**
 
 * the policy is a pure function of signals; changing a threshold changes tests, not code paths
-* the union semantics (what counts as "same image", what as "run") is fixed here and documented
+* what counts as "same image" (R2, R4) and the union of the inputs (R3) is fixed here and documented
 * skill `testing` before tests; `project-docs` after
 
 ### IP-02: Text Analysis
@@ -393,7 +419,7 @@ IP-03.
 
 **Objective**
 
-Put the three checkpoints into the generation path so they cannot be skipped.
+Put the four checks into the generation path so they cannot be skipped.
 
 **Scope**
 
@@ -425,7 +451,7 @@ IP-02, IP-04, FP-006 IP-02.
 
 * the check happens on a copy of the data that is really sent, not on the UI fields only
 * the order is fixed: check, then upload; check, then show or store
-* waiting jobs keep their snapshot; their result check uses the pre-check signals as well
+* waiting jobs keep their snapshot; their result is judged by check 4 when the run ends
 
 ### IP-06: Notices And Setup In UI
 
@@ -520,8 +546,8 @@ Risks:
 
 * No classifier is perfect: misses (a violating content passes) and false positives (a family photo or
   an adult is blocked) both occur; the protection lowers the risk and does not remove it
-* Estimating the age of a person from an image is uncertain, most near 18; the conservative level
-  raises false positives
+* Estimating the age of a person from an image is uncertain, most near 18; the safety age 20 lowers
+  misses and blocks some adults of 18 to 20 and adults who look younger
 * A text can describe a violation in a way no lexicon knows (new terms, other languages, code words);
   the semantic layer helps and has its own errors
 * The application is open source; a user who changes the code or the build can remove the check; the
@@ -534,7 +560,11 @@ Risks:
 
 Decided:
 
-* the three checkpoints and the golden rules G1 to G3 of the product owner
+* the four checks and the rules R1 to R4 of the product owner; every rule is "under 18 AND nudity or
+  sexuality"
+* nudity and sexuality of adults are explicitly allowed
+* safety tolerance: a person counts as an adult for the checks only from 20 years on
+* the generated image is judged by itself (check 4), not together with the inputs
 * no off switch, no override, fail closed
 * the engine is local, offline and separate from ComfyUI
 * the guard models are mandatory and are not part of the user model catalog
@@ -546,7 +576,10 @@ Decided:
 
 Open questions:
 
-* Is the union (combination) rule accepted as the standard (stricter than G1 to G3)?
+* Does the safety age 20 also apply to an age stated in the prompt (18 or 19 years), or only to
+  estimated ages? Planned: a stated age of 18 or older is an adult
+* Check 3 unites all inputs; this also blocks M of one input image with S of another input image.
+  Is that wanted, or only prompt against image?
 * Which engine approach and which models (decision gate in IP-03); the approval of new dependencies
   for the JVM and for Python
 * Are previews checked (sampled interruption) or only suppressed until the end?
@@ -560,8 +593,10 @@ Open questions:
 
 * A prompt that describes persons under 18 together with nudity or a sexualized depiction is refused
   before anything is sent to ComfyUI
-* A prompt that describes nudity or a sexualized depiction together with an input image of a person
-  under 18 is refused; so is an input image that shows a person under 18 in that connection
+* An input image that shows a person under 18 in that connection is refused; so is a prompt that
+  describes nudity or sexuality together with an input image of a person under 18, and the reverse
+* Nudity and sexuality of adults pass all four checks; a person who appears younger than 20 is
+  treated as a minor
 * A generated image that shows a person under 18 in that connection is never shown as a result and
   never stored in the project; its files are removed from the ComfyUI directories
 * All prompt texts of a run, and all input images including the medium from the main window, are
