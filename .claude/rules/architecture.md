@@ -16,6 +16,12 @@ name: Architecture
 * A module under 'lib' MAY carry Java FX only in this one case; every other one stays free of it
   * a property model library on 'javafx.base' alone - 'lib/fx-model'; no toolkit module beyond
     `javafx.base`
+* Operations on the project (project storage, media store, media history, tree operations) live in
+  `...internal` packages of 'lib/model'
+  * the module descriptor exports them to `hocal-fx-model` ONLY (qualified export), so the application
+    reaches them through the `ProjectManager` and nowhere else
+  * plain objects, name rules and errors stay in public packages the user interface may use
+  * a new package of 'lib/model' is NOT exported until it is decided whether it is public or protected
 * The full Java FX toolkit lives ONLY in 'app/ui'
 * The application drives ComfyUI as a separate process through its HTTP and WebSocket API; no module
   embeds or links ComfyUI itself

@@ -28,7 +28,8 @@ description: Mirroring rule between the plain model POJOs in lib/model (hocal-mo
 * A storage of `lib/model` gets NO counterpart in `lib/fx-model`
   * A storage only reads and writes; it keeps nothing, so there is no state to offer as a property
   * Whoever holds the loaded object holds it as a property model of `lib/fx-model` - the settings in
-    `IoController`, the open project in `MainWindowViewModel`
+    `IoController`, the open project in `ProjectManager` (`lib/fx-model`), which is bound by the view
+    models
 
 ## Structure Of An FX Model
 
@@ -91,6 +92,13 @@ description: Mirroring rule between the plain model POJOs in lib/model (hocal-mo
 * A public FX model MUST NOT expose a member of an `internal` type
   * Such a member stays `internal`, and what the user interface needs is offered as a short
     accessor of a public type next to it
+* The operations on the project are NOT part of the user interface API of `lib/model`
+  * Tree operations, media history, project storage and media store live in the `...internal` packages
+    of `lib/model`, exported to `hocal-fx-model` only
+  * The `ProjectManager` is the only caller; every change a user interface makes goes through it, so
+    the property models are read again and the project counts as changed
+  * Kotlin `internal` does not reach across Gradle modules; the qualified export in the module
+    descriptor is what protects these packages
 
 ## Testing
 

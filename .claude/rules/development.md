@@ -38,6 +38,10 @@ name: development
         * The section of the finished plan MUST say what was really built where it differs from
           what was planned - a moved module boundary, a widened constant, a changed order
         * FORBIDDEN: removing the plan files while the feature plan still shows the plan as open
+    * If the finished plan was the LAST implementation plan of its feature plan, the section
+      "Feature Completion" of `.claude/commands/feature-plan.md` applies in the SAME change set: the
+      feature plan is rewritten in compressed form, the feature status file and all remaining plan
+      files of the feature are removed, the feature plan itself stays
 
 ## Implementation
 

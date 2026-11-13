@@ -3,16 +3,24 @@ name: CI
 on:
   push:
     branches: [ main, master ]
+    # Files for Claude (plans, rules, skills, commands) and the Dependabot configuration are no part of the
+    # product and build nothing: no run at all for them.
+    paths-ignore: [ '.claude/**', '.github/dependabot.yml' ]
   pull_request:
+    paths-ignore: [ '.claude/**', '.github/dependabot.yml' ]
 
 permissions:
   contents: read
 
 jobs:
   # Detects which parts of the repository changed, so only the affected jobs run.
-  # code    -> build, developer-test, integration-test, licences
-  # docs    -> validate-docs
-  # .github -> everything
+  # .github/workflows and the rest of .github -> everything, the pipeline itself changed
+  # .claude, .gitignore, .gitattributes,
+  # .github/dependabot.yml                    -> nothing
+  # docs, README.md, CHANGELOG.md, LICENSE    -> validate-docs
+  # tests (src/test)                          -> build, developer-test, integration-test, licences
+  # everything else, unknown files included   -> the code jobs and validate-docs, because the
+  #                                              docs embed KDoc and the licence report
   changes:
     runs-on: ubuntu-latest
 
@@ -51,6 +59,10 @@ jobs:
           while IFS= read -r file; do
             [ -n "${file}" ] || continue
             case "${file}" in
+              # Files for Claude, the Dependabot configuration and repository housekeeping are built by nothing.
+              # Listed before the pipeline, the first matching branch wins.
+              .claude/*|.gitignore|.gitattributes|.github/dependabot.yml)
+                ;;
               # Pipeline definition itself - run everything.
               .github/*)
                 code=true
@@ -60,7 +72,12 @@ jobs:
               docs/*|README.md|CHANGELOG.md|LICENSE)
                 docs=true
                 ;;
-              # Everything else counts as code; the docs embed KDoc and the licence report.
+              # Tests are part of the code only; the docs embed no test code.
+              */src/test/*)
+                code=true
+                ;;
+              # Everything else - sources, build files, anything unknown - counts as code; the docs
+              # embed KDoc and the licence report.
               *)
                 code=true
                 docs=true
@@ -136,7 +153,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        # macos-latest is left out for now: its runner did not pick up the job in time.
+        # Add it again to the list below once the macOS runners are available.
+        os: [ ubuntu-latest, windows-latest ]
 
     steps:
       - name: Checkout repository
@@ -170,7 +189,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        # macos-latest is left out for now: its runner did not pick up the job in time.
+        # Add it again to the list below once the macOS runners are available.
+        os: [ ubuntu-latest, windows-latest ]
 
     steps:
       - name: Checkout repository
