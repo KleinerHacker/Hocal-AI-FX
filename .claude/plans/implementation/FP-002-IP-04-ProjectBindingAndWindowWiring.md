@@ -17,6 +17,7 @@
 * [ ] `MediaSource` über den `ProjectManager` bereitstellen (`mediaCount`, `extension`, `openMedium`) und an die Dateiliste binden
 * [ ] Bei Medienänderung (anhängen, entfernen) `thumbnails.invalidate(reference)` der Dateiliste aufrufen, sonst bleibt bei gleicher Medienanzahl ein veraltetes Bild
 * [ ] Dateiliste muss Änderungen im gewählten Ordner bemerken; `selectedFolder` des Baums meldet keine inneren Änderungen
+* [ ] `PromptInput`: `folderProperty` und `mediaSourceProperty` an Projekt und Medienquelle binden; Chips bei Medienänderung neu laden
 * [ ] Registrierungen am `ProjectManager` beim Schließen des Fensters lösen, Skill `fx-component-lifecycle`
 
 ## Aufgabe 3: Tests und Doku

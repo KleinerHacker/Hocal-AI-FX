@@ -38,8 +38,8 @@ history details come from the model of FP-001.
     * left part (0.2): at its top, beside the image, the generation data of the selected medium:
       first line the model and the flow, second line the beginning of the prompt, ending with `...`
     * center part (0.6): the selected medium of the history shown as image, below it the input
-      part: prompt text box, a "+" button to add images from the gallery, toggle buttons and a
-      combobox for the model (placeholders)
+      part: prompt text box with a send button, an add button to add images from the gallery, a
+      combobox for the model and a toggle button bar for the flow (placeholders)
     * right part (0.2): a list of all media of the file's history, from `000` to the last one;
       the last one is preselected automatically
 * The selection in the tree decides which files the list shows; the selection in the list decides
@@ -85,10 +85,11 @@ history details come from the model of FP-001.
     * second line: the beginning of the applied prompt, cut off with `...` when it is longer
     * the lines are empty for a medium without details
 * Below the image there is an input part:
-    * a multi-line text box for the prompt
-    * above its left side a "+" button that opens the gallery dialog
-    * above its right side toggle buttons for the selected model (placeholders)
-    * above these toggle buttons a combobox to select the model (placeholder)
+    * a multi-line text box for the prompt, with a send button (icon) behind it that only calls a
+      handler for now
+    * above its left side an add button (icon) that opens the gallery dialog
+    * above its right side a combobox to select the model (placeholder), below it a toggle button
+      bar (`SegmentedButton` of ControlsFX) to select the flow (placeholder)
 * The gallery dialog shows the internal virtual directory structure; only references (entries) can
   be selected, folders cannot
 * An image added with "+" is identified by the UUID of its reference; its last medium always counts
@@ -118,7 +119,7 @@ history details come from the model of FP-001.
 * Only the image formats of standard JavaFX (`Image`) are supported
 * Media types are registered in a registry in code; no `ServiceLoader`
 * The `ProjectManager` creates the new project; the window only follows it
-* Icons are not part of any plan; the user delivers the orientation separately
+* Icons are created with the `icon-creator`; a button that would show a character (add, remove, send) shows an icon instead
 * Tests per `testing` skill: developer tests per class, TestFX integration test for the window
 * README, MkDocs (main window page) and KDoc are updated; CHANGELOG only for visible changes
 
@@ -137,7 +138,7 @@ history details come from the model of FP-001.
 * `MediaView` (component) - the selected medium, as image at first
 * `GenerationDetails` (component) - applied prompt, model and flow from the history details of FP-001
 * `GalleryDialog` - dialog showing the virtual directory structure, only references selectable
-* `PromptInput` (component) - prompt text box, "+" button, model toggle buttons, model combobox
+* `PromptInput` (component) - prompt text box, send button, add button, model combobox, flow toggle button bar
 * `MainWindowViewModel` - follows the project of the `ProjectManager`, connects the selections
 
 ### Layout
@@ -153,7 +154,7 @@ SplitPane (horizontal, divider 0.3)
     │   ├── MediaView
     │   └── PromptInput
     │       ├── above, left:  "+" button
-    │       ├── above, right: model combobox, below it the model toggle buttons
+    │       ├── above, right: model combobox, below it the flow toggle button bar
     │       └── prompt text box
     └── right (0.2):  HistoryList
 ```
@@ -185,7 +186,7 @@ SplitPane (horizontal, divider 0.3)
 | IP-03 | File List And Media Preview (COMPLETED) | File list with original and current icon and the preview extension point | IP-01, FP-001 IP-02 |
 | IP-04 | Project Binding And Window Wiring  | Follow the `ProjectManager`, connect tree, list and content area     | IP-02, IP-03, FP-001 IP-07 |
 | IP-05 | History List And Media View        | History list with last medium preselected and the selected image     | IP-04, FP-001 IP-02 |
-| IP-06 | Prompt Input Part                  | Prompt box, "+" button, model toggle buttons and combobox (placeholders) | IP-01        |
+| IP-06 | Prompt Input Part                  | Prompt box, send and add buttons, model combobox, flow toggle button bar, gallery dialog (placeholders) | IP-01, IP-02, IP-03 |
 | IP-07 | Generation Details Panel           | Applied prompt, model and flow of the selected medium                | IP-05, FP-001 IP-02 |
 
 ## 7. Implementation Plans
@@ -419,23 +420,25 @@ Build the input part below the image.
 **Scope**
 
 * `PromptInput` component: multi-line prompt text box
-* "+" button above the left side of the text box; it opens the gallery dialog
+* Add button (icon) above the left side of the text box; it opens the gallery dialog
 * Gallery dialog: virtual directory structure, only references selectable, the last medium counts
-* Model toggle buttons above the right side of the text box (placeholders)
-* Model combobox above the toggle buttons (placeholder)
-* Placeholder model list behind an interface
+* Model combobox above the right side of the text box, below it the flow toggle button bar
+  (`SegmentedButton`); both are placeholders
+* Send button (icon) behind the text box; it calls a handler that has no implementation yet
+* Placeholder model and flow list behind an interface
 * Placeholder area for further parameters, filled by FP-009 IP-04 from the fields of the flow
 * An added image is held by the UUID of its reference; its last medium is the one used
-* NOT: sending the prompt, generation, storing the prompt, real models
+* NOT: generation, storing the prompt, real models and flows
 
 **Affected Areas**
 
 * `ui/component`, gallery dialog, message bundles (English, German via `translator`), tests;
-  icons are not part of this plan, the "+" button carries a text until they exist
+  icons `add`, `remove` and `send` come from the `icon-creator`; the gallery dialog is the first dialog
+  and becomes the template of the `dialog` skill
 
 **Dependencies**
 
-IP-01.
+IP-01, IP-02, IP-03 (the gallery dialog reuses `ProjectTree` and `ProjectFileList`).
 
 **Expected Result**
 
@@ -447,7 +450,7 @@ generation.
 * The "+" button opens a gallery dialog (decided); the dialog follows the `dialog` skill
 * Added images are shown (for instance as small chips) so the user sees what was added
 * Added images are not stored as generation detail in the history
-* Toggle buttons and combobox are placeholders behind a model interface
+* The model combobox and the flow toggle button bar are placeholders behind a model interface
 
 ### IP-07: Generation Details Panel
 
@@ -492,11 +495,11 @@ without details.
 IP-01 (COMPLETED)
 ├── IP-02 (COMPLETED) ──┐
 ├── IP-03 (COMPLETED) ──┴── IP-04 ── IP-05 ── IP-07
-└── IP-06
+└── IP-06 (after IP-02 and IP-03)
 ```
 
-IP-02, IP-03 and IP-06 can run in parallel after IP-01. IP-02 to IP-05 and IP-07 also need parts of FP-001
-(IP-02 property models and IP-07 `ProjectManager`); IP-01 and IP-06 do not.
+IP-02 and IP-03 can run in parallel after IP-01; IP-06 needs both for its gallery dialog. IP-02 to IP-05 and IP-07
+also need parts of FP-001 (IP-02 property models and IP-07 `ProjectManager`); IP-01 does not.
 
 ## 9. Risks and Open Questions
 
@@ -539,8 +542,8 @@ IP-02, IP-03 and IP-06 can run in parallel after IP-01. IP-02 to IP-05 and IP-07
 * Selecting a file lists its complete history on the right of the content area, with the last medium
   selected, and shows the selected medium in the middle
 * The generation data (prompt, model, flow) of the selected medium are shown
-* Below the image the prompt text box, the "+" button, the model toggle buttons and the model
-  combobox are present
+* Below the image the prompt text box, the send and add buttons, the model combobox and the flow
+  toggle button bar are present
 * A new project shows an empty tree, list and content area without errors
 * A medium that is not an image, and a broken image, show a placeholder and do not break the window
 * A further media type can be added by adding a provider only

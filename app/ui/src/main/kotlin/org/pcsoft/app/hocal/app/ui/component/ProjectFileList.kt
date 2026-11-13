@@ -66,4 +66,14 @@ class ProjectFileList : ListView<VirtualEntry>() {
      * @return the read-only property of the selected entry
      */
     fun selectedFileProperty(): ReadOnlyObjectProperty<VirtualEntry?> = viewModel.selectedFile
+
+    /**
+     * Cancels all loading and ends the thread pool of the previews for good.
+     *
+     * To be called when the list is not used any more, for instance when the dialog holding it is hidden.
+     * The previews cannot be loaded afterwards.
+     */
+    fun close() {
+        viewModel.close()
+    }
 }

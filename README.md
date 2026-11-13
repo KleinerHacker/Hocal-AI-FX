@@ -26,6 +26,7 @@ runs without building a ComfyUI graph.
 | Main window splitter layout (placeholder parts)                | Implemented |
 | Project folder tree component (not yet shown in the window)    | Implemented |
 | File list with media previews (not yet shown in the window)    | Implemented |
+| Prompt input with gallery dialog, model and flow selection (placeholders) | Implemented |
 | English and German user interface                              | Implemented |
 | Application icon in the main window                            | Implemented |
 | Portable distribution archive (ZIP) and jlink image            | Implemented |

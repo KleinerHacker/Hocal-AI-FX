@@ -41,6 +41,18 @@ object HocalIcons {
     /** Edge lengths in pixels in which the preview placeholder is shipped: the display size and the HiDPI size. */
     val PREVIEW_SIZES: List<Int> = listOf(48, 96)
 
+    /** Name of the icon of the add button (a plus); shipped in light and dark mode, in [BUTTON_SIZES]. */
+    const val ADD: String = "add"
+
+    /** Name of the icon of the remove button (a cross); shipped in light and dark mode, in [BUTTON_SIZES]. */
+    const val REMOVE: String = "remove"
+
+    /** Name of the icon of the send button; shipped in light and dark mode, in [BUTTON_SIZES]. */
+    const val SEND: String = "send"
+
+    /** Edge lengths in pixels in which the button icons are shipped: the display size and the HiDPI size. */
+    val BUTTON_SIZES: List<Int> = listOf(16, 32)
+
     /** Edge lengths in pixels in which the application icon is shipped. */
     val APP_SIZES: List<Int> = listOf(16, 24, 32, 48, 64, 128, 256)
 

@@ -129,6 +129,27 @@ class HocalIconsTest {
     }
 
     /**
+     * Use case: every button icon (add, remove, send) exists for the light and the dark appearance in all
+     * shipped sizes, is a square of exactly that size and has a transparent background.
+     */
+    @Test
+    fun buttonIconsExistInBothAppearancesAndAllSizes() {
+        for (name in listOf(HocalIcons.ADD, HocalIcons.REMOVE, HocalIcons.SEND)) {
+            for (dark in listOf(false, true)) {
+                for (size in HocalIcons.BUTTON_SIZES) {
+                    val image = HocalIcons.image(name, size, dark)
+                    val label = "$name dark=$dark size=$size"
+
+                    assertFalse(image.isError, label)
+                    assertEquals(size.toDouble(), image.width, label)
+                    assertEquals(size.toDouble(), image.height, label)
+                    assertEquals(0.0, image.pixelReader.getColor(0, 0).opacity, label)
+                }
+            }
+        }
+    }
+
+    /**
      * Use case: the dark variant is the icon with the suffix `-dark`, the light variant the one without.
      */
     @Test

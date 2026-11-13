@@ -171,6 +171,25 @@ class MainWindowIT : ApplicationTest() {
     }
 
     /**
+     * Use case: the media part holds the image above and the prompt input below it, so the input part is
+     * shown below the image, inside the media part.
+     */
+    @Test
+    fun promptInputSitsBelowTheImage() {
+        val media = part("pnlMedia")
+        val image = part("pnlImage")
+        val input = part("pnlPromptInput")
+
+        assertNotNull(input, "prompt input is missing")
+        assertTrue(input.parent === media || input.parent?.parent === media)
+        assertTrue(
+            input.localToScene(input.layoutBounds).minY >= image.localToScene(image.layoutBounds).maxY - 1.0,
+            "the prompt input must not overlap the image"
+        )
+        assertEquals(listOf(part("pnlDetails"), media, part("pnlHistory")), splContent.items)
+    }
+
+    /**
      * Use case: the user chooses Exit in the File menu, so the main window closes.
      */
     @Test

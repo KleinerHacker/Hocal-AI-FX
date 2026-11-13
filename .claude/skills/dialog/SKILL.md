@@ -7,11 +7,14 @@ Description: Basic architecture of a Java FX alert (dialog) component; required 
 
 ## Template
 
-* There is no dialog yet; the first one is built after the window template
-  (`app/ui/src/main/kotlin/org/pcsoft/app/hocal/app/ui/window`, Component, View, ViewModel) and
-  becomes the template for every further dialog
-  * It MUST be placed in `app/ui/src/main/kotlin/org/pcsoft/app/hocal/app/ui/dialog`
-  * The object class `HocalDialog` and the demo source set below are created with it
+* The template is located here: `app/ui/src/main/kotlin/org/pcsoft/app/hocal/app/ui/dialog`
+  * ONLY the files `GalleryDialog*.kt` (with `GalleryDialogView.fxml` in the matching resource directory)
+    are relevant
+  * Their design and architecture MUST be adopted (Component, View, ViewModel), the same way as the
+    window template (`app/ui/src/main/kotlin/org/pcsoft/app/hocal/app/ui/window`) is adopted for windows
+  * `Alert` fixes the result type to `ButtonType`; a dialog that returns data reads it from its view
+    model after `showAndWait()`, as `GalleryDialog.showAndSelect()` does
+  * A new dialog is registered in the object class `HocalDialog` and added to `DialogDemo.kt`, see below
 
 ## Structure
 

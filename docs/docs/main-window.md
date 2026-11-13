@@ -27,4 +27,18 @@ and the history list keep their width; the media with the prompt input takes the
 | Media with prompt input           | content area, centre             | 60 % of the content area     |
 | History list                      | content area, right              | 20 % of the content area     |
 
-The parts are still empty placeholders; their contents follow in later versions.
+The tree, the file list, the generation details and the image are still empty placeholders; their
+contents follow in later versions.
+
+## Prompt input
+
+Below the image there is the input part:
+
+* a multi-line text box for the prompt, with the send button behind it; the button is active as soon as
+  the prompt is not empty, but sending does nothing yet
+* above the text box on the left the add button; it opens a dialog that shows the folders of the project
+  on the left and the files of the selected folder on the right. Pick a file and confirm with OK to add
+  its image; Cancel or `Esc` adds nothing. An added image appears as a small chip with its name and a
+  preview of its last medium; the cross on the chip removes it again
+* above the text box on the right a selection of the model and below it a bar of buttons for the flow;
+  both offer example entries for now and change each other: the flows depend on the chosen model

@@ -19,6 +19,7 @@
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.StackPane?>
+<?import org.pcsoft.app.hocal.app.ui.component.PromptInput?>
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="org.pcsoft.app.hocal.app.ui.window.MainWindowView"
@@ -48,7 +49,15 @@
                 <SplitPane fx:id="splContent" orientation="HORIZONTAL">
                     <items>
                         <StackPane id="pnlDetails" styleClass="placeholder" SplitPane.resizableWithParent="false"/>
-                        <StackPane id="pnlMedia" styleClass="placeholder"/>
+                        <!-- Media with prompt input: the image above (IP-05), the input part below -->
+                        <BorderPane id="pnlMedia">
+                            <center>
+                                <StackPane id="pnlImage" styleClass="placeholder"/>
+                            </center>
+                            <bottom>
+                                <PromptInput id="pnlPromptInput"/>
+                            </bottom>
+                        </BorderPane>
                         <StackPane id="pnlHistory" styleClass="placeholder" SplitPane.resizableWithParent="false"/>
                     </items>
                 </SplitPane>
