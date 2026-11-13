@@ -3,18 +3,20 @@ name: CI
 on:
   push:
     branches: [ main, master ]
-    # Files for Claude (plans, rules, skills, commands) are no part of the product: no run at all for them.
-    paths-ignore: [ '.claude/**' ]
+    # Files for Claude (plans, rules, skills, commands) and the Dependabot configuration are no part of the
+    # product and build nothing: no run at all for them.
+    paths-ignore: [ '.claude/**', '.github/dependabot.yml' ]
   pull_request:
-    paths-ignore: [ '.claude/**' ]
+    paths-ignore: [ '.claude/**', '.github/dependabot.yml' ]
 
 permissions:
   contents: read
 
 jobs:
   # Detects which parts of the repository changed, so only the affected jobs run.
-  # .github                                   -> everything, the pipeline itself changed
-  # .claude, .gitignore, .gitattributes       -> nothing
+  # .github/workflows and the rest of .github -> everything, the pipeline itself changed
+  # .claude, .gitignore, .gitattributes,
+  # .github/dependabot.yml                    -> nothing
   # docs, README.md, CHANGELOG.md, LICENSE    -> validate-docs
   # tests (src/test)                          -> build, developer-test, integration-test, licences
   # everything else, unknown files included   -> the code jobs and validate-docs, because the
@@ -57,13 +59,14 @@ jobs:
           while IFS= read -r file; do
             [ -n "${file}" ] || continue
             case "${file}" in
+              # Files for Claude, the Dependabot configuration and repository housekeeping are built by nothing.
+              # Listed before the pipeline, the first matching branch wins.
+              .claude/*|.gitignore|.gitattributes|.github/dependabot.yml)
+                ;;
               # Pipeline definition itself - run everything.
               .github/*)
                 code=true
                 docs=true
-                ;;
-              # Files for Claude and repository housekeeping are built by nothing.
-              .claude/*|.gitignore|.gitattributes)
                 ;;
               # Documentation sources.
               docs/*|README.md|CHANGELOG.md|LICENSE)
