@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/docs/assets/logo-dark.png">
+    <img src="docs/docs/assets/logo.png" alt="Hocal AI logo" width="400">
+  </picture>
+</p>
+
 # Hocal AI (hocal-ai-fx)
 
 Hocal AI is a JavaFX desktop application for generating images and videos with AI models that run
@@ -18,6 +25,7 @@ runs without building a ComfyUI graph.
 | Main window with File menu (Exit)                              | Implemented |
 | Flow list component with example flows                         | Implemented |
 | English and German user interface                              | Implemented |
+| Application icon in the main window                            | Implemented |
 | Portable distribution archive (ZIP) and jlink image            | Implemented |
 | Connection to a local ComfyUI process                          | Planned     |
 | Flows read from ComfyUI instead of the example list            | Planned     |

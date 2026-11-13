@@ -15,13 +15,14 @@ package org.pcsoft.app.hocal.app.ui.window
 import de.saxsys.mvvmfx.FluentViewLoader
 import javafx.scene.Scene
 import javafx.stage.Stage
+import org.pcsoft.app.hocal.app.HocalIcons
 import org.pcsoft.app.hocal.app.Messages
 
 /**
  * The application main window.
  *
- * Not modal, sized by its FXML content (1280 x 800), freely resizable. It carries no icon yet - the
- * application icon is added with `HocalIcons`, see the `icons` skill.
+ * Not modal, sized by its FXML content (1280 x 800), freely resizable. It carries the application
+ * icon in all sizes, see `HocalIcons`.
  */
 class MainWindow : Stage() {
     private val viewModel: MainWindowViewModel
@@ -33,5 +34,6 @@ class MainWindow : Stage() {
         }
 
         title = Messages["window.main.title"]
+        icons.setAll(HocalIcons.appIcons())
     }
 }

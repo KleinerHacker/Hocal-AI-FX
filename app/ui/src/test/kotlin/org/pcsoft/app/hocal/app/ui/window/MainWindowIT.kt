@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.pcsoft.app.hocal.app.HocalIcons
 import org.pcsoft.app.hocal.app.Messages
 import org.testfx.framework.junit5.ApplicationTest
 import java.text.MessageFormat
@@ -64,6 +65,14 @@ class MainWindowIT : ApplicationTest() {
     fun windowStartsWithTheProductTitle() {
         assertEquals("Hocal AI", window.title)
         assertTrue(window.isShowing)
+    }
+
+    /**
+     * Use case: the running window carries the application icon in all shipped sizes.
+     */
+    @Test
+    fun windowCarriesTheApplicationIcon() {
+        assertEquals(HocalIcons.APP_SIZES, window.icons.map { it.width.toInt() })
     }
 
     /**

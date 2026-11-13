@@ -1,3 +1,6 @@
+![Hocal AI logo](assets/logo.png#only-light){ .hocal-logo }
+![Hocal AI logo](assets/logo-dark.png#only-dark){ .hocal-logo }
+
 # Hocal AI
 
 Hocal AI is a desktop application for generating images and videos with AI models that run on your
