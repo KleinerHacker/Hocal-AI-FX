@@ -3,16 +3,22 @@ name: CI
 on:
   push:
     branches: [ main, master ]
+    # Files for Claude (plans, rules, skills, commands) are no part of the product: no run at all for them.
+    paths-ignore: [ '.claude/**' ]
   pull_request:
+    paths-ignore: [ '.claude/**' ]
 
 permissions:
   contents: read
 
 jobs:
   # Detects which parts of the repository changed, so only the affected jobs run.
-  # code    -> build, developer-test, integration-test, licences
-  # docs    -> validate-docs
-  # .github -> everything
+  # .github                                   -> everything, the pipeline itself changed
+  # .claude, .gitignore, .gitattributes       -> nothing
+  # docs, README.md, CHANGELOG.md, LICENSE    -> validate-docs
+  # tests (src/test)                          -> build, developer-test, integration-test, licences
+  # everything else, unknown files included   -> the code jobs and validate-docs, because the
+  #                                              docs embed KDoc and the licence report
   changes:
     runs-on: ubuntu-latest
 
@@ -56,11 +62,19 @@ jobs:
                 code=true
                 docs=true
                 ;;
+              # Files for Claude and repository housekeeping are built by nothing.
+              .claude/*|.gitignore|.gitattributes)
+                ;;
               # Documentation sources.
               docs/*|README.md|CHANGELOG.md|LICENSE)
                 docs=true
                 ;;
-              # Everything else counts as code; the docs embed KDoc and the licence report.
+              # Tests are part of the code only; the docs embed no test code.
+              */src/test/*)
+                code=true
+                ;;
+              # Everything else - sources, build files, anything unknown - counts as code; the docs
+              # embed KDoc and the licence report.
               *)
                 code=true
                 docs=true
