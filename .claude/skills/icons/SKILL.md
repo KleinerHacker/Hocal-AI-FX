@@ -6,7 +6,8 @@ description: Create, name, store and use icons of the Java FX UI. Load before an
 # Icon Creation
 
 * `docs/docs/assets/images/file.png` MUST be used as the design reference for color, stroke, shapes, curves, fills, etc.
-  * It does not exist yet: before the first icon is drawn, ask the user for the design reference
+  * It shows a folder with a glowing plus: dark navy body, silver outline, cyan neon accent and swoosh
+  * If it is missing, ask the user for the design reference before the first icon is drawn
 * Every icon MUST be created in PNG format with a transparent background
 * If the contrast requires it, separate icons MUST be created for dark and light mode (with darker or brighter colors)
 * The `icon-creator` agent MUST be used to draw an icon
