@@ -23,3 +23,15 @@
     --md-primary-fg-color--dark: #5c6bc0;
     --md-accent-fg-color: #9fa8da;
 }
+
+.md-header__button.md-logo img {
+    height: 1.6rem;
+    width: auto;
+}
+
+.hocal-logo {
+    display: block;
+    max-width: 22rem;
+    width: 100%;
+    margin: 0 auto 1.5rem;
+}

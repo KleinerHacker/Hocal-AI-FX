@@ -10,6 +10,9 @@ site_dir: ../build/docs
 
 theme:
   name: material
+  # The header is indigo in both colour schemes, so it always uses the light-text variant
+  logo: assets/logo-dark.png
+  favicon: assets/logo.png
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -43,6 +46,7 @@ extra_css:
 
 markdown_extensions:
   - admonition
+  - attr_list
   - pymdownx.details
   - pymdownx.superfences
   - pymdownx.highlight

@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/docs/assets/logo-dark.png">
+    <img src="docs/docs/assets/logo.png" alt="Hocal AI logo" width="400">
+  </picture>
+</p>
+
 # Hocal AI (hocal-ai-fx)
 
 Hocal AI is a JavaFX desktop application for generating images and videos with AI models that run
