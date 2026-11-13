@@ -23,6 +23,7 @@ name: Architecture
     reaches them through the `ProjectManager` and nowhere else
   * plain objects, name rules and errors stay in public packages the user interface may use
   * a new package of 'lib/model' is NOT exported until it is decided whether it is public or protected
-* The full Java FX toolkit lives ONLY in 'app/ui'
+* The full Java FX toolkit lives ONLY in 'app/ui'; the one package of `javafx.graphics` that 'lib/fx-model' may
+  use is named above and nothing else of it
 * The application drives ComfyUI as a separate process through its HTTP and WebSocket API; no module
   embeds or links ComfyUI itself
