@@ -181,7 +181,7 @@ SplitPane (horizontal, divider 0.3)
 | ID    | Implementation Plan                | Objective                                                           | Dependencies |
 |-------|------------------------------------|---------------------------------------------------------------------|--------------|
 | IP-01 | Main Window Splitter Layout (COMPLETED) | Rebuild the main window layout with the splitters and placeholders   | -            |
-| IP-02 | Directory Tree Component           | Folder tree with child counts bound to the FX model, adapt the component rules | IP-01, FP-001 IP-02, FP-001 IP-07 |
+| IP-02 | Directory Tree Component (COMPLETED) | Folder tree with child counts bound to the FX model, adapt the component rules | IP-01, FP-001 IP-02, FP-001 IP-07 |
 | IP-03 | File List And Media Preview        | File list with original and current icon and the preview extension point | IP-01, FP-001 IP-02 |
 | IP-04 | Project Binding And Window Wiring  | Follow the `ProjectManager`, connect tree, list and content area     | IP-02, IP-03, FP-001 IP-07 |
 | IP-05 | History List And Media View        | History list with last medium preselected and the selected image     | IP-04, FP-001 IP-02 |
@@ -234,7 +234,7 @@ A resizable window with the nested splitters at their initial positions and the 
   exported in `module-info.java` until IP-02 adds the first component again
 * The `component` skill still names `FlowList` as template; IP-02 switches it
 
-### IP-02: Directory Tree Component
+### IP-02: Directory Tree Component (COMPLETED)
 
 **Objective**
 
@@ -269,6 +269,19 @@ folder; the rules of the Claude rule set use it as example.
 * The tree is recursive and must follow nested changes of the property model
 * Listeners on the model must not leak; see `fx-component-lifecycle`
 * The count of child elements follows the model, so it changes when entries or folders are added or removed
+
+**Built**
+
+* `ProjectTree` (a `TreeView<VirtualFolder>` with `fx:root`), `ProjectTreeView`, `ProjectTreeViewModel`,
+  an extra `ProjectTreeCell` and a stylesheet `ProjectTreeView.css` (grey `child-count`)
+* Differs from the plan: `app/ui` now depends on `:lib:hocal-fx-model` (approved by the user), which
+  needed `requires org.pcsoft.app.hocal.fx.model` in `module-info.java`
+* The root folder is shown as topmost node; with an empty name it shows the text of
+  `component.projectTree.root`
+* Selection and expanded state are kept by object identity, because `VirtualFolder` is equal by value
+* The component is not placed in the main window yet; the placeholder `pnlTree` is replaced in IP-04
+* The `component` skill names `ProjectTree*.kt` as template; no agent referred to `FlowList`
+
 
 ### IP-03: File List And Media Preview
 
@@ -462,7 +475,7 @@ without details.
 
 ```text
 IP-01 (COMPLETED)
-├── IP-02 ──┐
+├── IP-02 (COMPLETED) ──┐
 ├── IP-03 ──┴── IP-04 ── IP-05 ── IP-07
 └── IP-06
 ```
