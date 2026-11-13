@@ -132,9 +132,14 @@ class MainWindowIT : ApplicationTest() {
     /**
      * Use case: the user enlarges the window, so the project side, the generation details and the
      * history list keep their width and only the media with the prompt input takes the difference.
+     *
+     * The window is shrunk first and then grown back to its initial size, because the headless
+     * screen of the test cannot show a window larger than the initial one.
      */
     @Test
     fun sideAreasKeepTheirWidthWhenTheWindowGrows() {
+        interact { window.width -= 400.0 }
+
         val projectWidth = splProject.width
         val detailsWidth = part("pnlDetails").layoutBounds.width
         val historyWidth = part("pnlHistory").layoutBounds.width
