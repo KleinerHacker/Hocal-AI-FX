@@ -12,6 +12,7 @@
 
 package org.pcsoft.app.hocal.app.ui.component
 
+import javafx.scene.image.Image
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNotSame
@@ -526,4 +527,219 @@ class ProjectFileListViewModelTest {
         gate.countDown()
         awaitTrue { source.closed.get() == 3 }
     }
+
+    // ---- changes of the media history -------------------------------------------------------------------------
+
+    private fun rgb(image: Image?): Int? = image?.pixelReader?.getArgb(10, 10)?.and(0xFFFFFF)
+
+    private fun awaitColors(preview: ProjectFilePreview, original: Int, current: Int) =
+        awaitTrue { fx { rgb(preview.original.get()) == original && rgb(preview.current.get()) == current } }
+
+    private fun png(rgb: Int): Pair<String, ByteArray> = "png" to pngBytes(60, 40, rgb)
+
+    /**
+     * Use case: the last medium of the history is deleted. The medium before it becomes the current one, and
+     * the visible list shows it after the reference was invalidated; the original stays.
+     */
+    @Test
+    fun deletingTheLastMediumShowsThePreviousOneAsCurrent() {
+        source.add("r1", png(RED), png(GREEN), png(BLUE))
+        val e = refEntry("A.png", "r1")
+        show(folder("Project", e))
+        val preview = fx { viewModel.preview(e) }
+        awaitColors(preview, RED, BLUE)
+
+        source.add("r1", png(RED), png(GREEN))
+        fx { viewModel.invalidate("r1") }
+
+        awaitColors(preview, RED, GREEN)
+    }
+
+    /**
+     * Use case: the original medium is deleted. The following medium becomes the original, and both previews
+     * show the changed content.
+     */
+    @Test
+    fun deletingTheOriginalShowsTheNextMediumAsOriginal() {
+        source.add("r1", png(RED), png(GREEN), png(BLUE))
+        val e = refEntry("A.png", "r1")
+        show(folder("Project", e))
+        val preview = fx { viewModel.preview(e) }
+        awaitColors(preview, RED, BLUE)
+
+        source.add("r1", png(GREEN), png(BLUE))
+        fx { viewModel.invalidate("r1") }
+
+        awaitColors(preview, GREEN, BLUE)
+    }
+
+    /**
+     * Use case: a medium in the middle of the history is deleted. Original and current stay the same, but
+     * the number of media changed, so both are loaded anew and show the right content.
+     */
+    @Test
+    fun deletingAMediumInTheMiddleKeepsOriginalAndCurrent() {
+        source.add("r1", png(RED), png(GREEN), png(BLUE))
+        val e = refEntry("A.png", "r1")
+        show(folder("Project", e))
+        val preview = fx { viewModel.preview(e) }
+        awaitColors(preview, RED, BLUE)
+        assertEquals(2, source.openRequested.get())
+
+        source.add("r1", png(RED), png(BLUE))
+        fx { viewModel.invalidate("r1") }
+
+        awaitColors(preview, RED, BLUE)
+        assertEquals(4, source.openRequested.get())
+    }
+
+    /**
+     * Use case: all media but one are deleted. The remaining medium is original and current at once, so
+     * both previews show the same image.
+     */
+    @Test
+    fun deletingDownToASingleMediumShowsItTwice() {
+        source.add("r1", png(RED), png(BLUE))
+        val e = refEntry("A.png", "r1")
+        show(folder("Project", e))
+        val preview = fx { viewModel.preview(e) }
+        awaitColors(preview, RED, BLUE)
+
+        source.add("r1", png(BLUE))
+        fx { viewModel.invalidate("r1") }
+
+        awaitColors(preview, BLUE, BLUE)
+        assertSame(preview.original.get(), preview.current.get())
+    }
+
+    /**
+     * Use case: the last medium is removed and another one appended, so the number of media stays the same.
+     * The cache cannot see this by the number alone; invalidating the reference makes the list show the new
+     * content.
+     */
+    @Test
+    fun replacingTheCurrentMediumWithTheSameCountShowsTheNewContent() {
+        source.add("r1", png(RED), png(GREEN))
+        val e = refEntry("A.png", "r1")
+        show(folder("Project", e))
+        val preview = fx { viewModel.preview(e) }
+        awaitColors(preview, RED, GREEN)
+
+        source.add("r1", png(RED), png(YELLOW))
+        fx { viewModel.invalidate("r1") }
+
+        awaitColors(preview, RED, YELLOW)
+    }
+
+    /**
+     * Use case: all media of the reference are deleted. The previews fall back to the placeholder, which is
+     * an empty image here.
+     */
+    @Test
+    fun deletingAllMediaClearsThePreviews() {
+        source.add("r1", png(RED))
+        val e = refEntry("A.png", "r1")
+        show(folder("Project", e))
+        val preview = fx { viewModel.preview(e) }
+        awaitColors(preview, RED, RED)
+
+        source.add("r1")
+        fx { viewModel.invalidate("r1") }
+
+        awaitTrue { fx { preview.original.get() == null && preview.current.get() == null } }
+    }
+
+    /**
+     * Use case: the media of one reference change. Entries that link other references are not loaded again.
+     */
+    @Test
+    fun invalidatingOneReferenceLeavesTheOthersAlone() {
+        source.add("r1", png(RED))
+        source.add("r2", png(GREEN))
+        val first = refEntry("A.png", "r1")
+        val second = refEntry("B.png", "r2")
+        show(folder("Project", first, second))
+        val firstPreview = fx { viewModel.preview(first) }
+        val secondPreview = fx { viewModel.preview(second) }
+        awaitColors(firstPreview, RED, RED)
+        awaitColors(secondPreview, GREEN, GREEN)
+        assertEquals(2, source.openRequested.get())
+
+        source.add("r1", png(BLUE))
+        fx { viewModel.invalidate("r1") }
+
+        awaitColors(firstPreview, BLUE, BLUE)
+        assertEquals(3, source.openRequested.get())
+        assertEquals(GREEN, rgb(secondPreview.current.get()))
+    }
+
+    /**
+     * Use case: two entries link the changed reference. Both show the new content.
+     */
+    @Test
+    fun invalidatingAReferenceReloadsEveryEntryThatLinksIt() {
+        source.add("r1", png(RED))
+        val first = refEntry("A.png", "r1")
+        val second = refEntry("B.png", "r1")
+        show(folder("Project", first, second))
+        val firstPreview = fx { viewModel.preview(first) }
+        val secondPreview = fx { viewModel.preview(second) }
+        awaitColors(firstPreview, RED, RED)
+        awaitColors(secondPreview, RED, RED)
+
+        source.add("r1", png(GREEN))
+        fx { viewModel.invalidate("r1") }
+
+        awaitColors(firstPreview, GREEN, GREEN)
+        awaitColors(secondPreview, GREEN, GREEN)
+    }
+
+    /**
+     * Use case: the media change while the component is not on screen. Nothing is loaded meanwhile; when
+     * it is shown again, the entries show the new content and not the stale cached one.
+     */
+    @Test
+    fun invalidatingWhileHiddenLoadsTheNewContentOnShow() {
+        source.add("r1", png(RED))
+        val e = refEntry("A.png", "r1")
+        show(folder("Project", e))
+        val preview = fx { viewModel.preview(e) }
+        awaitColors(preview, RED, RED)
+        fx { viewModel.onHide() }
+
+        source.add("r1", png(GREEN))
+        fx { viewModel.invalidate("r1") }
+        settle()
+        assertEquals(1, source.openRequested.get())
+
+        fx { viewModel.onShow() }
+        val shown = fx { viewModel.preview(e) }
+        awaitColors(shown, GREEN, GREEN)
+    }
+
+    /**
+     * Use case: the media change while a load of the old content is still running. The old load is dropped
+     * and never shows or stores its result; the list ends up with the new content.
+     */
+    @Test
+    fun runningLoadOfTheOldContentIsDropped() {
+        val gate = CountDownLatch(1)
+        source.gate = gate
+        source.add("r1", png(RED))
+        val e = refEntry("A.png", "r1")
+        show(folder("Project", e))
+        val preview = fx { viewModel.preview(e) }
+        awaitTrue { source.openRequested.get() == 1 }
+
+        source.add("r1", png(GREEN))
+        fx { viewModel.invalidate("r1") }
+        gate.countDown()
+
+        awaitColors(preview, GREEN, GREEN)
+    }
 }
+
+private const val RED = 0xFF0000
+private const val GREEN = 0x00FF00
+private const val BLUE = 0x0000FF
+private const val YELLOW = 0xFFFF00

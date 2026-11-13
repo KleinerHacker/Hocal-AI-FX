@@ -163,6 +163,33 @@ class ProjectFileListViewModel : ViewModel {
     }
 
     /**
+     * Tells that the media of a reference changed, for instance because a medium of its history was deleted
+     * or appended: the thumbnails of the reference are dropped from the cache and every entry that links it
+     * is loaded anew, also while it is shown. Its images show the placeholder until the new ones are loaded.
+     *
+     * The cache recognizes a changed number of media by itself, but not a change that keeps the number - a
+     * medium removed and another appended. Whoever changes the media calls this method in every case.
+     *
+     * May be called from any thread. While the component is not on screen only the cache is dropped; the
+     * entries are loaded anew when it is shown again.
+     *
+     * @param reference UUID of the reference whose media changed
+     */
+    fun invalidate(reference: String) {
+        thumbnails.invalidate(reference)
+        if (Platform.isFxApplicationThread()) reloadReference(reference) else Platform.runLater { reloadReference(reference) }
+    }
+
+    private fun reloadReference(reference: String) {
+        // The cache is dropped once more: a load that was running while the media changed may have stored a stale image.
+        thumbnails.invalidate(reference)
+        states.entries.filter { (entry, _) -> entry.reference == reference }.forEach { (entry, state) ->
+            state.reset()
+            if (observing) startLoading(entry, state)
+        }
+    }
+
+    /**
      * Starts observing the folder, the source and the appearance, and builds the list anew.
      *
      * Called when the component comes on screen. Calling it twice registers only once.
@@ -294,26 +321,29 @@ class ProjectFileListViewModel : ViewModel {
         val loadGeneration = generation
         val reference = entry.reference
         val registry = registry
+        val loadId = state.loadId
+        // False as soon as a newer loading of the entry started, the folder changed or the list left the screen.
+        val isCurrent = { loadGeneration == generation && state.loadId == loadId }
 
         try {
             state.future = executor.submit {
                 try {
                     val count = try { source.mediaCount(reference) } catch (_: Exception) { 0 }
-                    if (count <= 0 || loadGeneration != generation) return@submit
+                    if (count <= 0 || !isCurrent()) return@submit
 
-                    val original = loadThumbnail(registry, source, reference, 0, count, size, loadGeneration)
+                    val original = loadThumbnail(registry, source, reference, 0, count, size, isCurrent)
                     if (count == 1) {
                         // A single medium is original and current at once, so it is loaded once.
-                        publish(entry, state, loadGeneration) {
+                        publish(entry, state, isCurrent) {
                             state.setOriginal(original)
                             state.setCurrent(original)
                         }
                         return@submit
                     }
-                    publish(entry, state, loadGeneration) { state.setOriginal(original) }
-                    if (loadGeneration != generation) return@submit
-                    val current = loadThumbnail(registry, source, reference, count - 1, count, size, loadGeneration)
-                    publish(entry, state, loadGeneration) { state.setCurrent(current) }
+                    publish(entry, state, isCurrent) { state.setOriginal(original) }
+                    if (!isCurrent()) return@submit
+                    val current = loadThumbnail(registry, source, reference, count - 1, count, size, isCurrent)
+                    publish(entry, state, isCurrent) { state.setCurrent(current) }
                 } catch (_: Exception) {
                     // A broken medium never disturbs the list: the placeholder stays.
                 }
@@ -331,20 +361,20 @@ class ProjectFileListViewModel : ViewModel {
         number: Int,
         mediaCount: Int,
         size: Int,
-        loadGeneration: Int,
+        isCurrent: () -> Boolean,
     ): Image? {
         val cache = thumbnails
         val key = ThumbnailKey(reference, number, size)
         cache.get(key, mediaCount)?.let { return it }
 
         val image = registry.load(source, reference, number, size)
-        if (image != null && loadGeneration == generation) cache.put(key, mediaCount, image)
+        if (image != null && isCurrent()) cache.put(key, mediaCount, image)
         return image
     }
 
-    private fun publish(entry: VirtualEntry, state: ProjectFilePreview, loadGeneration: Int, apply: () -> Unit) {
+    private fun publish(entry: VirtualEntry, state: ProjectFilePreview, isCurrent: () -> Boolean, apply: () -> Unit) {
         Platform.runLater {
-            if (observing && loadGeneration == generation && states[entry] === state) apply()
+            if (observing && isCurrent() && states[entry] === state) apply()
         }
     }
 

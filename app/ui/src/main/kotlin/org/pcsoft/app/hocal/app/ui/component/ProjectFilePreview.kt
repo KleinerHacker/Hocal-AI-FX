@@ -33,6 +33,23 @@ class ProjectFilePreview {
     /** The running load task, to cancel it. */
     internal var future: Future<*>? = null
 
+    /**
+     * Number of the current loading. A [reset] starts a new one, so the result of a loading that was
+     * started before is not taken over any more. Read by the load threads.
+     */
+    @Volatile
+    internal var loadId = 0
+
+    /** Forgets the loading and the images, so that the entry is loaded anew and shows the placeholder meanwhile. */
+    internal fun reset() {
+        future?.cancel(true)
+        future = null
+        started = false
+        loadId++
+        setOriginal(null)
+        setCurrent(null)
+    }
+
     /** The preview of the original medium, `null` until loaded. */
     val original: ReadOnlyObjectProperty<Image?> = originalWrapper.readOnlyProperty
 
