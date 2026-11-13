@@ -35,6 +35,12 @@ object HocalIcons {
     /** Name of the icon of an open (expanded) folder; shipped in light and dark mode, in [FOLDER_SIZES]. */
     const val FOLDER_OPEN: String = "folder-open"
 
+    /** Name of the neutral placeholder shown where a medium preview is not available; shipped in light and dark mode, in [PREVIEW_SIZES]. */
+    const val MEDIA_PLACEHOLDER: String = "media-placeholder"
+
+    /** Edge lengths in pixels in which the preview placeholder is shipped: the display size and the HiDPI size. */
+    val PREVIEW_SIZES: List<Int> = listOf(48, 96)
+
     /** Edge lengths in pixels in which the application icon is shipped. */
     val APP_SIZES: List<Int> = listOf(16, 24, 32, 48, 64, 128, 256)
 

@@ -18,4 +18,5 @@ module org.pcsoft.app.hocal.ui {
     exports org.pcsoft.app.hocal.app.ui;
     exports org.pcsoft.app.hocal.app.ui.window;
     exports org.pcsoft.app.hocal.app.ui.component;
+    exports org.pcsoft.app.hocal.app.ui.preview;
 }

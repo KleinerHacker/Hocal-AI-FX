@@ -110,6 +110,25 @@ class HocalIconsTest {
     }
 
     /**
+     * Use case: the preview placeholder exists for the light and the dark appearance in all shipped sizes,
+     * is a square of exactly that size and has a transparent background.
+     */
+    @Test
+    fun placeholderExistsInBothAppearancesAndAllSizes() {
+        for (dark in listOf(false, true)) {
+            for (size in HocalIcons.PREVIEW_SIZES) {
+                val image = HocalIcons.image(HocalIcons.MEDIA_PLACEHOLDER, size, dark)
+                val label = "dark=$dark size=$size"
+
+                assertFalse(image.isError, label)
+                assertEquals(size.toDouble(), image.width, label)
+                assertEquals(size.toDouble(), image.height, label)
+                assertEquals(0.0, image.pixelReader.getColor(0, 0).opacity, label)
+            }
+        }
+    }
+
+    /**
      * Use case: the dark variant is the icon with the suffix `-dark`, the light variant the one without.
      */
     @Test
