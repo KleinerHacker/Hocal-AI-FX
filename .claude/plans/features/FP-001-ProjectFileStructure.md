@@ -600,6 +600,10 @@ One place owns the loaded project; no other code writes to the storage or edits 
   (below `workRoot` if set) and removed on close
 * `createNew` and `open` fail with `IllegalStateException` while a project is loaded; `close(discardChanges)` is the
   place where unsaved changes matter and answers `false` instead of throwing, as does `delete` of IP-05
+* `isPasswordRequired(path)` tells before `open` whether a file is encrypted, so a user interface can show the password
+  dialog only when needed; it looks at the first bytes of the file only (`ProjectStorage.isEncrypted`), needs no
+  loaded project and changes nothing. `open` still answers a missing password with `PasswordRequiredException`
+  and a wrong one with `WrongPasswordException`
 * `save` uses the path and the password of the project, `saveAs(path, password?)` is the only way to change the
   password or to switch between the encrypted and the unencrypted form; there is no separate method for it
 * The password of `open` or `saveAs` is kept as a copy for `save` and overwritten on close

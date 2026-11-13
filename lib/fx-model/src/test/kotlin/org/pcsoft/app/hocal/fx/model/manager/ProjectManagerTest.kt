@@ -26,6 +26,7 @@ import org.pcsoft.app.hocal.fx.model.ChangeRecorder
 import org.pcsoft.app.hocal.model.project.Medium
 import org.pcsoft.app.hocal.model.project.VirtualEntry
 import org.pcsoft.app.hocal.model.project.VirtualFolder
+import org.pcsoft.app.hocal.model.storage.PasswordRequiredException
 import org.pcsoft.app.hocal.model.storage.ProjectFileException
 import org.pcsoft.app.hocal.model.storage.WrongPasswordException
 import org.pcsoft.app.hocal.model.tree.InvalidNameException
@@ -380,5 +381,49 @@ class ProjectManagerTest {
         manager.open(target)
 
         assertArrayEquals(bytes, manager.openMedium(uuid, 0).use { it.readAllBytes() })
+    }
+
+    /** The answer follows the form the project was saved in, and `open` agrees with it. */
+    @Test
+    fun passwordRequiredFollowsTheSavedForm() {
+        savedProject()
+        val plain = directory.resolve("plain.hocal")
+        manager.saveAs(plain)
+        manager.saveAs(target, "secret".toCharArray())
+        manager.close()
+
+        assertTrue(manager.isPasswordRequired(target))
+        assertFalse(manager.isPasswordRequired(plain))
+        assertThrows(PasswordRequiredException::class.java) { manager.open(target) }
+        manager.open(target, "secret".toCharArray())
+        assertTrue(manager.isLoaded)
+    }
+
+    /** The question needs no loaded project and changes nothing, also while a project with changes is loaded. */
+    @Test
+    fun passwordRequiredChangesNothing() {
+        savedProject()
+        manager.saveAs(target, "secret".toCharArray())
+        manager.project.projectProperty.name = "Edited"
+
+        assertTrue(manager.isPasswordRequired(target))
+        assertFalse(manager.isPasswordRequired(directory.resolve("none-yet").also { Files.write(it, ByteArray(3)) }))
+
+        assertTrue(manager.isLoaded)
+        assertTrue(manager.dirtyProperty.get())
+        assertEquals(target, manager.pathProperty.get())
+        assertEquals("Edited", manager.project.projectProperty.name)
+        manager.close(discardChanges = true)
+        assertTrue(manager.isPasswordRequired(target))
+        assertFalse(manager.isLoaded)
+    }
+
+    /** A file that does not exist is an I/O problem, and the thread check applies like for every operation. */
+    @Test
+    fun passwordRequiredReportsMissingFileAndChecksTheThread() {
+        assertThrows(NoSuchFileException::class.java) { manager.isPasswordRequired(directory.resolve("none.hocal")) }
+
+        manager.threadCheck = { false }
+        assertThrows(IllegalStateException::class.java) { manager.isPasswordRequired(target) }
     }
 }

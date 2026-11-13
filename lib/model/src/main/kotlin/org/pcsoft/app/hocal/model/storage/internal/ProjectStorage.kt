@@ -84,7 +84,7 @@ object ProjectStorage {
             val pushback = PushbackInputStream(NonClosingInputStream(input), EncryptionHeader.MAGIC.size)
             val head = pushback.readNBytes(EncryptionHeader.MAGIC.size)
             pushback.unread(head)
-            val encrypted = head.contentEquals(EncryptionHeader.MAGIC)
+            val encrypted = hasMagic(head)
             val source: InputStream = if (encrypted) ProjectCipher.openInput(pushback, password) else pushback
             return ZipInputStream(NonClosingInputStream(source)).use { zip ->
                 val file = readEntries(zip, sink, limits)
@@ -98,6 +98,23 @@ object ProjectStorage {
             throw DamagedProjectFileException("The project file has a malformed entry: ${e.message}", e)
         }
     }
+
+    /**
+     * Tells whether a file is an encrypted project file, so a password is needed to [read] it. Only the first
+     * bytes of the file are looked at: it is encrypted if it starts with the magic of the encryption header.
+     * Nothing is decrypted and the header is not checked, that is left to [read].
+     *
+     * An empty file, a file that is too short and a file that is no project file at all answer `false`; [read]
+     * reports what is wrong with them.
+     *
+     * @param file The file.
+     * @return `true` if the file starts with the magic of an encrypted project file, else `false`.
+     * @throws java.io.IOException if the file does not exist or cannot be read.
+     */
+    fun isEncrypted(file: Path): Boolean =
+        Files.newInputStream(file).use { hasMagic(it.readNBytes(EncryptionHeader.MAGIC.size)) }
+
+    private fun hasMagic(head: ByteArray): Boolean = head.contentEquals(EncryptionHeader.MAGIC)
 
     /**
      * Reads a project from a file.

@@ -149,13 +149,33 @@ object ProjectManager {
     }
 
     /**
+     * Tells whether a project file needs a password to be opened. A user interface asks this first, shows the
+     * password dialog only if the answer is `true`, and then calls [open] with the password. A file that is no
+     * project file at all answers `false`; [open] reports what is wrong with it.
+     *
+     * Only the start of the file is read. No project has to be loaded, and nothing is changed.
+     *
+     * @param path The file.
+     * @return `true` if the file is encrypted, else `false`.
+     * @throws java.io.IOException if the file does not exist or cannot be read.
+     */
+    fun isPasswordRequired(path: Path): Boolean {
+        checkThread()
+        return ProjectStorage.isEncrypted(path)
+    }
+
+    /**
      * Opens a project file; the media are read into the temporary folder. If this fails the manager stays closed.
+     * Ask [isPasswordRequired] before to know whether a password is needed.
      *
      * @param path The file.
      * @param password The password of an encrypted file, `null` for an unencrypted one. The array is not changed.
      * @throws IllegalStateException if a project is loaded, close it first.
-     * @throws org.pcsoft.app.hocal.model.storage.ProjectFileException if the content is not valid, the password is
-     *   missing or wrong, or the file is damaged.
+     * @throws org.pcsoft.app.hocal.model.storage.PasswordRequiredException if the file is encrypted and no password
+     *   is given.
+     * @throws org.pcsoft.app.hocal.model.storage.WrongPasswordException if the password does not match.
+     * @throws org.pcsoft.app.hocal.model.storage.ProjectFileException if the content is not valid or the file is
+     *   damaged.
      * @throws java.io.IOException if the file cannot be read.
      */
     fun open(path: Path, password: CharArray? = null) {

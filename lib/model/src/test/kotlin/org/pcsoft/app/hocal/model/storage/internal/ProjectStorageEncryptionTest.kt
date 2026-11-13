@@ -34,6 +34,7 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.nio.file.Files
+import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.util.zip.ZipInputStream
 
@@ -296,5 +297,66 @@ class ProjectStorageEncryptionTest {
 
         assertArrayEquals(before, Files.readAllBytes(target))
         assertEquals(1L, Files.list(directory).use { it.count() })
+    }
+
+    /** The check looks at the start of the file only: an encrypted file answers `true`, a normal ZIP `false`. */
+    @Test
+    fun isEncryptedTellsTheFormOfAFile() {
+        val encryptedFile = directory.resolve("encrypted.hocal")
+        Files.write(encryptedFile, encrypted())
+        val project = StorageFixtures.project()
+        val plainFile = directory.resolve("plain.hocal")
+        Files.write(plainFile, StorageFixtures.save(project, StorageFixtures.media(project)))
+
+        assertTrue(ProjectStorage.isEncrypted(encryptedFile))
+        assertFalse(ProjectStorage.isEncrypted(plainFile))
+    }
+
+    /** A file that is empty, too short or no project file at all answers `false`; only the magic counts. */
+    @Test
+    fun isEncryptedIsFalseForEverythingWithoutTheMagic() {
+        val cases = mapOf(
+            "empty" to ByteArray(0),
+            "short" to "HOCAL".toByteArray(),
+            "random" to ByteArray(200) { 7 },
+            "text" to "Not a project".toByteArray(),
+        )
+        for ((name, bytes) in cases) {
+            val file = directory.resolve(name)
+            Files.write(file, bytes)
+
+            assertFalse(ProjectStorage.isEncrypted(file), name)
+        }
+        val magicOnly = directory.resolve("magic")
+        Files.write(magicOnly, "HOCALENC".toByteArray())
+        assertTrue(ProjectStorage.isEncrypted(magicOnly))
+    }
+
+    /** A file that does not exist is an I/O problem, and the check changes nothing on the file it looked at. */
+    @Test
+    fun isEncryptedReportsAMissingFileAndLeavesFilesAlone() {
+        val file = directory.resolve("encrypted.hocal")
+        val bytes = encrypted()
+        Files.write(file, bytes)
+
+        assertThrows(NoSuchFileException::class.java) { ProjectStorage.isEncrypted(directory.resolve("none.hocal")) }
+        ProjectStorage.isEncrypted(file)
+
+        assertArrayEquals(bytes, Files.readAllBytes(file))
+    }
+
+    /** The answer matches what reading does: a file that needs a password is refused without one, and vice versa. */
+    @Test
+    fun isEncryptedMatchesTheBehaviourOfRead() {
+        val encryptedFile = directory.resolve("encrypted.hocal")
+        Files.write(encryptedFile, encrypted())
+        val project = StorageFixtures.project()
+        val plainFile = directory.resolve("plain.hocal")
+        Files.write(plainFile, StorageFixtures.save(project, StorageFixtures.media(project)))
+
+        assertTrue(ProjectStorage.isEncrypted(encryptedFile))
+        assertThrows(PasswordRequiredException::class.java) { ProjectStorage.read(encryptedFile, MemoryMedia()) }
+        assertFalse(ProjectStorage.isEncrypted(plainFile))
+        assertEquals(project, ProjectStorage.read(plainFile, MemoryMedia()))
     }
 }
