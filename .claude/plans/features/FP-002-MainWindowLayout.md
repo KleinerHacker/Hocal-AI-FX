@@ -184,7 +184,7 @@ SplitPane (horizontal, divider 0.3)
 | IP-01 | Main Window Splitter Layout (COMPLETED) | Rebuild the main window layout with the splitters and placeholders   | -            |
 | IP-02 | Directory Tree Component (COMPLETED) | Folder tree with child counts bound to the FX model, adapt the component rules | IP-01, FP-001 IP-02, FP-001 IP-07 |
 | IP-03 | File List And Media Preview (COMPLETED) | File list with original and current icon and the preview extension point | IP-01, FP-001 IP-02 |
-| IP-04 | Project Binding And Window Wiring  | Follow the `ProjectManager`, connect tree, list and content area     | IP-02, IP-03, FP-001 IP-07 |
+| IP-04 | Project Binding And Window Wiring (COMPLETED) | Follow the `ProjectManager`, connect tree, list and content area     | IP-02, IP-03, FP-001 IP-07 |
 | IP-05 | History List And Media View        | History list with last medium preselected and the selected image     | IP-04, FP-001 IP-02 |
 | IP-06 | Prompt Input Part (COMPLETED)      | Prompt box, send and add buttons, model combobox, flow toggle button bar, gallery dialog (placeholders) | IP-01, IP-02, IP-03 |
 | IP-07 | Generation Details Panel           | Applied prompt, model and flow of the selected medium                | IP-05, FP-001 IP-02 |
@@ -342,7 +342,7 @@ list.
   make the list notice changes inside the selected folder
 
 
-### IP-04: Project Binding And Window Wiring
+### IP-04: Project Binding And Window Wiring (COMPLETED)
 
 **Objective**
 
@@ -375,6 +375,25 @@ the selected file is handed on to the content area.
 * The `ProjectManager` creates the new project on start; the view model only follows it
 * Tests fill the model directly through the manager's change operations
 * Registration on the manager is released with the window
+
+**Built**
+
+* `HocalApplication` sets up the `ProjectManager` (FX thread check, version), creates the new, empty project before the
+  main window opens and closes it again in `stop()`; the name of the project is the message `project.new.name`
+* `MainWindowViewModel` follows the project: `tree` (root folder), `selectedFolder` (from the tree), `listFolder`
+  (a `RefreshableFolderProperty`: the selected folder, reported again on every change of the project, because the folders
+  are plain objects), `selectedFile` (from the file list, IP-05 reads it) and `mediaSource`; the project and the media
+  changes are observed between `onShow` and `onHide` only
+* `ProjectMediaSource` is the `MediaSource` of the project; the `ProjectManager` accepts the FX thread only, so every
+  access from the load threads moves to the FX thread and waits for the answer
+* Differs from the plan: `MediaChanges.changed(reference)` (not `notify`, which clashes with `Object.notify`) tells the
+  window that media of a reference changed; it reloads the previews of the file list and the prompt input. Nobody calls it
+  yet - the flows that append or remove media (FP-006) have to
+* `ProjectFileList.invalidate(reference)` was added for it; tree, file list and prompt input are placed in the window
+  (`pnlTree`, `pnlFiles`, `pnlPromptInput`)
+* NOT built, by decision: the window title bar stays `Hocal AI`; its format with the file name and `*` belongs to
+  FP-003 IP-02
+
 
 ### IP-05: History List And Media View
 
@@ -514,7 +533,7 @@ without details.
 ```text
 IP-01 (COMPLETED)
 ├── IP-02 (COMPLETED) ──┐
-├── IP-03 (COMPLETED) ──┴── IP-04 ── IP-05 ── IP-07
+├── IP-03 (COMPLETED) ──┴── IP-04 (COMPLETED) ── IP-05 ── IP-07
 └── IP-06 (COMPLETED, after IP-02 and IP-03)
 ```
 
