@@ -9,7 +9,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations.
  */
-package org.pcsoft.app.hocal.model.storage
+package org.pcsoft.app.hocal.model.storage.internal
+
+import org.pcsoft.app.hocal.model.storage.DamagedProjectFileException
+import org.pcsoft.app.hocal.model.storage.InvalidProjectFileException
+import org.pcsoft.app.hocal.model.storage.UnsupportedFormatVersionException
 
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -17,11 +21,11 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.pcsoft.app.hocal.model.project.ProjectFile
-import org.pcsoft.app.hocal.model.storage.StorageFixtures.FIRST
-import org.pcsoft.app.hocal.model.storage.StorageFixtures.SECOND
-import org.pcsoft.app.hocal.model.storage.StorageFixtures.entries
-import org.pcsoft.app.hocal.model.storage.StorageFixtures.json
-import org.pcsoft.app.hocal.model.storage.StorageFixtures.zip
+import org.pcsoft.app.hocal.model.storage.internal.StorageFixtures.FIRST
+import org.pcsoft.app.hocal.model.storage.internal.StorageFixtures.SECOND
+import org.pcsoft.app.hocal.model.storage.internal.StorageFixtures.entries
+import org.pcsoft.app.hocal.model.storage.internal.StorageFixtures.json
+import org.pcsoft.app.hocal.model.storage.internal.StorageFixtures.zip
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.zip.ZipEntry

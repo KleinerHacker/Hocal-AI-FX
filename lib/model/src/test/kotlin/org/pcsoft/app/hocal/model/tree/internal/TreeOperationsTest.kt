@@ -9,7 +9,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations.
  */
-package org.pcsoft.app.hocal.model.tree
+package org.pcsoft.app.hocal.model.tree.internal
+
+import org.pcsoft.app.hocal.model.tree.DuplicateNameException
+import org.pcsoft.app.hocal.model.tree.InvalidNameException
+import org.pcsoft.app.hocal.model.tree.NodeNotFoundException
+import org.pcsoft.app.hocal.model.tree.RootNodeException
+import org.pcsoft.app.hocal.model.tree.TreeCycleException
+import org.pcsoft.app.hocal.model.tree.UnknownReferenceException
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -20,13 +27,13 @@ import org.junit.jupiter.api.Test
 import org.pcsoft.app.hocal.model.project.ProjectFile
 import org.pcsoft.app.hocal.model.project.VirtualEntry
 import org.pcsoft.app.hocal.model.project.VirtualFolder
-import org.pcsoft.app.hocal.model.storage.MediaStore
-import org.pcsoft.app.hocal.model.storage.MemoryMedia
-import org.pcsoft.app.hocal.model.storage.ProjectStorage
-import org.pcsoft.app.hocal.model.storage.ProjectValidator
-import org.pcsoft.app.hocal.model.storage.StorageFixtures
-import org.pcsoft.app.hocal.model.storage.StorageFixtures.FIRST
-import org.pcsoft.app.hocal.model.storage.StorageFixtures.SECOND
+import org.pcsoft.app.hocal.model.storage.internal.MediaStore
+import org.pcsoft.app.hocal.model.storage.internal.MemoryMedia
+import org.pcsoft.app.hocal.model.storage.internal.ProjectStorage
+import org.pcsoft.app.hocal.model.storage.internal.ProjectValidator
+import org.pcsoft.app.hocal.model.storage.internal.StorageFixtures
+import org.pcsoft.app.hocal.model.storage.internal.StorageFixtures.FIRST
+import org.pcsoft.app.hocal.model.storage.internal.StorageFixtures.SECOND
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException

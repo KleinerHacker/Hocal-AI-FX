@@ -92,6 +92,13 @@ description: Mirroring rule between the plain model POJOs in lib/model (hocal-mo
 * A public FX model MUST NOT expose a member of an `internal` type
   * Such a member stays `internal`, and what the user interface needs is offered as a short
     accessor of a public type next to it
+* The operations on the project are NOT part of the user interface API of `lib/model`
+  * Tree operations, media history, project storage and media store live in the `...internal` packages
+    of `lib/model`, exported to `hocal-fx-model` only
+  * The `ProjectManager` is the only caller; every change a user interface makes goes through it, so
+    the property models are read again and the project counts as changed
+  * Kotlin `internal` does not reach across Gradle modules; the qualified export in the module
+    descriptor is what protects these packages
 
 ## Testing
 

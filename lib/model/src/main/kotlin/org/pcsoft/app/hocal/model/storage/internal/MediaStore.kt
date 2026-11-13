@@ -9,7 +9,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations.
  */
-package org.pcsoft.app.hocal.model.storage
+package org.pcsoft.app.hocal.model.storage.internal
 
 /**
  * The place where the media of a project live while it is open: a [MediaSource] and [MediaSink]

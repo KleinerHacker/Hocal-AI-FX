@@ -9,7 +9,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations.
  */
-package org.pcsoft.app.hocal.model.storage
+package org.pcsoft.app.hocal.model.storage.internal
+
+import org.pcsoft.app.hocal.model.storage.DamagedProjectFileException
+import org.pcsoft.app.hocal.model.storage.InvalidProjectFileException
+import org.pcsoft.app.hocal.model.storage.ManipulatedProjectFileException
+import org.pcsoft.app.hocal.model.storage.PasswordRequiredException
+import org.pcsoft.app.hocal.model.storage.UnsupportedEncryptionVersionException
+import org.pcsoft.app.hocal.model.storage.WrongPasswordException
 
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -21,7 +28,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.pcsoft.app.hocal.model.project.ProjectFile
-import org.pcsoft.app.hocal.model.storage.StorageFixtures.FIRST
+import org.pcsoft.app.hocal.model.storage.internal.StorageFixtures.FIRST
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException

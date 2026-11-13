@@ -23,21 +23,21 @@ import org.pcsoft.app.hocal.model.project.Reference
 import org.pcsoft.app.hocal.model.project.VirtualEntry
 import org.pcsoft.app.hocal.model.project.VirtualFolder
 import org.pcsoft.app.hocal.model.project.VirtualNode
-import org.pcsoft.app.hocal.model.storage.DirectoryMediaStore
+import org.pcsoft.app.hocal.model.storage.internal.DirectoryMediaStore
 import org.pcsoft.app.hocal.model.storage.MediaHistoryException
-import org.pcsoft.app.hocal.model.storage.ProjectStorage
-import org.pcsoft.app.hocal.model.storage.StorageLimits
-import org.pcsoft.app.hocal.model.storage.appendMedium
-import org.pcsoft.app.hocal.model.storage.removeMedium
+import org.pcsoft.app.hocal.model.storage.internal.ProjectStorage
+import org.pcsoft.app.hocal.model.storage.internal.StorageLimits
+import org.pcsoft.app.hocal.model.storage.internal.appendMedium
+import org.pcsoft.app.hocal.model.storage.internal.removeMedium
 import org.pcsoft.app.hocal.model.tree.TreeException
 import org.pcsoft.app.hocal.model.tree.UnknownReferenceException
-import org.pcsoft.app.hocal.model.tree.createEntry
-import org.pcsoft.app.hocal.model.tree.createFolder
-import org.pcsoft.app.hocal.model.tree.delete
-import org.pcsoft.app.hocal.model.tree.move
-import org.pcsoft.app.hocal.model.tree.orphansOf
-import org.pcsoft.app.hocal.model.tree.removeReference
-import org.pcsoft.app.hocal.model.tree.rename
+import org.pcsoft.app.hocal.model.tree.internal.createEntry
+import org.pcsoft.app.hocal.model.tree.internal.createFolder
+import org.pcsoft.app.hocal.model.tree.internal.delete
+import org.pcsoft.app.hocal.model.tree.internal.move
+import org.pcsoft.app.hocal.model.tree.internal.orphansOf
+import org.pcsoft.app.hocal.model.tree.internal.removeReference
+import org.pcsoft.app.hocal.model.tree.internal.rename
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
@@ -54,7 +54,9 @@ import java.util.UUID
  * [project] - marks the project as changed ([dirtyProperty]) until it is saved.
  *
  * Nothing else may read or write the project file or edit the tree: the storage, the tree operations
- * and the media history are reached through this manager only.
+ * and the media history live in the packages `...model.storage.internal` and `...model.tree.internal`
+ * of `hocal-model`, which that module exports to `hocal-fx-model` only. They are reached through this
+ * manager only.
  *
  * The media of the open project live in a temporary folder for the time it is open and are removed
  * again on [close]. A password given to [open] or [saveAs] is kept in memory so [save] does not ask

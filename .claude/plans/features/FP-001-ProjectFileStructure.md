@@ -349,8 +349,9 @@ The file written is read back identically; broken files fail with a clear error.
 
 **As Built**
 
-* Package `org.pcsoft.app.hocal.model.storage` in `lib/model`; the object `ProjectStorage` is the entry
-  point and holds no state
+* The storage lives in the package `org.pcsoft.app.hocal.model.storage.internal` in `lib/model`, which the
+  module descriptor exports to `hocal-fx-model` only; the object `ProjectStorage` is the entry point and holds
+  no state. The errors stay in `org.pcsoft.app.hocal.model.storage` and are public
 * Stream variants (`read`, `write`) never close the streams they are given, so IP-06 can wrap them;
   file variants save through a temporary file in the target folder and an atomic move
 * Media are not held in memory: `MediaSink` receives them while reading, `MediaSource` delivers them
@@ -423,8 +424,9 @@ removing a medium leaves a continuous numbering, and a reference never ends up w
 * `MediaStore` extends `MediaSource` and `MediaSink` by `delete`, `move` and `numbers`;
   `DirectoryMediaStore` keeps the media as `<root>/<uuid>/<NNN>.<extension>`, writes through a temporary
   file and checks UUID, number and extension against path tricks
-* Operations are extension functions of `Reference` in `MediaHistory.kt`: `currentMedium`, `currentNumber`,
-  `appendMedium`, `removeMedium` and `verifyMedia`
+* Operations are extension functions of `Reference` in `MediaHistory.kt` of the protected package
+  `...model.storage.internal`: `currentMedium`, `currentNumber`, `appendMedium`, `removeMedium` and
+  `verifyMedia`; the errors of the history stay public in `...model.storage`
 * Appending puts the content into the store first and extends the list afterwards, so a failing store
   leaves the list untouched; a removal deletes the medium, moves the following ones down one by one
   and shortens the list
@@ -467,8 +469,9 @@ Every edit keeps the structure valid; every invalid edit is rejected with a defi
 
 **As Built**
 
-* Package `org.pcsoft.app.hocal.model.tree` in `lib/model`; the operations are extension functions of
-  `ProjectFile`: `parentOf`, `createFolder`, `createEntry`, `rename`, `move`, `orphansOf`, `delete` and
+* The operations live in the protected package `org.pcsoft.app.hocal.model.tree.internal` in `lib/model`, the
+  name rules (`TreeNames`) and the errors stay public in `org.pcsoft.app.hocal.model.tree`; the operations are
+  extension functions of `ProjectFile`: `parentOf`, `createFolder`, `createEntry`, `rename`, `move`, `orphansOf`, `delete` and
   `removeReference`; nodes are found by identity, not by value
 * Name rules in `TreeNames`: not empty, no space at the start or end, at most 255 characters, no control
   character and none of `/ \ : * ? " < > |`, neither `.` nor `..`; siblings are unique without regard to
@@ -610,6 +613,9 @@ One place owns the loaded project; no other code writes to the storage or edits 
   start; every operation fails if it answers `false`
 * Reading and writing a file blocks the caller
 * `resetForTests` sets the singleton back to the start
+* Access only through the manager: `internal` of Kotlin does not reach across Gradle modules, so the packages
+  `...model.storage.internal` and `...model.tree.internal` of `hocal-model` are exported to `hocal-fx-model`
+  only (qualified exports in the module descriptor); `ModuleEncapsulationTest` checks the descriptor
 
 ## 8. Dependency Graph
 

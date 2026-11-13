@@ -9,7 +9,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations.
  */
-package org.pcsoft.app.hocal.model.storage
+package org.pcsoft.app.hocal.model.storage.internal
+
+import org.pcsoft.app.hocal.model.storage.PasswordRequiredException
+import org.pcsoft.app.hocal.model.storage.WrongPasswordException
 
 import java.io.InputStream
 import java.io.OutputStream

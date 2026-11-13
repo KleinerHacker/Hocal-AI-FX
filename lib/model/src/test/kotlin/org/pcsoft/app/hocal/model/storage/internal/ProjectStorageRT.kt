@@ -9,13 +9,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations.
  */
-package org.pcsoft.app.hocal.model.storage
+package org.pcsoft.app.hocal.model.storage.internal
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
-import org.pcsoft.app.hocal.model.storage.StorageFixtures.FIRST
-import org.pcsoft.app.hocal.model.storage.StorageFixtures.SECOND
+import org.pcsoft.app.hocal.model.storage.internal.StorageFixtures.FIRST
+import org.pcsoft.app.hocal.model.storage.internal.StorageFixtures.SECOND
 import java.io.ByteArrayInputStream
 import java.time.Instant
 
