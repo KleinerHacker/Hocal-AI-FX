@@ -47,7 +47,7 @@ class ProjectMediaSource : MediaSource {
      * @throws java.io.IOException if the medium does not exist
      */
     override fun extension(reference: String, number: Int): String = onFxThread {
-        ProjectManager.mediaExtension(reference, number)
+        ProjectManager.mediumExtension(reference, number)
     }
 
     /**
