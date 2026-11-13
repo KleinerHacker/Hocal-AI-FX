@@ -345,7 +345,8 @@ Status: NOT_STARTED
 Feature Plan created. No implementation plan has been started yet.
 ```
 
-The status file is the authoritative source for the current implementation status of the feature.
+The status file is the authoritative source for the current implementation status of the feature,
+until the feature is completed (see Feature Completion).
 
 When an implementation plan is completed, update its status and recalculate the overall progress.
 
@@ -356,7 +357,6 @@ must carry the number of the Feature Plan it came from, followed by the ID of th
 
 ```text
 FP-<FEATURE_NUMBER>-IP-<PLAN_NUMBER>-<PlanName>.md
-FP-<FEATURE_NUMBER>-IP-<PLAN_NUMBER>-<PlanName>-status.md
 ```
 
 For example, for the Feature Plan `FP-001-PaperWritingSurface.md`:
@@ -365,9 +365,7 @@ For example, for the Feature Plan `FP-001-PaperWritingSurface.md`:
 .claude/plans/implementation/
 ├── FP-001-Overview.md
 ├── FP-001-IP-01-FontDiscoveryAndTextMeasuring.md
-├── FP-001-IP-01-FontDiscoveryAndTextMeasuring-status.md
-├── FP-001-IP-02-DesignPageFormat.md
-└── FP-001-IP-02-DesignPageFormat-status.md
+└── FP-001-IP-02-DesignPageFormat.md
 ```
 
 The naming rules:
@@ -375,11 +373,14 @@ The naming rules:
 * the feature number comes first, with the same three digits the Feature Plan carries
 * the plan ID follows, as `IP-<PLAN_NUMBER>` with two digits, exactly the ID used in the Feature Plan
 * the plan name follows last, in PascalCase
-* the status file adds `-status` to the very same name
 * a plan that belongs to no Feature Plan carries no `FP-` prefix
 
 The prefix makes the plans of a feature stay together in the directory and tells two plans carrying
 the same ID in different features apart.
+
+An implementation plan has NO status file of its own. Its progress is the ticked-off bullets of its
+plan file. The status of all implementation plans of a feature is kept only in the status file of
+the Feature Plan.
 
 ### Overview File
 
@@ -403,6 +404,33 @@ status of the feature stays in the status file of the Feature Plan.
 The overview file stays in place until the last implementation plan of the feature is finished, and
 is removed together with it.
 
+## Feature Completion
+
+The feature is completed when its last implementation plan is completed. In the SAME change set as
+the last task of that plan, in this order:
+
+1. Rewrite the Feature Plan as a compressed description of what was actually built. Do this FIRST,
+   while everything it is made from is still in place.
+2. Remove the status file of the Feature Plan.
+3. Remove every file of the feature that is left in `.claude/plans/implementation/`: the plan files
+   and the overview file.
+
+The Feature Plan itself is NEVER removed. It stays as the description of the feature.
+
+The compressed Feature Plan contains:
+
+* the objective, in a few lines
+* the implementation: modules, packages and formats as built, and the behaviour the feature offers
+* the decisions that differ from what was planned
+* the implementation plans as a table with one sentence of result each, all marked as done
+* the known limits
+* the completion criteria as a ticked-off list
+
+It no longer contains the current state, the target state, individual requirements, the sections of
+the single implementation plans, the dependency graph, and the risks and open questions.
+
+After the completion the Feature Plan is only changed to correct the description of what was built.
+
 ## Important Rules
 
 * Do not implement anything.
@@ -422,6 +450,6 @@ is removed together with it.
 * Reuse existing project architecture and conventions.
 * If the feature is ambiguous, investigate the codebase first and document unresolved questions.
 * Do not silently make major architectural decisions that are not supported by the existing codebase.
-* Keep the Feature Plan stable; implementation progress belongs in the status file.
-* Every derived implementation plan carries the feature number, then its own ID, then its name.
+* Keep the Feature Plan stable; implementation progress belongs in the status file until the feature is completed, see Feature Completion.
+* Every derived implementation plan carries the feature number, then its own ID, then its name, and has no status file.
 * Every Feature Plan has exactly one overview file carrying the same feature number.
