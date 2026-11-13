@@ -72,13 +72,9 @@ class ProjectFileListViewModel : ViewModel {
     // The source of the last show, to notice that another project was loaded meanwhile.
     private var shownSource: MediaSource? = null
 
-    private val poolDelegate = lazy {
-        val counter = AtomicInteger()
-        Executors.newFixedThreadPool(POOL_SIZE) { task ->
-            Thread(task, "hocal-preview-${counter.incrementAndGet()}").apply { isDaemon = true }
-        }
-    }
-    private val pool: ExecutorService by poolDelegate
+    // Created on the first load, on the FX thread only; null again after a change of the size and after close().
+    private var pool: ExecutorService? = null
+    private var closed = false
 
     // Fields: a method reference would be a new object per use and could not be removed again.
     private val folderListener = InvalidationListener { onFolderInvalidated() }
@@ -97,6 +93,23 @@ class ProjectFileListViewModel : ViewModel {
      * with placeholder icons then.
      */
     val mediaSource: ObjectProperty<MediaSource?> = SimpleObjectProperty(this, "mediaSource")
+
+    /**
+     * The number of threads that load thumbnails at the same time, at least 1.
+     *
+     * Meant to be set from the settings of the application later. A new value is used for the loads that
+     * start afterwards; loads that are running finish on the threads they started on.
+     *
+     * @throws IllegalArgumentException if the value is less than 1
+     */
+    var loadThreads: Int = DEFAULT_LOAD_THREADS
+        set(value) {
+            require(value >= 1) { "loadThreads must be at least 1, was $value" }
+            if (field == value) return
+            field = value
+            pool?.shutdown()
+            pool = null
+        }
 
     /** The registry of the preview providers; replaceable for tests. */
     var registry: MediaPreviewRegistry = MediaPreviewRegistry()
@@ -191,7 +204,9 @@ class ProjectFileListViewModel : ViewModel {
      */
     fun close() {
         onHide()
-        if (poolDelegate.isInitialized()) pool.shutdownNow()
+        closed = true
+        pool?.shutdownNow()
+        pool = null
     }
 
     private fun isDarkAppearance(): Boolean = Platform.getPreferences().colorScheme == ColorScheme.DARK
@@ -274,13 +289,14 @@ class ProjectFileListViewModel : ViewModel {
     private fun startLoading(entry: VirtualEntry, state: ProjectFilePreview) {
         state.started = true
         val source = mediaSource.get() ?: return
+        val executor = pool() ?: return
         val size = loadSize()
         val loadGeneration = generation
         val reference = entry.reference
         val registry = registry
 
         try {
-            state.future = pool.submit {
+            state.future = executor.submit {
                 try {
                     val count = try { source.mediaCount(reference) } catch (_: Exception) { 0 }
                     if (count <= 0 || loadGeneration != generation) return@submit
@@ -332,7 +348,21 @@ class ProjectFileListViewModel : ViewModel {
         }
     }
 
-    private companion object {
-        const val POOL_SIZE = 2
+    // The pool of the current size, created on demand; none once the view model is closed.
+    private fun pool(): ExecutorService? {
+        if (closed) return null
+        return pool ?: createPool().also { pool = it }
+    }
+
+    private fun createPool(): ExecutorService {
+        val counter = AtomicInteger()
+        return Executors.newFixedThreadPool(loadThreads) { task ->
+            Thread(task, "hocal-preview-${counter.incrementAndGet()}").apply { isDaemon = true }
+        }
+    }
+
+    companion object {
+        /** The number of threads that load thumbnails when no other number is set. */
+        const val DEFAULT_LOAD_THREADS: Int = 5
     }
 }

@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.pcsoft.app.hocal.app.ui.preview.FakeMediaSource
 import org.pcsoft.app.hocal.app.ui.preview.brokenBytes
 import org.pcsoft.app.hocal.app.ui.preview.pngBytes
@@ -461,5 +462,68 @@ class ProjectFileListViewModelTest {
         awaitTrue { source.closed.get() == 2 }
 
         assertEquals(2, source.openRequested.get())
+    }
+
+    // ---- load threads -----------------------------------------------------------------------------------------
+
+    /**
+     * Use case: nothing is set, so thumbnails are loaded by five threads at the same time.
+     */
+    @Test
+    fun fiveLoadThreadsByDefault() {
+        assertEquals(5, viewModel.loadThreads)
+        assertEquals(ProjectFileListViewModel.DEFAULT_LOAD_THREADS, viewModel.loadThreads)
+    }
+
+    /**
+     * Use case: a number of threads below one cannot load anything and is rejected at once.
+     */
+    @Test
+    fun loadThreadsBelowOneAreRejected() {
+        assertThrows<IllegalArgumentException> { viewModel.loadThreads = 0 }
+        assertEquals(5, viewModel.loadThreads)
+    }
+
+    /**
+     * Use case: six entries ask for a preview while every load is held back. Exactly five loads run at the
+     * same time, the sixth waits for a free thread; when the loads are released, all six finish.
+     */
+    @Test
+    fun loadsRunOnFiveThreadsAtTheSameTime() {
+        val gate = CountDownLatch(1)
+        source.gate = gate
+        val entries = (1..6).map { refEntry("E$it.png", "r$it") }
+        entries.forEach { source.add(it.reference, "png" to pngBytes(10, 10)) }
+        show(folder("Project", *entries.toTypedArray()))
+
+        entries.forEach { fx { viewModel.preview(it) } }
+        awaitTrue { source.openRequested.get() == 5 }
+        settle()
+        assertEquals(5, source.openRequested.get())
+
+        gate.countDown()
+        awaitTrue { source.closed.get() == 6 }
+    }
+
+    /**
+     * Use case: the number of threads is changed. The loads that start afterwards use the new number: with a
+     * single thread, only one load runs at a time.
+     */
+    @Test
+    fun changedLoadThreadsApplyToLaterLoads() {
+        viewModel.loadThreads = 1
+        val gate = CountDownLatch(1)
+        source.gate = gate
+        val entries = (1..3).map { refEntry("E$it.png", "r$it") }
+        entries.forEach { source.add(it.reference, "png" to pngBytes(10, 10)) }
+        show(folder("Project", *entries.toTypedArray()))
+
+        entries.forEach { fx { viewModel.preview(it) } }
+        awaitTrue { source.openRequested.get() == 1 }
+        settle()
+        assertEquals(1, source.openRequested.get())
+
+        gate.countDown()
+        awaitTrue { source.closed.get() == 3 }
     }
 }
