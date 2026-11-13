@@ -472,8 +472,8 @@ IP-02, IP-03 and IP-06 can run in parallel after IP-01. IP-02 to IP-05 and IP-07
 
 ## 9. Risks and Open Questions
 
-* FP-001 is not implemented yet: IP-02 to IP-05 are blocked until its property models and the
-  `ProjectManager` exist
+* FP-001 is completed: the property models and the `ProjectManager` exist, so IP-02 to IP-05 are
+  not blocked
 * Decided: `FlowList`, the example flows and the selection label are removed (demo only); the
   Claude rule set then uses the directory tree as example component (IP-02)
 * Decided: the content area has three parts, dividers 0.2 and 0.8
