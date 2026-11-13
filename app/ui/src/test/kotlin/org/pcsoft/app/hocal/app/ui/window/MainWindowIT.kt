@@ -130,19 +130,39 @@ class MainWindowIT : ApplicationTest() {
     }
 
     /**
-     * Use case: the user enlarges the window, so the parts keep their proportions.
+     * Use case: the user enlarges the window, so the project side, the generation details and the
+     * history list keep their width and only the media with the prompt input takes the difference.
      */
     @Test
-    fun partsKeepTheirProportionsWhenTheWindowGrows() {
-        interact {
-            window.width += 400.0
-            window.height += 200.0
-        }
+    fun sideAreasKeepTheirWidthWhenTheWindowGrows() {
+        val projectWidth = splProject.width
+        val detailsWidth = part("pnlDetails").layoutBounds.width
+        val historyWidth = part("pnlHistory").layoutBounds.width
+        val mediaWidth = part("pnlMedia").layoutBounds.width
 
-        assertEquals(listOf(0.3), splMain.dividerPositions.toList().map { it.rounded() })
-        assertEquals(listOf(0.5), splProject.dividerPositions.toList().map { it.rounded() })
-        assertEquals(listOf(0.2, 0.8), splContent.dividerPositions.toList().map { it.rounded() })
-        assertEquals(splMain.width * 0.3, splProject.width, 20.0)
+        interact { window.width += 400.0 }
+
+        assertEquals(projectWidth, splProject.width, 1.0)
+        assertEquals(detailsWidth, part("pnlDetails").layoutBounds.width, 1.0)
+        assertEquals(historyWidth, part("pnlHistory").layoutBounds.width, 1.0)
+        assertEquals(mediaWidth + 400.0, part("pnlMedia").layoutBounds.width, 1.0)
+    }
+
+    /**
+     * Use case: the user shrinks the window, so the side areas keep their width and the media with
+     * the prompt input gives up the difference.
+     */
+    @Test
+    fun sideAreasKeepTheirWidthWhenTheWindowShrinks() {
+        val projectWidth = splProject.width
+        val detailsWidth = part("pnlDetails").layoutBounds.width
+        val historyWidth = part("pnlHistory").layoutBounds.width
+
+        interact { window.width -= 200.0 }
+
+        assertEquals(projectWidth, splProject.width, 1.0)
+        assertEquals(detailsWidth, part("pnlDetails").layoutBounds.width, 1.0)
+        assertEquals(historyWidth, part("pnlHistory").layoutBounds.width, 1.0)
     }
 
     /**

@@ -14,7 +14,8 @@ On macOS the shortcut is `Cmd` + `Q`.
 ## Layout
 
 The window below the menu is divided into resizable parts. Drag a divider to change the share of
-the neighbouring parts; when the window grows or shrinks, the parts keep their proportions.
+the neighbouring parts. When the window grows or shrinks, the project side, the generation details
+and the history list keep their width; the media with the prompt input takes the difference.
 
 | Part                              | Position                         | Initial share                |
 |-----------------------------------|----------------------------------|------------------------------|

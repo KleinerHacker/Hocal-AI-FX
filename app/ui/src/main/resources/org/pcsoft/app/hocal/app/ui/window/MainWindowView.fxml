@@ -36,7 +36,8 @@
         <!-- Outer splitter: project side (tree above file list) | content area -->
         <SplitPane fx:id="splMain" orientation="HORIZONTAL">
             <items>
-                <SplitPane fx:id="splProject" orientation="VERTICAL">
+                <!-- Side areas keep their width when the window is resized, the rest takes the difference -->
+                <SplitPane fx:id="splProject" orientation="VERTICAL" SplitPane.resizableWithParent="false">
                     <items>
                         <StackPane id="pnlTree" styleClass="placeholder"/>
                         <StackPane id="pnlFiles" styleClass="placeholder"/>
@@ -46,9 +47,9 @@
                 <!-- Content area: generation details | media with prompt input | history -->
                 <SplitPane fx:id="splContent" orientation="HORIZONTAL">
                     <items>
-                        <StackPane id="pnlDetails" styleClass="placeholder"/>
+                        <StackPane id="pnlDetails" styleClass="placeholder" SplitPane.resizableWithParent="false"/>
                         <StackPane id="pnlMedia" styleClass="placeholder"/>
-                        <StackPane id="pnlHistory" styleClass="placeholder"/>
+                        <StackPane id="pnlHistory" styleClass="placeholder" SplitPane.resizableWithParent="false"/>
                     </items>
                 </SplitPane>
             </items>

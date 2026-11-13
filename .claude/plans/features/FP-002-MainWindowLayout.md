@@ -218,8 +218,9 @@ A resizable window with the nested splitters at their initial positions and the 
 
 **Technical Considerations**
 
-* Divider positions are set once the scene has a size; JavaFX keeps ratios on resize, which the
-  integration test must check
+* Divider positions are set once the scene has a size; JavaFX does NOT keep ratios on resize (extra
+  space is shared equally, CI of IP-01 proved it): the project side, the generation details and the
+  history list are `resizableWithParent=false`, the media with the prompt input takes the difference
 * Placeholders carry no logic and are replaced by the following plans
 * Load `ui-styling`, `window` and `component` skills first
 
