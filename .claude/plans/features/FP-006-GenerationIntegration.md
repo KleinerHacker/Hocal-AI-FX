@@ -47,7 +47,7 @@ emerging image, a percentage and a progress bar.
 * Queue: every send is submitted at once to the queue of ComfyUI and stays enabled while runs are
   active; the input data (prompt, model, flow, images) are captured and uploaded at send time, later
   changes of the selection do not affect a waiting run
-* Models and flows are real lists: both come from the catalog of FP-008 (model state from its file
+* Models and flows are real lists: both come from the catalog of FP-009 (model state from its file
   check), the workflow of a flow is the flow file of the catalog
 * A send starts ComfyUI on demand and waits for it; the tile shows "starting" meanwhile
 * Progress tile:
@@ -84,8 +84,8 @@ emerging image, a percentage and a progress bar.
 
 * `lib/comfy`, new package `workflow`: `WorkflowBuilder` writes the values of a send (prompt, model
   files, seed, images, parameters) into a copy of the workflow at the targets of the catalog of
-  FP-008 (`standard` keys and `parameters`); the templates, their registry and the model and flow
-  definitions live in `lib/ai-model` (FP-008)
+  FP-009 (`standard` keys and `parameters`); the templates, their registry and the model and flow
+  definitions live in `lib/ai-model` (FP-009)
 * `lib/comfy`, new package `generation`: `GenerationService`:
     1. `ensureRunning()` of FP-005
     2. upload of the input and the extra images
@@ -107,7 +107,7 @@ emerging image, a percentage and a progress bar.
 
 | ID    | Implementation Plan             | Objective                                                          | Dependencies                  |
 |-------|---------------------------------|--------------------------------------------------------------------|-------------------------------|
-| IP-01 | Workflow Builder                | Write the values of a send into the workflow at the catalog targets, installed-model check | FP-004 IP-03, FP-008 IP-02 |
+| IP-01 | Workflow Builder                | Write the values of a send into the workflow at the catalog targets, installed-model check | FP-004 IP-03, FP-009 IP-02 |
 | IP-02 | Generation Service              | Run orchestration with job state, upload, submit, events, result   | IP-01, FP-004 IP-04, FP-005 IP-05 |
 | IP-03 | Send Button And Prompt Submission | Send button, collected data, real model and flow lists, errors    | IP-02, FP-002 IP-06           |
 | IP-04 | Progress Tile                   | Pop-up tile with preview, percent and progress bar, tile host      | IP-02, FP-002 IP-01, IP-04    |
@@ -123,7 +123,7 @@ Fill the workflow of a flow with the values of a send.
 
 **Scope**
 
-* templates, registry and the model and flow definitions come from the catalog of FP-008; this plan
+* templates, registry and the model and flow definitions come from the catalog of FP-009; this plan
   does not define them
 * builder: writes the values of a send (prompt, model files, seed, input image, extra images and the
   parameters) into a copy of the workflow at the targets `<node>.<input>` of the catalog; a new random
@@ -139,7 +139,7 @@ Fill the workflow of a flow with the values of a send.
 
 **Dependencies**
 
-FP-004 IP-03, FP-008 IP-02.
+FP-004 IP-03, FP-009 IP-02.
 
 **Expected Result**
 
@@ -207,7 +207,7 @@ Let the user start a generation from the prompt input part.
 * enabling rules; a send stays possible while runs are active and while the service starts
 * the combo box shows the real models, the flow is chosen with the toggle button bar already planned
   in FP-002 IP-06, which now carries the real flows
-* collect the data (including the values of the parameter area of FP-008 IP-04) and hand it to the
+* collect the data (including the values of the parameter area of FP-009 IP-04) and hand it to the
   `GenerationService`; text box stays filled, send does not clear
 * error dialogs for a failed send (service not available, rejected workflow, no connection, workflow
   with a blocked node); the blocked-node dialog names the node and says it is not allowed in the
@@ -262,7 +262,7 @@ IP-02, FP-002 IP-01.
 **Expected Result**
 
 * a running job shows a live tile; waiting jobs are shown as one row or one collapsed line; a
-  finished job closes it by itself after a delay (the delay is a setting of FP-009 IP-07, default 5 s)
+  finished job closes it by itself after a delay (the delay is a setting of FP-010 IP-07, default 5 s)
 
 **Technical Considerations**
 
@@ -343,7 +343,7 @@ Decided:
 
 Open questions:
 
-* Which flows and models are delivered is decided in FP-008 (demonstration model Krea 2)
+* Which flows and models are delivered is decided in FP-009 (demonstration model Krea 2)
 * The length of the closing delay of the tile; chosen at implementation of IP-04
 
 ## 10. Feature Completion Criteria

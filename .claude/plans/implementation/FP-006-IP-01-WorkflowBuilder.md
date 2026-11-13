@@ -2,12 +2,12 @@
 
 ## Voraussetzungen
 
-* FP-004 IP-03, FP-008 IP-02
+* FP-004 IP-03, FP-009 IP-02
 
 ## Aufgabe 1: Vorbereitung
 
 * [ ] Skills `testing` und `project-docs` laden
-* [ ] Katalogformat aus FP-008 IP-01 prüfen: Standardfelder, Parameter, Ziele `<Knoten>.<Eingabe>`
+* [ ] Katalogformat aus FP-009 IP-01 prüfen: Standardfelder, Parameter, Ziele `<Knoten>.<Eingabe>`
 
 ## Aufgabe 2: Builder
 

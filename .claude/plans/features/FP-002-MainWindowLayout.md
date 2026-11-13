@@ -385,7 +385,7 @@ Build the input part below the image.
 * Model toggle buttons above the right side of the text box (placeholders)
 * Model combobox above the toggle buttons (placeholder)
 * Placeholder model list behind an interface
-* Placeholder area for further parameters, filled by FP-008 IP-04 from the fields of the flow
+* Placeholder area for further parameters, filled by FP-009 IP-04 from the fields of the flow
 * An added image is held by the UUID of its reference; its last medium is the one used
 * NOT: sending the prompt, generation, storing the prompt, real models
 
@@ -485,7 +485,7 @@ IP-02, IP-03 and IP-06 can run in parallel after IP-01. IP-02 to IP-05 and IP-07
 * Decided: registry in code for further media types
 * Decided: icons are needed, but the user delivers the orientation and they are not part of any plan
 * Decided: the `ProjectManager` creates the initial new project
-* Persistence of divider positions between runs is not part of this feature (FP-009 IP-02)
+* Persistence of divider positions between runs is not part of this feature (FP-010 IP-02)
 * Without file system access the previews are only visible in tests; a new project is empty
 
 ## 10. Feature Completion Criteria

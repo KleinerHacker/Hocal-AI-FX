@@ -15,7 +15,7 @@
 * [ ] Links über der Textbox den Button `+`, mit Text statt Icon, Icons sind nicht Teil eines Plans
 * [ ] Rechts über der Textbox die ComboBox für das Modell, darunter die Toggle-Buttons (Platzhalter)
 * [ ] Modellliste als Platzhalter hinter einer Schnittstelle
-* [ ] Platzhalter für den Parameterbereich, den FP-008 IP-04 aus den Feldern des Flows füllt
+* [ ] Platzhalter für den Parameterbereich, den FP-009 IP-04 aus den Feldern des Flows füllt
 * [ ] Absenden, Generierung und Speichern des Prompts sind nicht Teil dieses Plans
 
 ## Aufgabe 3: Galerie-Dialog

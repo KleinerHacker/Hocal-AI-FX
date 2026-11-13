@@ -111,7 +111,7 @@ libraries and code that read, write and edit it:
 * Appending a medium rewrites and re-encrypts the whole file on the next save
 * A lost password cannot be recovered by design; only the header of an encrypted file is plain
 * Use in `app/ui` (creating, opening, saving, password prompt) is not part of this feature; a user setting for the
-  maximum size of a medium is planned in FP-009
+  maximum size of a medium is planned in FP-010
 
 ## 5. Completion Criteria
 
