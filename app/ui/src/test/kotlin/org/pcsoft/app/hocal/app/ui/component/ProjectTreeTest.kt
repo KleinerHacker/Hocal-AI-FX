@@ -50,7 +50,7 @@ class ProjectTreeTest : ApplicationTest() {
 
     private fun bind(root: VirtualFolder): VirtualFolderProperty {
         val property = VirtualFolderProperty.of(root)
-        interact { tree.bindTree(property) }
+        interact { tree.folderProperty().bind(property) }
         return property
     }
 

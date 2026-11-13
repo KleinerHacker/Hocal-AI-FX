@@ -13,9 +13,9 @@
 package org.pcsoft.app.hocal.app.ui.component
 
 import de.saxsys.mvvmfx.FluentViewLoader
+import javafx.beans.property.ObjectProperty
 import javafx.beans.property.ReadOnlyObjectProperty
 import javafx.scene.control.TreeView
-import org.pcsoft.app.hocal.fx.model.project.VirtualFolderProperty
 import org.pcsoft.app.hocal.model.project.VirtualFolder
 
 /**
@@ -23,8 +23,9 @@ import org.pcsoft.app.hocal.model.project.VirtualFolder
  *
  * Only folders are shown, never entries. The root folder is the topmost node; behind every folder name
  * stands, in gray, the number of its direct children (entries and subfolders). The component holds no
- * data of its own: it follows the property model handed in through [bindTree] and is rebuilt whenever
- * that model reports a change. The user's choice is reported by [selectedFolderProperty].
+ * data of its own: its [folderProperty] is bound to the tree property of the project model, and the tree
+ * is rebuilt whenever that property reports a change. The user's choice is reported by
+ * [selectedFolderProperty].
  *
  * The content is defined in `ProjectTreeView.fxml`, which is loaded with this node as its root.
  */
@@ -38,14 +39,15 @@ class ProjectTree : TreeView<VirtualFolder>() {
     }
 
     /**
-     * Binds the tree to the root folder of a project.
+     * The root folder of the tree, the single interface of the component.
      *
-     * A formerly bound property is released. The component shows an empty tree as long as nothing is
-     * bound or the property holds no folder.
+     * Bind it to the tree property of the open project, for instance
+     * `projectTree.folderProperty().bind(ProjectManager.project.treeProperty)`. The tree is empty as long
+     * as the property holds no folder. Binding another source releases the former one.
      *
-     * @param tree the property of the root folder, for instance the tree property of the open project
+     * @return the property of the root folder
      */
-    fun bindTree(tree: VirtualFolderProperty) = viewModel.bindTree(tree)
+    fun folderProperty(): ObjectProperty<VirtualFolder?> = viewModel.folder
 
     /**
      * The folder the user selected, or `null` while none is selected.

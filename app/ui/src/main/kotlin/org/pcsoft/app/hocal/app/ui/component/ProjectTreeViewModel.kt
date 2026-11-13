@@ -15,10 +15,11 @@ package org.pcsoft.app.hocal.app.ui.component
 import de.saxsys.mvvmfx.ViewModel
 import javafx.application.Platform
 import javafx.beans.InvalidationListener
+import javafx.beans.property.ObjectProperty
 import javafx.beans.property.ReadOnlyObjectProperty
 import javafx.beans.property.ReadOnlyObjectWrapper
+import javafx.beans.property.SimpleObjectProperty
 import javafx.scene.control.TreeItem
-import org.pcsoft.app.hocal.fx.model.project.VirtualFolderProperty
 import org.pcsoft.app.hocal.model.project.VirtualFolder
 import java.util.Collections
 import java.util.IdentityHashMap
@@ -26,22 +27,31 @@ import java.util.IdentityHashMap
 /**
  * View model of the project tree.
  *
- * It builds the tree items from the folders of the bound property model and nothing else; it keeps no
- * copy of the data. The folders compare by value, so selection and expansion are tracked by object
- * identity throughout - two sibling folders of equal content stay two different folders.
+ * It builds the tree items from the folder of [folder] and nothing else; it keeps no copy of the data.
+ * The folders compare by value, so selection and expansion are tracked by object identity throughout -
+ * two sibling folders of equal content stay two different folders.
  *
- * The property model is global, therefore the view model observes it only between [onShow] and
- * [onHide], and the view calls the two according to the screen state of the component.
+ * [folder] is bound from outside to the tree property of the project model, which reports every change
+ * inside the tree as an invalidation. The project model is global, therefore the view model reacts to
+ * [folder] only between [onShow] and [onHide], and the view calls the two according to the screen state
+ * of the component.
  */
 class ProjectTreeViewModel : ViewModel {
     private val selectedFolderWrapper = ReadOnlyObjectWrapper<VirtualFolder?>(this, "selectedFolder")
     private val rootItemWrapper = ReadOnlyObjectWrapper<TreeItem<VirtualFolder>?>(this, "rootItem")
 
-    private var tree: VirtualFolderProperty? = null
     private var observing = false
 
     // A field: a method reference would be a new object per use and could not be removed again.
     private val modelListener = InvalidationListener { onModelInvalidated() }
+
+    /**
+     * The root folder of the tree to show, `null` for an empty tree.
+     *
+     * The property is the single interface to the data: the caller binds it to the property model of
+     * the project. A new binding replaces the former one, which is released by JavaFX.
+     */
+    val folder: ObjectProperty<VirtualFolder?> = SimpleObjectProperty(this, "folder")
 
     /** The folder the user selected, or `null` while none is selected. */
     val selectedFolder: ReadOnlyObjectProperty<VirtualFolder?> = selectedFolderWrapper.readOnlyProperty
@@ -57,20 +67,6 @@ class ProjectTreeViewModel : ViewModel {
         private set
 
     /**
-     * Binds the tree to the root folder property and builds it anew.
-     *
-     * A formerly bound property is released at once.
-     *
-     * @param tree the property of the root folder
-     */
-    fun bindTree(tree: VirtualFolderProperty) {
-        if (observing) this.tree?.removeListener(modelListener)
-        this.tree = tree
-        if (observing) tree.addListener(modelListener)
-        rebuild()
-    }
-
-    /**
      * Reports the folder the user selected.
      *
      * @param folder the selected folder, or `null` for no selection
@@ -80,33 +76,33 @@ class ProjectTreeViewModel : ViewModel {
     }
 
     /**
-     * Starts observing the project model and builds the tree from its current state.
+     * Starts observing [folder] and builds the tree from its current state.
      *
      * Called when the component comes on screen. Calling it twice registers only once.
      */
     fun onShow() {
         if (!observing) {
             observing = true
-            tree?.addListener(modelListener)
+            folder.addListener(modelListener)
         }
         rebuild()
     }
 
     /**
-     * Stops observing the project model. The tree stays as it is.
+     * Stops observing [folder]. The tree stays as it is.
      *
      * Called when the component leaves the screen. Calling it twice is harmless.
      */
     fun onHide() {
         if (observing) {
             observing = false
-            tree?.removeListener(modelListener)
+            folder.removeListener(modelListener)
         }
     }
 
     private fun onModelInvalidated() {
         // Reading again is a must: a property reports the next change only after its value was read.
-        tree?.get()
+        folder.get()
         if (Platform.isFxApplicationThread()) {
             if (observing) rebuild()
         } else {
@@ -119,10 +115,10 @@ class ProjectTreeViewModel : ViewModel {
         val expanded: MutableSet<VirtualFolder> = Collections.newSetFromMap(IdentityHashMap())
         oldRoot?.let { collectExpanded(it, expanded) }
 
-        val folder = tree?.get()
-        val newRoot = folder?.let { buildItem(it, expanded) }
+        val rootFolder = folder.get()
+        val newRoot = rootFolder?.let { buildItem(it, expanded) }
         // The root starts expanded; the same root folder keeps the state it had.
-        newRoot?.isExpanded = if (oldRoot != null && oldRoot.value === folder) oldRoot.isExpanded else true
+        newRoot?.isExpanded = if (oldRoot != null && oldRoot.value === rootFolder) oldRoot.isExpanded else true
 
         val selected = selectedFolderWrapper.get()
         val selectedItem = if (selected != null && newRoot != null) findItem(newRoot, selected) else null

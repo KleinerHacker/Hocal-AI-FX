@@ -55,7 +55,7 @@ class ProjectTreeViewModelTest {
     private fun bind(root: VirtualFolder, show: Boolean = true): VirtualFolderProperty {
         val property = VirtualFolderProperty.of(root)
         fx {
-            viewModel.bindTree(property)
+            viewModel.folder.bind(property)
             if (show) viewModel.onShow()
         }
         return property
@@ -95,7 +95,7 @@ class ProjectTreeViewModelTest {
         val videos = folder("Videos")
         val root = folder("Project", entry("Readme.txt"), photos, videos)
 
-        bind(root, show = false)
+        bind(root)
 
         val rootItem = viewModel.rootItem.get()!!
         assertSame(root, rootItem.value)

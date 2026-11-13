@@ -22,10 +22,10 @@ Description: Basic architecture for a Java FX component (NOT a window); required
 ## Model Binding
 
 * A component editing project data MUST be bound to the FX property model of `lib/fx-model`
-  * `ProjectTree` shows the folders of the project: it is handed the `VirtualFolderProperty` of the
-    root folder through `bindTree` and observes it while it is on screen
+  * `ProjectTree` shows the folders of the project: its `folderProperty()` is bound to the tree
+    property of the project model by the caller, and it observes that property while it is on screen
   * The component MUST NOT copy the data and MUST NOT own a state of its own
-  * The property model is handed in from outside as the single interface of the component
+  * The property model is bound from outside to a property of the component, its single interface
 * The binding MUST be released when the bound model object is exchanged, and built up anew for the
   new object
 * Both directions MUST be proven by tests on the real controls, as described in the `testing` skill
