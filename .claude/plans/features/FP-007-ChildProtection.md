@@ -92,6 +92,9 @@ Rules (given by the product owner; every rule is "M AND S"):
   example the prompt asks for nudity or sexuality and an input image shows a person under 18, or
   the prompt describes a person under 18 and an input image shows nudity or sexuality -> block;
   the signals of all prompt texts and all input images are united for this check
+* R3 also holds between two input images: one input image shows a person under 18 and another
+  input image shows nudity or sexuality -> block; this stops the transfer of a nude adult body to a
+  minor (body swap), with or without a prompt that asks for it
 * R4, check 4, generated image: the generated image shows a person under 18 together with nudity
   or sexuality -> block; the generated image is judged by itself
 
@@ -107,9 +110,10 @@ Block level and safety tolerance:
   `LIKELY`)
 * images: a person whose apparent age is below 20 is M `LIKELY`; a person whose age cannot be
   judged as safely 20 or older is M `POSSIBLE`
-* texts: a stated age below 18 and words for children and adolescents are M `LIKELY`; a stated age
-  of 18 or older is an adult; vague youth descriptions without an age ("very young looking") are
-  M `POSSIBLE` (see open questions for stated ages of 18 and 19)
+* texts: a stated age below 20 and words for children and adolescents are M `LIKELY`; only a stated
+  age of 20 or older is an adult; vague youth descriptions without an age ("very young looking") are
+  M `POSSIBLE`
+* the safety age applies in the same way to stated ages (text) and to estimated ages (image)
 * the protected age 18 and the safety age 20 are constants of the policy; the prompts of
   `guard.properties` take them as placeholders; thresholds are covered by tests and are not user
   settings
@@ -119,7 +123,7 @@ Check 1, input prompt:
 * all text values that the model receives are checked: the prompt, the negative prompt, every text
   parameter of the flow (FP-009 fields) and every text input written into the built workflow; the
   texts are checked each alone and joined together (several prompts together can form the violation)
-* "intentionally" means explicit statements: age below 18, words for children and adolescents,
+* "intentionally" means explicit statements: age below 20, words for children and adolescents,
   school age, "looks like a child", and indirect forms (age numbers, relations such as "daughter",
   fantasy ages); an adult marker ("adult", "35 years old") lowers M only when it is consistent in
   the whole text
@@ -144,6 +148,8 @@ Check 3, input prompt and input images together:
 
 * uses the signals of check 1 and check 2, no further analysis; the M and S levels of all prompt
   texts and all input images are united and judged with the block level
+* M of one input and S of another input block, whichever inputs they are: prompt and image, image
+  and prompt, image and image
 * it is skipped when the run has no input image
 
 Check 4, generated image:
@@ -563,7 +569,10 @@ Decided:
 * the four checks and the rules R1 to R4 of the product owner; every rule is "under 18 AND nudity or
   sexuality"
 * nudity and sexuality of adults are explicitly allowed
-* safety tolerance: a person counts as an adult for the checks only from 20 years on
+* safety tolerance: a person counts as an adult for the checks only from 20 years on, for ages
+  stated in the prompt and for ages estimated from images alike
+* check 3 unites all inputs, also image against image, so a nude adult body cannot be combined with
+  a minor from another input image (body swap)
 * the generated image is judged by itself (check 4), not together with the inputs
 * no off switch, no override, fail closed
 * the engine is local, offline and separate from ComfyUI
@@ -576,10 +585,6 @@ Decided:
 
 Open questions:
 
-* Does the safety age 20 also apply to an age stated in the prompt (18 or 19 years), or only to
-  estimated ages? Planned: a stated age of 18 or older is an adult
-* Check 3 unites all inputs; this also blocks M of one input image with S of another input image.
-  Is that wanted, or only prompt against image?
 * Which engine approach and which models (decision gate in IP-03); the approval of new dependencies
   for the JVM and for Python
 * Are previews checked (sampled interruption) or only suppressed until the end?
