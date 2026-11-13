@@ -590,6 +590,8 @@ class ProjectFileListViewModelTest {
         fx { viewModel.invalidate("r1") }
 
         awaitColors(preview, RED, BLUE)
+        // A second, late load would show up only after the colors are right, so let everything settle first.
+        settle()
         assertEquals(4, source.openRequested.get())
     }
 
@@ -736,6 +738,69 @@ class ProjectFileListViewModelTest {
         gate.countDown()
 
         awaitColors(preview, GREEN, GREEN)
+    }
+
+    /**
+     * Use case: the number of media changed and the reference is invalidated as well, so two reasons ask for
+     * a reload. The reload happens exactly once per invalidation, whatever changed the number: the cache is
+     * emptied by the invalidation, so the changed number is not noticed a second time. Counted by the media
+     * that are opened: original and current are two openings, a single medium is one.
+     */
+    @Test
+    fun anInvalidationLoadsExactlyOnceWhateverChangedTheCount() {
+        source.add("r1", png(RED), png(GREEN), png(BLUE))
+        source.add("r2", png(RED), png(GREEN))
+        source.add("r3", png(RED), png(GREEN))
+        val entries = listOf(refEntry("A.png", "r1"), refEntry("B.png", "r2"), refEntry("C.png", "r3"))
+        show(folder("Project", *entries.toTypedArray()))
+        val previews = entries.map { e -> fx { viewModel.preview(e) } }
+        awaitColors(previews[0], RED, BLUE)
+        awaitColors(previews[1], RED, GREEN)
+        awaitColors(previews[2], RED, GREEN)
+        settle()
+        assertEquals(6, source.openRequested.get())
+
+        // The number of media shrinks from three to two.
+        source.add("r1", png(RED), png(BLUE))
+        fx { viewModel.invalidate("r1") }
+        awaitColors(previews[0], RED, BLUE)
+        settle()
+        assertEquals(8, source.openRequested.get())
+
+        // The number stays two, the content of the last medium changes.
+        source.add("r2", png(RED), png(YELLOW))
+        fx { viewModel.invalidate("r2") }
+        awaitColors(previews[1], RED, YELLOW)
+        settle()
+        assertEquals(10, source.openRequested.get())
+
+        // The number shrinks from two to one: one medium is opened once.
+        source.add("r3", png(BLUE))
+        fx { viewModel.invalidate("r3") }
+        awaitColors(previews[2], BLUE, BLUE)
+        settle()
+        assertEquals(11, source.openRequested.get())
+    }
+
+    /**
+     * Use case: nothing changed, but the reference is invalidated. The invalidation alone is a reason to
+     * load: the entry is loaded once, not skipped and not twice.
+     */
+    @Test
+    fun anInvalidationWithoutAChangeLoadsOnce() {
+        source.add("r1", png(RED), png(GREEN))
+        val e = refEntry("A.png", "r1")
+        show(folder("Project", e))
+        val preview = fx { viewModel.preview(e) }
+        awaitColors(preview, RED, GREEN)
+        settle()
+        assertEquals(2, source.openRequested.get())
+
+        fx { viewModel.invalidate("r1") }
+        awaitColors(preview, RED, GREEN)
+        settle()
+
+        assertEquals(4, source.openRequested.get())
     }
 }
 
