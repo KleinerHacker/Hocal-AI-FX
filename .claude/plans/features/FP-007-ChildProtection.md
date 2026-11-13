@@ -36,7 +36,10 @@ variable. If it cannot decide, it blocks (fail closed).
 
 ## 3. Target State
 
-* A library `lib/guard` (`hocal-guard`), free of Java FX, with the facade `ContentGuard`
+* A library `lib/children-safety` (`hocal-children-safety`), free of Java FX, with the facade
+  `ContentGuard`
+* An internal properties file in the resources of the library names the models used for the checks
+  and the prompts given to them, so neither is scattered through the code
 * Every generation is checked at three points:
     * before upload and submit: all prompt texts and all input images (pre-check)
     * while the run lasts: sampled preview frames (optional protection against a long running
@@ -149,8 +152,16 @@ Behaviour:
 * Candidate engine models and their Python packages are selected and licence-checked in IP-03; any
   new dependency (JVM or Python) is approved by the user before it is added
 * Model files are downloaded with the verified download of FP-005 IP-02 (checksum, resume); the
-  manifest with the pinned checksums is a resource of `lib/guard`; the models are not part of the
-  user catalog of FP-009 and not deletable on the `Models` page
+  models are not part of the user catalog of FP-009 and not deletable on the `Models` page
+* Internal properties file `children-safety.properties` in the resources of `lib/children-safety`:
+    * per check (text, image) the model used: source, file, pinned revision and checksum
+    * the prompts given to the models, one key per prompt (text check, image check, preview check)
+    * the code reads models and prompts only from this file; no model name and no prompt text is a
+      literal in the code; a test checks that every key the code needs is present and not empty
+    * the file is internal: its package is not exported or opened to another module, it is not a
+      user setting, it is not read from outside the library and it cannot be overridden at runtime
+    * a change of a model or a prompt is a change of this file alone, followed by the evaluation of
+      IP-07
 * The rule layer for text has no dependency and works without the engine; the engine adds the semantic
   and the image analysis
 * Decisions are deterministic for the same input and the same engine version
@@ -166,7 +177,7 @@ Behaviour:
 
 ## 5. Architecture
 
-* `lib/guard` (`hocal-guard`), package `org.pcsoft.app.hocal.guard`:
+* `lib/children-safety` (`hocal-children-safety`), package `org.pcsoft.app.hocal.children.safety`:
     * `api` - facade `ContentGuard`: `checkRequest(RequestSnapshot)` and `checkResult(ImageBytes,
       RequestVerdict)` return a `Verdict` (`ALLOWED`, `BLOCKED` with rule id, `UNDECIDABLE` with
       reason); `RequestSnapshot` holds the typed prompt texts (positive, negative, other) and the
@@ -175,12 +186,14 @@ Behaviour:
       pure functions, no I/O
     * `text` - normalization, lexicons per language, age expression parser, negative prompt handling,
       joined evaluation; the rule layer of the text analysis
+    * `config` - `SafetyConfig`, the typed reader of `children-safety.properties` (models, prompts);
+      loaded once, validated at load, a missing or empty key is an error that leads to `UNDECIDABLE`
     * `engine` - interface `ClassifierEngine` (text classification, image classification), the
       process based implementation, protocol, lifecycle (start on demand, health check, restart,
       timeout), model provisioning
     * `image` - per image analysis, hash cache, preview sampling
     * `audit` - content free event log
-* `lib/comfy` depends on the `lib/guard` API; `GenerationService` calls it:
+* `lib/comfy` depends on the `lib/children-safety` API; `GenerationService` calls it:
     1. build the workflow (FP-006 IP-01), collect the `RequestSnapshot` from the texts really written
        into the workflow and from all input images
     2. `checkRequest`; on `BLOCKED` or `UNDECIDABLE` the job ends, nothing is uploaded
@@ -208,7 +221,7 @@ Behaviour:
 
 | ID    | Implementation Plan             | Objective                                                                 | Dependencies         |
 |-------|---------------------------------|---------------------------------------------------------------------------|----------------------|
-| IP-01 | Guard Library And Policy        | Module `lib/guard`, signals, golden rules, verdicts, facade, fail closed  | -                    |
+| IP-01 | Guard Library And Policy        | Module `lib/children-safety`, signals, golden rules, verdicts, facade, fail closed  | -                    |
 | IP-02 | Text Analysis                   | Rule layer for prompt texts, joined evaluation, intent and age detection  | IP-01                |
 | IP-03 | Classification Engine Process   | Local engine process, protocol, model provisioning, engine decision       | IP-01, FP-005 IP-02, IP-03, IP-05 |
 | IP-04 | Image Analysis                  | M and S levels per image, hash cache, preview sampling                    | IP-03                |
@@ -226,19 +239,21 @@ Create the library with the decision logic, independent of any engine.
 
 **Scope**
 
-* module `lib/guard` in `settings.gradle.kts`, build file, `module-info.java`
+* module `lib/children-safety` in `settings.gradle.kts`, build file, `module-info.java`
 * signals M and S, levels, `RequestSnapshot`, `Verdict`, rule ids
 * policy: G1 to G3, the combination rule, the block level and the thresholds
 * facade `ContentGuard` with `checkRequest`, `checkResult`, `checkPreview`; interface
   `ClassifierEngine`
 * fail closed: an engine error, timeout or missing engine gives `UNDECIDABLE`, never `ALLOWED`
+* `children-safety.properties` with its key scheme and the typed reader `SafetyConfig`; the entries
+  for models and prompts are filled in IP-03
 * content free audit log
 * test fakes of `ClassifierEngine`
 * not: lexicons, process, image analysis, UI
 
 **Affected Areas**
 
-* `settings.gradle.kts`, `lib/guard`, `.github` workflows (module list), README structure section
+* `settings.gradle.kts`, `lib/children-safety`, `.github` workflows (module list), README structure section
 
 **Dependencies**
 
@@ -275,7 +290,7 @@ Detect the intention to depict minors and nudity or sexualized depiction in prom
 
 **Affected Areas**
 
-* `lib/guard` packages `text`, resources, tests
+* `lib/children-safety` packages `text`, resources, tests
 
 **Dependencies**
 
@@ -306,16 +321,16 @@ Provide the local engine that classifies texts and images.
   hardware demands, ask the user before any new dependency (JVM or Python)
 * local process on the Python environment of FP-005 IP-03; protocol over standard input and output
   (JSON lines); health check, start on demand, restart, timeout, stop at application end
-* model provisioning with the verified download of FP-005 IP-02; manifest with checksums; models in
-  the data directory
+* model provisioning with the verified download of FP-005 IP-02; the models with revision and
+  checksum and the prompts are entries of `children-safety.properties`; models in the data directory
 * engine capabilities: text classification (M and S levels), image classification (M and S levels,
   several persons)
 * not: use in the generation path, UI
 
 **Affected Areas**
 
-* `lib/guard` package `engine`, manifest resource, Python worker script as a resource, tests with a
-  stub worker
+* `lib/children-safety` packages `engine` and `config`, `children-safety.properties`, Python worker
+  script as a resource, tests with a stub worker
 
 **Dependencies**
 
@@ -334,6 +349,9 @@ IP-01, FP-005 IP-02, IP-03, IP-05.
   records the demands
 * no third party class is decompiled; the docs of the chosen packages are the source
 * a crash or a hang of the process never leads to `ALLOWED`
+* the worker receives model and prompt from the Kotlin side, which reads them from the properties
+  file; the worker script holds neither
+* the prompts are instructions for the classification only; they contain no explicit wording
 
 ### IP-04: Image Analysis
 
@@ -354,7 +372,7 @@ Turn the engine's image classification into the signals of the policy.
 
 **Affected Areas**
 
-* `lib/guard` package `image`, tests
+* `lib/children-safety` package `image`, tests
 
 **Dependencies**
 
@@ -392,7 +410,7 @@ Put the three checkpoints into the generation path so they cannot be skipped.
 
 **Affected Areas**
 
-* `lib/comfy` packages `generation`, `workflow`; `lib/guard` API use; tests with fake engines
+* `lib/comfy` packages `generation`, `workflow`; `lib/children-safety` API use; tests with fake engines
 
 **Dependencies**
 
@@ -464,7 +482,7 @@ Make the quality of the protection measurable and document it honestly.
 
 **Affected Areas**
 
-* `lib/guard` tooling, `docs`, `README.md`, `CHANGELOG.md`, `.github`
+* `lib/children-safety` tooling, `docs`, `README.md`, `CHANGELOG.md`, `.github`
 
 **Dependencies**
 
@@ -520,6 +538,9 @@ Decided:
 * no off switch, no override, fail closed
 * the engine is local, offline and separate from ComfyUI
 * the guard models are mandatory and are not part of the user model catalog
+* the library is `lib/children-safety`; models and prompts are fixed in its internal
+  `children-safety.properties`, not in the code
+* the ComfyUI client stays in `lib/comfy` as planned in FP-004; no separate connector module
 * the user message is neutral, the rule appears only in the log
 * nudity alone counts as signal S
 
