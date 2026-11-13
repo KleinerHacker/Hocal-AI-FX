@@ -71,7 +71,7 @@ history details come from the model of FP-001.
 * A file entry is one row: its name and the preview images of its media
 * Both icons carry a tooltip that tells original and current medium apart
 * An entry with only one medium shows the same icon twice
-* OPEN: the size of the preview image in a row
+* Decided: the preview image in a row is 48 px, loaded at 96 px on a HiDPI screen
 * The selection in the file list decides what the content area shows; nothing selected shows an
   empty content area
 * The content area is a splitter with three parts and the dividers at 0.2 and 0.8: left 0.2,
@@ -182,7 +182,7 @@ SplitPane (horizontal, divider 0.3)
 |-------|------------------------------------|---------------------------------------------------------------------|--------------|
 | IP-01 | Main Window Splitter Layout (COMPLETED) | Rebuild the main window layout with the splitters and placeholders   | -            |
 | IP-02 | Directory Tree Component (COMPLETED) | Folder tree with child counts bound to the FX model, adapt the component rules | IP-01, FP-001 IP-02, FP-001 IP-07 |
-| IP-03 | File List And Media Preview        | File list with original and current icon and the preview extension point | IP-01, FP-001 IP-02 |
+| IP-03 | File List And Media Preview (COMPLETED) | File list with original and current icon and the preview extension point | IP-01, FP-001 IP-02 |
 | IP-04 | Project Binding And Window Wiring  | Follow the `ProjectManager`, connect tree, list and content area     | IP-02, IP-03, FP-001 IP-07 |
 | IP-05 | History List And Media View        | History list with last medium preselected and the selected image     | IP-04, FP-001 IP-02 |
 | IP-06 | Prompt Input Part                  | Prompt box, "+" button, model toggle buttons and combobox (placeholders) | IP-01        |
@@ -283,7 +283,7 @@ folder; the rules of the Claude rule set use it as example.
 * The `component` skill names `ProjectTree*.kt` as template; no agent referred to `FlowList`
 
 
-### IP-03: File List And Media Preview
+### IP-03: File List And Media Preview (COMPLETED)
 
 **Objective**
 
@@ -319,12 +319,27 @@ list.
 **Technical Considerations**
 
 * JavaFX `Image` reads PNG, JPEG, GIF and BMP only; this is accepted, no other decoder is added
-* Preview size and scaling (thumbnail, aspect ratio) must be fixed
+* Preview size: 48 px, aspect ratio kept (decided)
 * An entry with one medium only has `000` as original and current medium and shows its icon twice
 * A tooltip on each icon names it as original or current medium
 * Cancel loading when the folder changes or the view leaves the screen
 * The extension mechanism is a registry in code
-* OPEN: the size of the preview image in a row
+* Decided: the preview image in a row is 48 px, loaded at 96 px on a HiDPI screen
+
+**Built**
+
+* `ProjectFileList` (`ListView<VirtualEntry>`, `fx:root`) with `ProjectFileListView`, `ProjectFileListViewModel`,
+  `ProjectFileListCell` and an extra `ProjectFilePreview` that holds the two images of an entry
+* Package `ui.preview`: `MediaSource`, `MediaPreview`, `ImageMediaPreview`, `MediaPreviewRegistry`
+* Differs from the plan: a thumbnail cache was added - `ThumbnailCache` with `MemoryThumbnailCache` (LRU, 500),
+  keyed by reference, medium number and size, stale when the number of media changes, cleared with the source
+* Differs from the plan: the load threads (default 5, `loadThreads`) are to be set from the settings of FP-010 IP-04
+* New icons `media-placeholder` (light and dark, 48 and 96 px) and the dark/light variant lookup
+  `HocalIcons.image(name, size, dark)`
+* The list is not placed in the main window yet; the placeholder `pnlFiles` is replaced in IP-04, which must also
+  provide the `MediaSource` from the `ProjectManager`, call `thumbnails.invalidate(reference)` on media changes and
+  make the list notice changes inside the selected folder
+
 
 ### IP-04: Project Binding And Window Wiring
 
@@ -476,7 +491,7 @@ without details.
 ```text
 IP-01 (COMPLETED)
 ├── IP-02 (COMPLETED) ──┐
-├── IP-03 ──┴── IP-04 ── IP-05 ── IP-07
+├── IP-03 (COMPLETED) ──┴── IP-04 ── IP-05 ── IP-07
 └── IP-06
 ```
 
@@ -503,7 +518,8 @@ IP-02, IP-03 and IP-06 can run in parallel after IP-01. IP-02 to IP-05 and IP-07
   tree shows only folders, never files
 * Decided: only the image formats of standard JavaFX
 * Decided: a file is a row with preview images
-* OPEN: the size of the preview image in a row
+* Decided: thumbnails are cached in memory (`ThumbnailCache`, extensible to a cache on disk later)
+* Decided: the preview image in a row is 48 px, loaded at 96 px on a HiDPI screen
 * Decided: an entry with one medium shows the icon twice; a tooltip tells original and current
   medium apart
 * Decided: registry in code for further media types
