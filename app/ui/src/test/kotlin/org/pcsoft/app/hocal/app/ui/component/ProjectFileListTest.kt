@@ -237,7 +237,7 @@ class ProjectFileListTest : ApplicationTest() {
         val property = bind(root, withSource = false)
         clickOn(cellOf("A.png"))
 
-        change(property) { root.children = root.children + entry("B.png") }
+        change(property) { root.children.add(entry("B.png")) }
 
         assertEquals(listOf("A.png", "B.png"), names())
         assertSame(a, list.selectedFileProperty().get())
@@ -259,7 +259,7 @@ class ProjectFileListTest : ApplicationTest() {
         assertEquals(listOf("New1.png", "New2.png"), names())
         assertNull(list.selectedFileProperty().get())
 
-        change(oldProperty) { oldRoot.children = oldRoot.children + entry("Ignored.png") }
+        change(oldProperty) { oldRoot.children.add(entry("Ignored.png")) }
 
         assertEquals(listOf("New1.png", "New2.png"), names())
         assertEquals(2, oldRoot.children.size)
@@ -285,13 +285,13 @@ class ProjectFileListTest : ApplicationTest() {
         back: () -> Unit,
     ) {
         leave()
-        change(property) { root.children = root.children + entry("WhileAway.png") }
+        change(property) { root.children.add(entry("WhileAway.png")) }
         assertEquals(0, list.items.size, "a change while off screen must not be taken over")
 
         back()
         assertEquals(1, list.items.size, "returning shows the current model")
 
-        change(property) { root.children = root.children + entry("After.png") }
+        change(property) { root.children.add(entry("After.png")) }
         assertEquals(2, list.items.size, "a further change must be noticed again")
     }
 

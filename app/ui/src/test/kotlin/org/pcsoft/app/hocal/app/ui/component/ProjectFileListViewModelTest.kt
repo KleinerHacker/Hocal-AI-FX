@@ -133,7 +133,7 @@ class ProjectFileListViewModelTest {
         val property = show(root)!!
 
         fx {
-            root.children = root.children + entry("B.png")
+            root.children.add(entry("B.png"))
             property.refresh()
         }
         WaitForAsyncUtils.waitForFxEvents()
@@ -221,12 +221,12 @@ class ProjectFileListViewModelTest {
         val property = show(root)!!
         fx { viewModel.selectFile(second) }
 
-        fx { root.children = root.children + entry("Other.png"); property.refresh() }
+        fx { root.children.add(entry("Other.png")); property.refresh() }
         WaitForAsyncUtils.waitForFxEvents()
         assertSame(second, viewModel.selectedFile.get())
         assertEquals(1, viewModel.indexToSelect)
 
-        fx { root.children = listOf(first, root.children[2]); property.refresh() }
+        fx { root.children = mutableListOf(first, root.children[2]); property.refresh() }
         WaitForAsyncUtils.waitForFxEvents()
         assertNull(viewModel.selectedFile.get())
         assertEquals(-1, viewModel.indexToSelect)
@@ -311,7 +311,7 @@ class ProjectFileListViewModelTest {
         fx { viewModel.onShow() }
 
         fx { viewModel.onHide() }
-        fx { root.children = root.children + entry("B.png"); property.refresh() }
+        fx { root.children.add(entry("B.png")); property.refresh() }
         WaitForAsyncUtils.waitForFxEvents()
 
         assertEquals(1, viewModel.entries.size)
