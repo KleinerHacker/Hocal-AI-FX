@@ -102,6 +102,15 @@ class ThumbnailLoader(
         cache.invalidate(reference)
     }
 
+    /**
+     * Drops every cached thumbnail, for instance because another media source - another project - is used.
+     * A load that is still running does not store its result any more.
+     */
+    fun clear() {
+        epoch++
+        cache.clear()
+    }
+
     /** Ends the load threads; loads that wait are dropped. */
     fun close() {
         pool.shutdownNow()

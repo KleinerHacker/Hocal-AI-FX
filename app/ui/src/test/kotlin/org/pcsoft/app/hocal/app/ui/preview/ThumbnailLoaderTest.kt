@@ -98,6 +98,26 @@ class ThumbnailLoaderTest {
     }
 
     /**
+     * Use case: another media source is used, as another project was opened, which has a reference with
+     * the same UUID and the same number of media. After the cache was cleared, the thumbnail comes from
+     * the new source and not from the cache.
+     */
+    @Test
+    fun clearDropsTheThumbnailsOfTheFormerSource() {
+        source.add("r1", "png" to pngBytes(50, 50, 0xFF0000))
+        val other = FakeMediaSource().apply { add("r1", "png" to pngBytes(50, 50, 0x0000FF)) }
+        val first = result(load())
+        assertEquals(0xFF0000, first!!.pixelReader.getArgb(5, 5) and 0xFFFFFF)
+
+        loader.clear()
+        val second = result(load(other))
+
+        assertEquals(1, cache.size)
+        assertEquals(0x0000FF, second!!.pixelReader.getArgb(5, 5) and 0xFFFFFF)
+        assertEquals(1, other.openRequested.get())
+    }
+
+    /**
      * Use case: the medium is no image. The result is null and the failure is not cached, so a later
      * repair of the medium is noticed.
      */

@@ -231,6 +231,8 @@ class PromptInputViewModel : ViewModel {
     }
 
     private fun reloadAllPreviews() {
+        // Another source means another project: its thumbnails must not be taken for those of the former one.
+        thumbnails.clear()
         images.map { it.reference }.toSet().forEach { startLoading(it) }
     }
 
