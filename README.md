@@ -25,6 +25,7 @@ runs without building a ComfyUI graph.
 | Main window with File menu (Exit)                              | Implemented |
 | Flow list component with example flows                         | Implemented |
 | English and German user interface                              | Implemented |
+| Application icon in the main window                            | Implemented |
 | Portable distribution archive (ZIP) and jlink image            | Implemented |
 | Connection to a local ComfyUI process                          | Planned     |
 | Flows read from ComfyUI instead of the example list            | Planned     |
