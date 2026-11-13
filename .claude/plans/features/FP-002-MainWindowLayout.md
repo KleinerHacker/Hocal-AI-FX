@@ -186,7 +186,7 @@ SplitPane (horizontal, divider 0.3)
 | IP-03 | File List And Media Preview (COMPLETED) | File list with original and current icon and the preview extension point | IP-01, FP-001 IP-02 |
 | IP-04 | Project Binding And Window Wiring  | Follow the `ProjectManager`, connect tree, list and content area     | IP-02, IP-03, FP-001 IP-07 |
 | IP-05 | History List And Media View        | History list with last medium preselected and the selected image     | IP-04, FP-001 IP-02 |
-| IP-06 | Prompt Input Part                  | Prompt box, send and add buttons, model combobox, flow toggle button bar, gallery dialog (placeholders) | IP-01, IP-02, IP-03 |
+| IP-06 | Prompt Input Part (COMPLETED)      | Prompt box, send and add buttons, model combobox, flow toggle button bar, gallery dialog (placeholders) | IP-01, IP-02, IP-03 |
 | IP-07 | Generation Details Panel           | Applied prompt, model and flow of the selected medium                | IP-05, FP-001 IP-02 |
 
 ## 7. Implementation Plans
@@ -411,7 +411,7 @@ selecting another medium changes the image.
 * Entries of the history list also use `MediaPreview` for their icons
 * Large images need scaling to the available space and lazy loading
 
-### IP-06: Prompt Input Part
+### IP-06: Prompt Input Part (COMPLETED)
 
 **Objective**
 
@@ -451,6 +451,26 @@ generation.
 * Added images are shown (for instance as small chips) so the user sees what was added
 * Added images are not stored as generation detail in the history
 * The model combobox and the flow toggle button bar are placeholders behind a model interface
+
+**Built**
+
+* `PromptInput` (`VBox`, `fx:root`) with `PromptInputView`, `PromptInputViewModel`, `PromptImageChip` and `PromptImage`;
+  package `ui.prompt` (`ModelOption`, `FlowOption`, `ModelProvider`, `PlaceholderModelProvider`); `ThumbnailLoader` and
+  `LoadHandle` in `ui.preview`; `IconViews.kt` for icons that follow the light or dark appearance
+* Differs from the plan: the toggle button bar is the FLOW choice (`SegmentedButton` of ControlsFX, no new dependency), not
+  a model choice; the model is chosen with the combobox, and the flows follow the chosen model
+* Differs from the plan: a send button (icon) with a handler without implementation was added; FP-006 IP-03 wires it
+* Differs from the plan: icons are part of it - `add`, `remove` and `send` (light and dark, 16 and 32 px); buttons show icons
+  only, never characters
+* Differs from the plan: IP-06 depends on IP-02 and IP-03, because the gallery dialog reuses `ProjectTree` and `ProjectFileList`
+* `GalleryDialog` (`Alert`, no icon, OK and Cancel) with `HocalDialog`, view, view model and FXML is the first dialog and the
+  template of the `dialog` skill; the demo source set `demo` with `runDialogDemo` shows it (not part of `build`, the JAR or the
+  distribution)
+* `ControlsFX` documentation is linked in `external-docs.md`; the added chips load the last medium of a reference with
+  their own `ThumbnailLoader`; the file list was not switched to it
+* The input part sits below the image placeholder `pnlImage` in `pnlMedia`; its folder and media source are bound in IP-04
+* OPEN: the user still has to look at the dialog in the demo, in the light and in the dark colour scheme (`dialog` skill)
+
 
 ### IP-07: Generation Details Panel
 
@@ -495,7 +515,7 @@ without details.
 IP-01 (COMPLETED)
 ├── IP-02 (COMPLETED) ──┐
 ├── IP-03 (COMPLETED) ──┴── IP-04 ── IP-05 ── IP-07
-└── IP-06 (after IP-02 and IP-03)
+└── IP-06 (COMPLETED, after IP-02 and IP-03)
 ```
 
 IP-02 and IP-03 can run in parallel after IP-01; IP-06 needs both for its gallery dialog. IP-02 to IP-05 and IP-07
