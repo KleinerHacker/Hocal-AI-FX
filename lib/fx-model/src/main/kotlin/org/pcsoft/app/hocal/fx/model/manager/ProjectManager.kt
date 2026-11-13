@@ -11,6 +11,7 @@
  */
 package org.pcsoft.app.hocal.fx.model.manager
 
+import javafx.application.Platform
 import javafx.beans.property.ReadOnlyBooleanProperty
 import javafx.beans.property.ReadOnlyBooleanWrapper
 import javafx.beans.property.ReadOnlyObjectProperty
@@ -96,11 +97,11 @@ object ProjectManager {
     var applicationVersion: String = ""
 
     /**
-     * Tells whether the calling thread is the FX thread. `javafx.base` has no `Platform`, so the application
-     * sets this at start, for instance to `{ Platform.isFxApplicationThread() }`. Every operation fails with
-     * [IllegalStateException] if it answers `false`.
+     * Tells whether the calling thread is the FX thread; every operation fails with [IllegalStateException] if it
+     * answers `false`. It asks the FX toolkit and belongs to the manager: only the tests of this library replace
+     * it, as they run without a toolkit.
      */
-    var threadCheck: () -> Boolean = { true }
+    internal var threadCheck: () -> Boolean = { Platform.isFxApplicationThread() }
 
     /** The folder the temporary folders of the open project are created in, `null` for the system default. */
     var workRoot: Path? = null

@@ -17,10 +17,11 @@ plugins {
     id("org.openjfx.javafxplugin") version "0.1.0"
 }
 
-// Only the property and binding system is needed here; javafx.base carries it without any UI toolkit.
+// The property and binding system of javafx.base is what this module is made of. From javafx.graphics it uses
+// only javafx.application.Platform, to recognize the FX thread - nothing else of the toolkit (architecture rule).
 javafx {
     version = "25.0.1"
-    modules = listOf("javafx.base")
+    modules = listOf("javafx.base", "javafx.graphics")
 }
 
 dependencies {

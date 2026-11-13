@@ -12,7 +12,6 @@
 
 package org.pcsoft.app.hocal.app.ui.preview
 
-import javafx.application.Platform
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -30,8 +29,8 @@ import java.util.concurrent.Callable
 /**
  * Developer tests of the media source of the project.
  *
- * The project manager is set to accept the FX thread only, as the application does, and the source is asked
- * from the test thread, as the load threads of the previews do.
+ * The project manager accepts the FX thread only, and the source is asked from the test thread, as the load
+ * threads of the previews do.
  */
 class ProjectMediaSourceTest {
 
@@ -49,18 +48,12 @@ class ProjectMediaSourceTest {
 
     @BeforeEach
     fun createProject() {
-        fx {
-            ProjectManager.threadCheck = { Platform.isFxApplicationThread() }
-            ProjectManager.createNew("Test")
-        }
+        fx { ProjectManager.createNew("Test") }
     }
 
     @AfterEach
     fun closeProject() {
-        fx {
-            ProjectManager.close(discardChanges = true)
-            ProjectManager.threadCheck = { true }
-        }
+        fx { ProjectManager.close(discardChanges = true) }
     }
 
     private fun addReference(content: ByteArray, extension: String = "png"): String =

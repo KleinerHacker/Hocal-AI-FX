@@ -13,7 +13,6 @@
 package org.pcsoft.app.hocal.app.ui.window
 
 import de.saxsys.mvvmfx.MvvmFX
-import javafx.application.Platform
 import javafx.geometry.Orientation
 import javafx.scene.Node
 import javafx.scene.control.Label
@@ -59,8 +58,7 @@ class MainWindowIT : ApplicationTest() {
     override fun start(stage: Stage) {
         MvvmFX.setGlobalResourceBundle(ResourceBundle.getBundle(Messages.BUNDLE_NAME, Locale.GERMAN))
 
-        // As the application does: the manager accepts the FX thread only, and a new project exists before the window.
-        ProjectManager.threadCheck = { Platform.isFxApplicationThread() }
+        // As the application does: a new project exists before the window.
         ProjectManager.createNew("Test")
 
         window = MainWindow()
@@ -72,7 +70,6 @@ class MainWindowIT : ApplicationTest() {
         interact {
             window.hide()
             ProjectManager.close(discardChanges = true)
-            ProjectManager.threadCheck = { true }
         }
     }
 

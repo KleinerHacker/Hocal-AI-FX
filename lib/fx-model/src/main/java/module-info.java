@@ -4,6 +4,9 @@ module org.pcsoft.app.hocal.fx.model {
     // The JavaFX property system is the reason this module exists, so consumers see it transitively.
     requires transitive javafx.base;
 
+    // Only javafx.application.Platform is used, to recognize the FX thread; see the architecture rule.
+    requires javafx.graphics;
+
     // The observable wrappers expose the plain model types, so consumers need them as well.
     requires transitive org.pcsoft.app.hocal.model;
 

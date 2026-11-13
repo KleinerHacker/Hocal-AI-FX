@@ -14,8 +14,9 @@ name: Architecture
   * the plain model POJOs go into 'lib/model' (`hocal-model`), free of Java FX
   * their property models go into 'lib/fx-model' (`hocal-fx-model`), see the `fx-model` skill
 * A module under 'lib' MAY carry Java FX only in this one case; every other one stays free of it
-  * a property model library on 'javafx.base' alone - 'lib/fx-model'; no toolkit module beyond
-    `javafx.base`
+  * a property model library on `javafx.base` - 'lib/fx-model'; from `javafx.graphics` it uses ONLY the
+    package `javafx.application` (`Platform`, to recognize the FX thread); no other toolkit module and no
+    other package
 * Operations on the project (project storage, media store, media history, tree operations) live in
   `...internal` packages of 'lib/model'
   * the module descriptor exports them to `hocal-fx-model` ONLY (qualified export), so the application
