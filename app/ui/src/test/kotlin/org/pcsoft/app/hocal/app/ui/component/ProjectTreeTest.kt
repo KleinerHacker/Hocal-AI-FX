@@ -93,7 +93,9 @@ class ProjectTreeTest : ApplicationTest() {
     }
 
     private fun expectedIcons(name: String): List<Any> {
-        val dark = Platform.getPreferences().colorScheme == ColorScheme.DARK
+        // The preferences belong to the FX thread.
+        var dark = false
+        interact { dark = Platform.getPreferences().colorScheme == ColorScheme.DARK }
         return HocalIcons.FOLDER_SIZES.map { HocalIcons.image(name, it, dark) }
     }
 
