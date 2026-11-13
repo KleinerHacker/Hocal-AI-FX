@@ -273,8 +273,8 @@ class PromptInputTest : ApplicationTest() {
      */
     @Test
     fun appearanceIsObservedOnlyWhileOnScreen() {
-        val tuple = FluentViewLoader.fxmlView(PromptInputView::class.java).root(VBox()).load()
-        val root = tuple.root as VBox
+        val root = VBox()
+        val tuple = FluentViewLoader.fxmlView(PromptInputView::class.java).root(root).load()
         val viewModel = tuple.viewModel
         assertEquals(0, viewModel.appearanceRegistrations)
         interact { pane.children.add(root) }
