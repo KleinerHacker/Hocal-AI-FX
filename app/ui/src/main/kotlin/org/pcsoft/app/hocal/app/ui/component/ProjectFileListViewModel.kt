@@ -24,10 +24,14 @@ import javafx.beans.property.ReadOnlyIntegerWrapper
 import javafx.beans.property.ReadOnlyObjectProperty
 import javafx.beans.property.ReadOnlyObjectWrapper
 import javafx.beans.property.SimpleObjectProperty
+import javafx.scene.image.Image
 import javafx.stage.Screen
 import org.pcsoft.app.hocal.app.HocalIcons
 import org.pcsoft.app.hocal.app.ui.preview.MediaPreviewRegistry
 import org.pcsoft.app.hocal.app.ui.preview.MediaSource
+import org.pcsoft.app.hocal.app.ui.preview.MemoryThumbnailCache
+import org.pcsoft.app.hocal.app.ui.preview.ThumbnailCache
+import org.pcsoft.app.hocal.app.ui.preview.ThumbnailKey
 import org.pcsoft.app.hocal.model.project.VirtualEntry
 import org.pcsoft.app.hocal.model.project.VirtualFolder
 import java.util.Collections
@@ -42,7 +46,7 @@ import java.util.concurrent.atomic.AtomicInteger
  *
  * It lists the entries of [folder] (never subfolders) and loads their previews from [mediaSource] in the
  * background, lazily: loading starts when a cell asks for the [preview] of an entry. The entries compare
- * by value, so selection and the cache of the previews work by object identity throughout - two sibling
+ * by value, so selection and the load state of the previews work by object identity throughout - two sibling
  * entries of equal content stay two different entries.
  *
  * The folder, the media source and the appearance of the system are observed only between [onShow] and
@@ -62,8 +66,11 @@ class ProjectFileListViewModel : ViewModel {
     @Volatile
     private var generation = 0
 
-    // Keyed by identity: the entries are equal by value.
-    private val cache = IdentityHashMap<VirtualEntry, ProjectFilePreview>()
+    // The load state of the entries on show, keyed by identity: the entries are equal by value.
+    private val states = IdentityHashMap<VirtualEntry, ProjectFilePreview>()
+
+    // The source of the last show, to notice that another project was loaded meanwhile.
+    private var shownSource: MediaSource? = null
 
     private val poolDelegate = lazy {
         val counter = AtomicInteger()
@@ -93,6 +100,13 @@ class ProjectFileListViewModel : ViewModel {
 
     /** The registry of the preview providers; replaceable for tests. */
     var registry: MediaPreviewRegistry = MediaPreviewRegistry()
+
+    /**
+     * The cache of the loaded thumbnails. It keeps them across folder changes and across [onShow] and
+     * [onHide], and is cleared when another media source is set. Replaceable, for instance by a cache on disk.
+     */
+    @Volatile
+    var thumbnails: ThumbnailCache = MemoryThumbnailCache()
 
     /** Whether the system shows the dark appearance, so the dark placeholder icons are used. */
     val dark: ReadOnlyBooleanProperty = darkWrapper.readOnlyProperty
@@ -130,7 +144,7 @@ class ProjectFileListViewModel : ViewModel {
      * @return the previews, whose images are set when loaded
      */
     fun preview(entry: VirtualEntry): ProjectFilePreview {
-        val state = cache.getOrPut(entry) { ProjectFilePreview() }
+        val state = states.getOrPut(entry) { ProjectFilePreview() }
         if (observing && !state.started) startLoading(entry, state)
         return state
     }
@@ -148,7 +162,7 @@ class ProjectFileListViewModel : ViewModel {
             Platform.getPreferences().colorSchemeProperty().addListener(appearanceListener)
         }
         // Reading validates the properties, so that their next change is reported.
-        mediaSource.get()
+        adoptSource()
         darkWrapper.set(isDarkAppearance())
         resetLoading()
         shownFolder = folder.get()
@@ -197,8 +211,18 @@ class ProjectFileListViewModel : ViewModel {
     private fun onSourceInvalidated() {
         mediaSource.get()
         onFx {
+            adoptSource()
             resetLoading()
             rebuild()
+        }
+    }
+
+    // Another source means another project, so its thumbnails must not be taken for those of the former one.
+    private fun adoptSource() {
+        val source = mediaSource.get()
+        if (source !== shownSource) {
+            thumbnails.clear()
+            shownSource = source
         }
     }
 
@@ -213,12 +237,12 @@ class ProjectFileListViewModel : ViewModel {
     // A new generation: results of tasks that are still running are not taken over any more.
     private fun cancelAll() {
         generation++
-        cache.values.forEach { it.future?.cancel(true) }
+        states.values.forEach { it.future?.cancel(true) }
     }
 
     private fun resetLoading() {
         cancelAll()
-        cache.clear()
+        states.clear()
     }
 
     private fun rebuild() {
@@ -231,7 +255,7 @@ class ProjectFileListViewModel : ViewModel {
         val newEntries = newFolder?.children?.filterIsInstance<VirtualEntry>() ?: emptyList()
         val current: MutableSet<VirtualEntry> = Collections.newSetFromMap(IdentityHashMap())
         current.addAll(newEntries)
-        cache.entries.removeIf { (entry, state) ->
+        states.entries.removeIf { (entry, state) ->
             (entry !in current).also { if (it) state.future?.cancel(true) }
         }
 
@@ -261,7 +285,7 @@ class ProjectFileListViewModel : ViewModel {
                     val count = try { source.mediaCount(reference) } catch (_: Exception) { 0 }
                     if (count <= 0 || loadGeneration != generation) return@submit
 
-                    val original = registry.load(source, reference, 0, size)
+                    val original = loadThumbnail(registry, source, reference, 0, count, size, loadGeneration)
                     if (count == 1) {
                         // A single medium is original and current at once, so it is loaded once.
                         publish(entry, state, loadGeneration) {
@@ -272,7 +296,7 @@ class ProjectFileListViewModel : ViewModel {
                     }
                     publish(entry, state, loadGeneration) { state.setOriginal(original) }
                     if (loadGeneration != generation) return@submit
-                    val current = registry.load(source, reference, count - 1, size)
+                    val current = loadThumbnail(registry, source, reference, count - 1, count, size, loadGeneration)
                     publish(entry, state, loadGeneration) { state.setCurrent(current) }
                 } catch (_: Exception) {
                     // A broken medium never disturbs the list: the placeholder stays.
@@ -283,9 +307,28 @@ class ProjectFileListViewModel : ViewModel {
         }
     }
 
+    // Asks the cache first; a thumbnail that had to be loaded is stored, unless it is stale already or failed.
+    private fun loadThumbnail(
+        registry: MediaPreviewRegistry,
+        source: MediaSource,
+        reference: String,
+        number: Int,
+        mediaCount: Int,
+        size: Int,
+        loadGeneration: Int,
+    ): Image? {
+        val cache = thumbnails
+        val key = ThumbnailKey(reference, number, size)
+        cache.get(key, mediaCount)?.let { return it }
+
+        val image = registry.load(source, reference, number, size)
+        if (image != null && loadGeneration == generation) cache.put(key, mediaCount, image)
+        return image
+    }
+
     private fun publish(entry: VirtualEntry, state: ProjectFilePreview, loadGeneration: Int, apply: () -> Unit) {
         Platform.runLater {
-            if (observing && loadGeneration == generation && cache[entry] === state) apply()
+            if (observing && loadGeneration == generation && states[entry] === state) apply()
         }
     }
 

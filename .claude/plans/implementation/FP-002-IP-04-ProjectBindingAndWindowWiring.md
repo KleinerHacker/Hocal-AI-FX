@@ -14,6 +14,9 @@
 
 * [ ] Gewählter Ordner des Baums steuert die Dateiliste
 * [ ] Gewählte Datei der Liste wird an den Inhaltsbereich weitergereicht
+* [ ] `MediaSource` über den `ProjectManager` bereitstellen (`mediaCount`, `extension`, `openMedium`) und an die Dateiliste binden
+* [ ] Bei Medienänderung (anhängen, entfernen) `thumbnails.invalidate(reference)` der Dateiliste aufrufen, sonst bleibt bei gleicher Medienanzahl ein veraltetes Bild
+* [ ] Dateiliste muss Änderungen im gewählten Ordner bemerken; `selectedFolder` des Baums meldet keine inneren Änderungen
 * [ ] Registrierungen am `ProjectManager` beim Schließen des Fensters lösen, Skill `fx-component-lifecycle`
 
 ## Aufgabe 3: Tests und Doku

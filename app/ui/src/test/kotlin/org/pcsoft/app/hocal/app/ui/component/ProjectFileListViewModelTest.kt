@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.pcsoft.app.hocal.app.ui.preview.FakeMediaSource
+import org.pcsoft.app.hocal.app.ui.preview.brokenBytes
 import org.pcsoft.app.hocal.app.ui.preview.pngBytes
 import org.pcsoft.app.hocal.fx.model.project.VirtualFolderProperty
 import org.pcsoft.app.hocal.model.project.VirtualEntry
@@ -333,5 +334,132 @@ class ProjectFileListViewModelTest {
         settle()
 
         assertNull(preview.original.get())
+    }
+
+    // ---- thumbnail cache --------------------------------------------------------------------------------------
+
+    private fun loaded(entry: VirtualEntry) {
+        val preview = fx { viewModel.preview(entry) }
+        awaitTrue { fx { preview.current.get() != null } }
+    }
+
+    /**
+     * Use case: the user switches to another folder and back. The thumbnails of the first folder come from
+     * the cache, so no medium is opened a second time.
+     */
+    @Test
+    fun switchingTheFolderBackDoesNotLoadAgain() {
+        source.add("r1", "png" to pngBytes(60, 40))
+        source.add("r2", "png" to pngBytes(60, 40, 0x00FF00))
+        val first = refEntry("A.png", "r1")
+        val second = refEntry("B.png", "r2")
+        val rootOne = folder("One", first)
+        val rootTwo = folder("Two", second)
+        show(rootOne)
+        loaded(first)
+
+        fx { viewModel.folder.unbind(); viewModel.folder.set(rootTwo) }
+        WaitForAsyncUtils.waitForFxEvents()
+        loaded(second)
+        fx { viewModel.folder.set(rootOne) }
+        WaitForAsyncUtils.waitForFxEvents()
+        loaded(first)
+
+        assertEquals(2, source.openRequested.get())
+    }
+
+    /**
+     * Use case: two entries link the same reference. They share its thumbnails, so the medium is loaded
+     * once only.
+     */
+    @Test
+    fun entriesOfTheSameReferenceShareTheThumbnails() {
+        source.add("r1", "png" to pngBytes(60, 40))
+        val first = refEntry("A.png", "r1")
+        val second = refEntry("B.png", "r1")
+        show(folder("Project", first, second))
+
+        loaded(first)
+        loaded(second)
+
+        assertEquals(1, source.openRequested.get())
+    }
+
+    /**
+     * Use case: the component leaves the screen and comes back. The thumbnails stay in the cache, so
+     * showing the list again loads nothing.
+     */
+    @Test
+    fun hidingAndShowingKeepsTheThumbnails() {
+        source.add("r1", "png" to pngBytes(60, 40))
+        val e = refEntry("A.png", "r1")
+        show(folder("Project", e))
+        loaded(e)
+
+        fx { viewModel.onHide() }
+        fx { viewModel.onShow() }
+        loaded(e)
+
+        assertEquals(1, source.openRequested.get())
+    }
+
+    /**
+     * Use case: another media source is set, for instance because another project was opened. The
+     * thumbnails of the former source are dropped, so the new source is asked.
+     */
+    @Test
+    fun anotherSourceClearsTheThumbnails() {
+        source.add("r1", "png" to pngBytes(60, 40))
+        val e = refEntry("A.png", "r1")
+        show(folder("Project", e))
+        loaded(e)
+        val other = FakeMediaSource()
+        other.add("r1", "png" to pngBytes(60, 40, 0x0000FF))
+
+        fx { viewModel.mediaSource.set(other) }
+        WaitForAsyncUtils.waitForFxEvents()
+        loaded(e)
+
+        assertEquals(1, other.openRequested.get())
+    }
+
+    /**
+     * Use case: a medium is appended to the reference. Its number of media changed, so the stored thumbnails
+     * are stale and are loaded anew.
+     */
+    @Test
+    fun changedMediaCountLoadsAgain() {
+        source.add("r1", "png" to pngBytes(60, 40))
+        val e = refEntry("A.png", "r1")
+        show(folder("Project", e))
+        loaded(e)
+        source.add("r1", "png" to pngBytes(60, 40), "png" to pngBytes(60, 40, 0x00FF00))
+
+        fx { viewModel.onHide() }
+        fx { viewModel.onShow() }
+        loaded(e)
+
+        assertEquals(3, source.openRequested.get())
+    }
+
+    /**
+     * Use case: a medium cannot be decoded. The failure is not stored, so the next look at the list tries
+     * again, for instance after the file was repaired.
+     */
+    @Test
+    fun brokenMediumIsNotCached() {
+        source.add("r1", "png" to brokenBytes())
+        val e = refEntry("A.png", "r1")
+        show(folder("Project", e))
+        fx { viewModel.preview(e) }
+        awaitTrue { source.closed.get() == 1 }
+        settle()
+
+        fx { viewModel.onHide() }
+        fx { viewModel.onShow() }
+        fx { viewModel.preview(e) }
+        awaitTrue { source.closed.get() == 2 }
+
+        assertEquals(2, source.openRequested.get())
     }
 }
