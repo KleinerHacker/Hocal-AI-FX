@@ -56,6 +56,6 @@
     <Region fx:id="pnlParameters" id="pnlParameters" styleClass="parameters-placeholder"/>
     <HBox spacing="6.0">
         <TextArea fx:id="txtPrompt" id="txtPrompt" wrapText="true" prefRowCount="4" HBox.hgrow="ALWAYS"/>
-        <Button fx:id="btnSend" id="btnSend" styleClass="icon-button" HBox.vgrow="NEVER"/>
+        <Button fx:id="btnSend" id="btnSend" styleClass="icon-button" HBox.hgrow="NEVER"/>
     </HBox>
 </fx:root>
