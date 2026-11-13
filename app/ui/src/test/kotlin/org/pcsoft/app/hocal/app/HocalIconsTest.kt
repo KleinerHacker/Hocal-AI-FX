@@ -87,4 +87,34 @@ class HocalIconsTest {
         assertTrue(error.message!!.contains("does-not-exist@16.png"))
         assertNull(error.cause)
     }
+
+    /**
+     * Use case: every folder icon exists for the light and the dark appearance in all shipped sizes, is a
+     * square of exactly that size and has a transparent background.
+     */
+    @Test
+    fun folderIconsExistInBothAppearancesAndAllSizes() {
+        for (name in listOf(HocalIcons.FOLDER_CLOSED, HocalIcons.FOLDER_OPEN)) {
+            for (dark in listOf(false, true)) {
+                for (size in HocalIcons.FOLDER_SIZES) {
+                    val image = HocalIcons.image(name, size, dark)
+                    val label = "$name dark=$dark size=$size"
+
+                    assertFalse(image.isError, label)
+                    assertEquals(size.toDouble(), image.width, label)
+                    assertEquals(size.toDouble(), image.height, label)
+                    assertEquals(0.0, image.pixelReader.getColor(0, 0).opacity, label)
+                }
+            }
+        }
+    }
+
+    /**
+     * Use case: the dark variant is the icon with the suffix `-dark`, the light variant the one without.
+     */
+    @Test
+    fun appearanceSelectsTheVariant() {
+        assertSame(HocalIcons.image("folder-open-dark", 16), HocalIcons.image(HocalIcons.FOLDER_OPEN, 16, true))
+        assertSame(HocalIcons.image("folder-open", 16), HocalIcons.image(HocalIcons.FOLDER_OPEN, 16, false))
+    }
 }

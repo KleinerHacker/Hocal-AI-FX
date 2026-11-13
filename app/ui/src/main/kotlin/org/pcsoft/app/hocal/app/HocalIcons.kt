@@ -29,8 +29,19 @@ object HocalIcons {
     /** Name of the application icon. */
     const val APP: String = "app"
 
+    /** Name of the icon of a closed (collapsed) folder; shipped in light and dark mode, in [FOLDER_SIZES]. */
+    const val FOLDER_CLOSED: String = "folder-closed"
+
+    /** Name of the icon of an open (expanded) folder; shipped in light and dark mode, in [FOLDER_SIZES]. */
+    const val FOLDER_OPEN: String = "folder-open"
+
     /** Edge lengths in pixels in which the application icon is shipped. */
     val APP_SIZES: List<Int> = listOf(16, 24, 32, 48, 64, 128, 256)
+
+    /** Edge lengths in pixels in which the folder icons are shipped: the display size and the HiDPI size. */
+    val FOLDER_SIZES: List<Int> = listOf(16, 32)
+
+    private const val DARK_SUFFIX = "-dark"
 
     private val cache = ConcurrentHashMap<String, Image>()
 
@@ -56,6 +67,19 @@ object HocalIcons {
             ?: throw IllegalArgumentException("Icon not found: $ICON_FOLDER$file")
         stream.use { Image(it) }
     }
+
+    /**
+     * Loads an icon for the light or the dark appearance; every icon is read only once.
+     *
+     * The dark variant is stored as `<name>-dark@<size>.png`.
+     *
+     * @param name purpose of the icon in lower kebab-case, e.g. `folder-open`
+     * @param size edge length of the square image in pixels
+     * @param dark `true` for the variant for dark backgrounds, `false` for the one for light backgrounds
+     * @return the icon image
+     * @throws IllegalArgumentException if no icon file exists for the name, variant and size
+     */
+    fun image(name: String, size: Int, dark: Boolean): Image = image(if (dark) name + DARK_SUFFIX else name, size)
 
     /**
      * The application icon in all shipped sizes, so the window system picks the best fit.

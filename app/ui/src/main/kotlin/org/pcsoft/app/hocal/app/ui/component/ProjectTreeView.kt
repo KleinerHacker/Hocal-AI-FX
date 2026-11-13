@@ -55,8 +55,10 @@ class ProjectTreeView : FxmlView<ProjectTreeViewModel>, Initializable {
      */
     override fun initialize(location: URL?, resources: ResourceBundle?) {
         val rootText = Messages["component.projectTree.root"]
-        pnlRoot.setCellFactory { ProjectTreeCell(rootText) }
+        pnlRoot.setCellFactory { ProjectTreeCell(rootText) { viewModel.dark.get() } }
 
+        // The icons follow the appearance of the system, so the rows are drawn again when it changes.
+        viewModel.dark.addListener { _, _, _ -> pnlRoot.refresh() }
         viewModel.rootItem.addListener { _, _, item -> applyRoot(item) }
         applyRoot(viewModel.rootItem.get())
 

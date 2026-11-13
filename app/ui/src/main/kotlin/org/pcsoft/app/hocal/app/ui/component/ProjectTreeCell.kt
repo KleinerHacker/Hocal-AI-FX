@@ -12,28 +12,47 @@
 
 package org.pcsoft.app.hocal.app.ui.component
 
+import javafx.beans.value.ChangeListener
 import javafx.scene.control.Label
 import javafx.scene.control.TreeCell
+import javafx.scene.image.ImageView
 import javafx.scene.layout.HBox
+import javafx.stage.Screen
+import org.pcsoft.app.hocal.app.HocalIcons
 import org.pcsoft.app.hocal.model.project.VirtualFolder
 
 /**
- * Cell of the project tree: the folder name followed by the number of its direct children.
+ * Cell of the project tree: the folder icon, the folder name and the number of its direct children.
  *
- * The name and the number are two labels of their own; the number carries the style class
- * `child-count`, which the stylesheet paints gray. A root folder without a name is shown with the
- * given replacement text.
+ * The icon shows a closed folder while the node is collapsed and an open one while it is expanded, in
+ * the variant for the light or the dark appearance. The name and the number are two labels of their own;
+ * the number carries the style class `child-count`, which the stylesheet paints gray. A root folder
+ * without a name is shown with the given replacement text.
  *
  * @param rootText text shown for a root folder with an empty name
+ * @param dark tells whether the dark appearance is active, asked every time the cell is updated
  */
-class ProjectTreeCell(private val rootText: String) : TreeCell<VirtualFolder>() {
+class ProjectTreeCell(private val rootText: String, private val dark: () -> Boolean) : TreeCell<VirtualFolder>() {
+    private val icon = ImageView().apply {
+        fitWidth = ICON_SIZE
+        fitHeight = ICON_SIZE
+        isPreserveRatio = true
+        isSmooth = true
+    }
     private val lblName = Label().apply { styleClass.add("folder-name") }
     private val lblCount = Label().apply { styleClass.add("child-count") }
-    private val content = HBox(4.0, lblName, lblCount)
+    private val content = HBox(4.0, icon, lblName, lblCount)
+
+    // Belongs to the tree item of the cell, so it lives and dies with the tree.
+    private val expandedListener = ChangeListener<Boolean> { _, _, _ -> refreshContent() }
 
     init {
         // The item may stay equal (by value) while the tree item is exchanged, so the item alone is not a trigger.
-        treeItemProperty().addListener { _, _, _ -> refreshContent() }
+        treeItemProperty().addListener { _, old, new ->
+            old?.expandedProperty()?.removeListener(expandedListener)
+            new?.expandedProperty()?.addListener(expandedListener)
+            refreshContent()
+        }
     }
 
     /**
@@ -56,8 +75,17 @@ class ProjectTreeCell(private val rootText: String) : TreeCell<VirtualFolder>() 
         }
 
         val isRoot = treeItem.parent == null
+        val name = if (treeItem.isExpanded) HocalIcons.FOLDER_OPEN else HocalIcons.FOLDER_CLOSED
+        icon.image = HocalIcons.image(name, iconFileSize(), dark())
         lblName.text = if (isRoot && folder.name.isEmpty()) rootText else folder.name
         lblCount.text = "(${folder.children.size})"
         graphic = content
+    }
+
+    // The larger file keeps the icon sharp on a HiDPI screen, where it is scaled down to the display size.
+    private fun iconFileSize(): Int = if (Screen.getPrimary().outputScaleX > 1.0) HocalIcons.FOLDER_SIZES.last() else HocalIcons.FOLDER_SIZES.first()
+
+    private companion object {
+        const val ICON_SIZE = 16.0
     }
 }

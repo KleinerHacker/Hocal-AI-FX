@@ -12,9 +12,12 @@
 
 package org.pcsoft.app.hocal.app.ui.component
 
+import javafx.application.Platform
+import javafx.application.ColorScheme
 import javafx.scene.Scene
 import javafx.scene.control.Label
 import javafx.scene.control.TreeCell
+import javafx.scene.image.ImageView
 import javafx.scene.layout.HBox
 import javafx.scene.layout.StackPane
 import javafx.scene.paint.Color
@@ -25,6 +28,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.pcsoft.app.hocal.app.HocalIcons
 import org.pcsoft.app.hocal.app.Messages
 import org.pcsoft.app.hocal.fx.model.project.VirtualFolderProperty
 import org.pcsoft.app.hocal.model.project.VirtualFolder
@@ -66,9 +70,11 @@ class ProjectTreeTest : ApplicationTest() {
         return tree.lookupAll(".tree-cell").filterIsInstance<TreeCell<*>>().filter { !it.isEmpty }.sortedBy { it.layoutY }
     }
 
-    private fun nameLabel(cell: TreeCell<*>): Label = (cell.graphic as HBox).children[0] as Label
+    private fun iconOf(cell: TreeCell<*>): ImageView = (cell.graphic as HBox).children[0] as ImageView
 
-    private fun countLabel(cell: TreeCell<*>): Label = (cell.graphic as HBox).children[1] as Label
+    private fun nameLabel(cell: TreeCell<*>): Label = (cell.graphic as HBox).children[1] as Label
+
+    private fun countLabel(cell: TreeCell<*>): Label = (cell.graphic as HBox).children[2] as Label
 
     private fun rows(): List<String> = cells().map { "${nameLabel(it).text} ${countLabel(it).text}" }
 
@@ -84,6 +90,41 @@ class ProjectTreeTest : ApplicationTest() {
         bind(folder("Project", entry("Readme.txt"), folder("Photos", entry("A.png"), entry("B.png"), folder("Raw")), folder("Videos")))
 
         assertEquals(listOf("Project (3)", "Photos (3)", "Videos (0)"), rows())
+    }
+
+    private fun expectedIcons(name: String): List<Any> {
+        val dark = Platform.getPreferences().colorScheme == ColorScheme.DARK
+        return HocalIcons.FOLDER_SIZES.map { HocalIcons.image(name, it, dark) }
+    }
+
+    /**
+     * Use case: a collapsed folder shows the closed folder icon, an expanded folder the open one, and the
+     * icon changes when the user expands or collapses a node.
+     */
+    @Test
+    fun iconFollowsTheExpandedStateOfTheNode() {
+        bind(folder("Project", folder("Photos", folder("Raw"))))
+
+        assertTrue(iconOf(cellOf("Project")).image in expectedIcons(HocalIcons.FOLDER_OPEN))
+        assertTrue(iconOf(cellOf("Photos")).image in expectedIcons(HocalIcons.FOLDER_CLOSED))
+
+        interact { cellOf("Photos").treeItem.isExpanded = true }
+        assertTrue(iconOf(cellOf("Photos")).image in expectedIcons(HocalIcons.FOLDER_OPEN))
+
+        interact { cellOf("Photos").treeItem.isExpanded = false }
+        assertTrue(iconOf(cellOf("Photos")).image in expectedIcons(HocalIcons.FOLDER_CLOSED))
+    }
+
+    /**
+     * Use case: the icon is shown in the display size of 16 pixels, whatever file size was picked.
+     */
+    @Test
+    fun iconIsShownInTheDisplaySize() {
+        bind(folder("Project"))
+
+        val icon = iconOf(cellOf("Project"))
+        assertEquals(16.0, icon.fitWidth)
+        assertEquals(16.0, icon.fitHeight)
     }
 
     /**
