@@ -50,7 +50,8 @@
                     <items>
                         <StackPane id="pnlDetails" styleClass="placeholder" SplitPane.resizableWithParent="false"/>
                         <!-- Media with prompt input: the image above (IP-05), the input part below -->
-                        <BorderPane id="pnlMedia">
+                        <!-- minWidth 0: the input part must not keep the splitter from shrinking this part first -->
+                        <BorderPane id="pnlMedia" minWidth="0.0">
                             <center>
                                 <StackPane id="pnlImage" styleClass="placeholder"/>
                             </center>

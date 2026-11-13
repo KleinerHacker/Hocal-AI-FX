@@ -20,7 +20,7 @@
            fx:controller="org.pcsoft.app.hocal.app.ui.dialog.GalleryDialogView"
            fx:id="splRoot" orientation="HORIZONTAL" prefWidth="720.0" prefHeight="420.0">
     <items>
-        <ProjectTree fx:id="trvProject" SplitPane.resizableWithParent="false"/>
-        <ProjectFileList fx:id="lstFiles"/>
+        <ProjectTree fx:id="trvProject" id="trvProject" SplitPane.resizableWithParent="false"/>
+        <ProjectFileList fx:id="lstFiles" id="lstFiles"/>
     </items>
 </SplitPane>
