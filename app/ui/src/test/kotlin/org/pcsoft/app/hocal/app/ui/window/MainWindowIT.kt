@@ -152,6 +152,8 @@ class MainWindowIT : ApplicationTest() {
         (mediaView.lookup("#imgMedia") as ImageView).image?.pixelReader?.getArgb(5, 5)?.and(0xFFFFFF)
 
     private fun selectFirstFile() {
+        // The list is filled after the folder was selected; selecting an index of an empty list does nothing.
+        awaitTrue { fx { fileList.items.isNotEmpty() } }
         interact { fileList.selectionModel.select(0) }
     }
 

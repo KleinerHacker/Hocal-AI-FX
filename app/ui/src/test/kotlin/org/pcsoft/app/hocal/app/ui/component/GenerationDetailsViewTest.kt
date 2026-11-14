@@ -161,7 +161,7 @@ class GenerationDetailsViewTest : ApplicationTest() {
     @Test
     fun mediumIsObservedOnlyWhileOnScreen() {
         val source = FakeMediaSource().apply {
-            repeat(8) { addDetails("ref-a", it, MediumDetails("prompt $it", null, null)) }
+            repeat(12) { addDetails("ref-a", it, MediumDetails("prompt $it", null, null)) }
         }
         val root = VBox()
         val tuple = FluentViewLoader.fxmlView(GenerationDetailsView::class.java).root(root).load()
