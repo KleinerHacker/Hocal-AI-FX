@@ -20,7 +20,7 @@ import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Loads the thumbnail of the current (last) medium of a reference in the background.
+ * Loads the thumbnail of a medium of a reference in the background; [loadCurrent] takes the current (last) one.
  *
  * The loading runs on a pool of daemon threads named `hocal-chip-N`. The [cache] is asked first and
  * receives every successful result, never a failure. The result is delivered on the FX thread, and only
@@ -63,12 +63,35 @@ class ThumbnailLoader(
      *   failed; never called after a cancel
      * @return the handle to cancel the load
      */
-    fun loadCurrent(source: MediaSource, reference: String, size: Int, onLoaded: (Image?) -> Unit): LoadHandle {
+    fun loadCurrent(source: MediaSource, reference: String, size: Int, onLoaded: (Image?) -> Unit): LoadHandle =
+        submit(source, reference, size, { count -> count - 1 }, onLoaded)
+
+    /**
+     * Loads a medium of a reference, given by its number.
+     *
+     * @param source the source of the media
+     * @param reference UUID of the reference
+     * @param number position of the medium in the history, `0` is the original
+     * @param size edge length of the thumbnail in pixels
+     * @param onLoaded called on the FX thread with the thumbnail, or `null` if there is none - the number does
+     *   not exist, for instance - or loading failed; never called after a cancel
+     * @return the handle to cancel the load
+     */
+    fun load(source: MediaSource, reference: String, number: Int, size: Int, onLoaded: (Image?) -> Unit): LoadHandle =
+        submit(source, reference, size, { number }, onLoaded)
+
+    private fun submit(
+        source: MediaSource,
+        reference: String,
+        size: Int,
+        numberOf: (Int) -> Int,
+        onLoaded: (Image?) -> Unit,
+    ): LoadHandle {
         val handle = Handle()
         val deliver = { image: Image? -> Platform.runLater { if (!handle.cancelled) onLoaded(image) } }
         try {
             pool.submit {
-                if (!handle.cancelled) deliver(load(source, reference, size))
+                if (!handle.cancelled) deliver(loadImage(source, reference, size, numberOf))
             }
         } catch (_: RejectedExecutionException) {
             deliver(null)
@@ -76,15 +99,16 @@ class ThumbnailLoader(
         return handle
     }
 
-    private fun load(source: MediaSource, reference: String, size: Int): Image? =
+    private fun loadImage(source: MediaSource, reference: String, size: Int, numberOf: (Int) -> Int): Image? =
         try {
             val startEpoch = epoch
             val count = source.mediaCount(reference)
-            if (count <= 0) {
+            val number = numberOf(count)
+            if (count <= 0 || number !in 0 until count) {
                 null
             } else {
-                val key = ThumbnailKey(reference, count - 1, size)
-                cache.get(key, count) ?: registry.load(source, reference, count - 1, size)?.also {
+                val key = ThumbnailKey(reference, number, size)
+                cache.get(key, count) ?: registry.load(source, reference, number, size)?.also {
                     if (startEpoch == epoch) cache.put(key, count, it)
                 }
             }

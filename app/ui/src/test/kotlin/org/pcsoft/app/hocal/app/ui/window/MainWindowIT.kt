@@ -32,6 +32,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.pcsoft.app.hocal.app.HocalIcons
 import org.pcsoft.app.hocal.app.Messages
+import org.pcsoft.app.hocal.app.ui.component.HistoryList
+import org.pcsoft.app.hocal.app.ui.component.MediaView
 import org.pcsoft.app.hocal.app.ui.component.ProjectFileList
 import org.pcsoft.app.hocal.app.ui.component.ProjectTree
 import org.pcsoft.app.hocal.app.ui.component.PromptInput
@@ -118,6 +120,39 @@ class MainWindowIT : ApplicationTest() {
     private fun selectFolder(folder: VirtualFolder) {
         val item = tree.root.children.first { it.value === folder }
         interact { tree.selectionModel.select(item) }
+    }
+
+    private val history: HistoryList
+        get() = window.scene.root.lookup("#pnlHistory") as HistoryList
+
+    private val mediaView: MediaView
+        get() = window.scene.root.lookup("#pnlImage") as MediaView
+
+    private fun addFileWithMedia(parent: VirtualFolder, name: String, vararg colors: Int): String {
+        val reference = fx {
+            ProjectManager.addReference(Medium(), "png", ByteArrayInputStream(pngBytes(60, 40, colors.first())))
+        }
+        colors.drop(1).forEach { appendMedium(reference, it) }
+        fx { ProjectManager.createEntry(parent, name, reference) }
+        return reference
+    }
+
+    private fun appendMedium(reference: String, rgb: Int) {
+        fx { ProjectManager.appendMedium(reference, Medium(), "png", ByteArrayInputStream(pngBytes(60, 40, rgb))) }
+    }
+
+    private fun historyNumbers(): List<String> {
+        WaitForAsyncUtils.waitForFxEvents()
+        return history.lookupAll(".list-cell").filterIsInstance<ListCell<*>>().filter { !it.isEmpty }
+            .sortedBy { it.layoutY }.map { (it.lookup(".history-number") as Label).text }
+    }
+
+    // The color of the image the view shows, null while it shows none.
+    private fun shownColor(): Int? =
+        (mediaView.lookup("#imgMedia") as ImageView).image?.pixelReader?.getArgb(5, 5)?.and(0xFFFFFF)
+
+    private fun selectFirstFile() {
+        interact { fileList.selectionModel.select(0) }
     }
 
     private fun awaitTrue(condition: () -> Boolean) {
@@ -326,6 +361,68 @@ class MainWindowIT : ApplicationTest() {
 
         assertEquals(listOf("A.png", "B.png"), fileNames())
         assertTrue("Photos (2)" in treeRows())
+    }
+
+    /**
+     * Use case: the project is new and nothing is selected. The history list is empty and the image view
+     * shows no image.
+     */
+    @Test
+    fun noSelectionShowsAnEmptyHistoryAndNoImage() {
+        assertTrue(historyNumbers().isEmpty())
+        assertEquals(null, shownColor())
+    }
+
+    /**
+     * Use case: the user selects a file with three media. The history list shows all of them in order, the
+     * last one is selected, and the image view shows it.
+     */
+    @Test
+    fun selectingAFileShowsItsHistoryWithTheLastMediumSelected() {
+        val photos = addFolder(rootFolder, "Photos")
+        addFileWithMedia(photos, "A.png", 0xFF0000, 0x00FF00, 0x0000FF)
+        selectFolder(photos)
+
+        selectFirstFile()
+
+        assertEquals(listOf("000", "001", "002"), historyNumbers())
+        awaitTrue { history.selectionModel.selectedIndex == 2 }
+        awaitTrue { shownColor() == 0x0000FF }
+    }
+
+    /**
+     * Use case: the user selects another medium in the history list. The image view shows that medium.
+     */
+    @Test
+    fun selectingAnotherMediumChangesTheImage() {
+        val photos = addFolder(rootFolder, "Photos")
+        addFileWithMedia(photos, "A.png", 0xFF0000, 0x00FF00, 0x0000FF)
+        selectFolder(photos)
+        selectFirstFile()
+        awaitTrue { shownColor() == 0x0000FF }
+
+        interact { history.selectionModel.select(0) }
+
+        awaitTrue { shownColor() == 0xFF0000 }
+    }
+
+    /**
+     * Use case: a medium is appended to the file that is shown, for instance by a generation. The history
+     * list gets the new entry, selects it, and the image view shows the new medium.
+     */
+    @Test
+    fun appendedMediumIsSelectedAndShown() {
+        val photos = addFolder(rootFolder, "Photos")
+        val reference = addFileWithMedia(photos, "A.png", 0xFF0000, 0x00FF00)
+        selectFolder(photos)
+        selectFirstFile()
+        awaitTrue { shownColor() == 0x00FF00 }
+
+        appendMedium(reference, 0x0000FF)
+
+        awaitTrue { historyNumbers() == listOf("000", "001", "002") }
+        awaitTrue { history.selectionModel.selectedIndex == 2 }
+        awaitTrue { shownColor() == 0x0000FF }
     }
 
     /**

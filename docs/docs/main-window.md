@@ -27,8 +27,7 @@ and the history list keep their width; the media with the prompt input takes the
 | Media with prompt input           | content area, centre             | 60 % of the content area     |
 | History list                      | content area, right              | 20 % of the content area     |
 
-The generation details, the image and the history list are still empty placeholders; their contents
-follow in later versions.
+The generation details are still an empty placeholder; their content follows in a later version.
 
 ## Project
 
@@ -41,6 +40,15 @@ The application starts with a new, empty project. The window shows it:
   and the name of the file. A file with one medium only shows its image twice. Previews are loaded in
   the background; until an image is there, and for a file that is no image, a placeholder is shown
 * the list follows the project: a file that is added to the selected folder appears at once
+
+## History and image
+
+When you select a file, the list on the right shows all media of its history in the order they were
+created: `000` is the original, the highest number the current medium. Every entry has a small preview
+image. The last medium is selected automatically, also when a new medium is added to the file later; you
+can select any other medium. The image in the middle shows the selected medium, scaled to the available
+space. A medium that cannot be shown - it is no image, or damaged - shows a placeholder, and nothing is
+shown while no file is selected.
 
 ## Prompt input
 

@@ -10,23 +10,24 @@
  * See the License for the specific language governing permissions and limitations.
  */
 
-package org.pcsoft.app.hocal.app.ui.window
+package org.pcsoft.app.hocal.app.ui
 
 import javafx.beans.property.SimpleObjectProperty
-import org.pcsoft.app.hocal.model.project.VirtualFolder
 
 /**
- * A folder property that can report a change although it still holds the same folder.
+ * An object property that can report a change although it still holds the same object.
  *
- * The folders are plain objects that report nothing when their children change. Whoever knows that the folder
- * was changed calls [refresh], and everything bound to this property reads the folder again.
+ * The objects of the project - folders, entries - are plain objects that report nothing when their content
+ * changes. Whoever knows that the object was changed calls [refresh], and everything bound to this property
+ * reads the object again.
  *
+ * @param T the type of the object
  * @param bean the object that owns the property
  * @param name the name of the property
  */
-class RefreshableFolderProperty(bean: Any?, name: String) : SimpleObjectProperty<VirtualFolder?>(bean, name) {
+class RefreshableObjectProperty<T : Any>(bean: Any?, name: String) : SimpleObjectProperty<T?>(bean, name) {
 
-    /** Reports a change of the folder to everything that observes this property. */
+    /** Reports a change of the object to everything that observes this property. */
     fun refresh() {
         fireValueChangedEvent()
     }

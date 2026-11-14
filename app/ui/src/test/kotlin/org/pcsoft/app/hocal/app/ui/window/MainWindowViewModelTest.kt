@@ -24,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.pcsoft.app.hocal.app.ui.MediaChanges
 import org.pcsoft.app.hocal.fx.model.manager.ProjectManager
+import org.pcsoft.app.hocal.model.project.VirtualEntry
 import org.testfx.api.FxToolkit
 import org.testfx.util.WaitForAsyncUtils
 import java.util.concurrent.Callable
@@ -180,5 +181,52 @@ class MainWindowViewModelTest {
         WaitForAsyncUtils.waitForFxEvents()
 
         assertEquals(listOf("r1"), received)
+    }
+
+    /**
+     * Use case: the user selects a file and then no file. The file of the history follows the selection, by
+     * identity.
+     */
+    @Test
+    fun historyFileFollowsTheSelectedFile() {
+        val file = VirtualEntry().apply { name = "A.png"; reference = "r1" }
+
+        fx { viewModel.selectedFile.set(file) }
+        assertSame(file, viewModel.historyFile.get())
+
+        fx { viewModel.selectedFile.set(null) }
+        assertNull(viewModel.historyFile.get())
+    }
+
+    /**
+     * Use case: the project changes - for instance a medium is appended - while the window is shown. The
+     * file of the history is reported again although it is the same entry, so the history list counts the
+     * media again.
+     */
+    @Test
+    fun projectChangeIsReportedByTheHistoryFile() {
+        val file = VirtualEntry().apply { name = "A.png"; reference = "r1" }
+        fx { viewModel.selectedFile.set(file) }
+        fx { viewModel.onShow() }
+        val count = AtomicInteger()
+        viewModel.historyFile.addListener(InvalidationListener {
+            viewModel.historyFile.get()
+            count.incrementAndGet()
+        })
+
+        fx { ProjectManager.createFolder(root, "Photos") }
+        WaitForAsyncUtils.waitForFxEvents()
+
+        assertTrue(count.get() >= 1, "reports: ${count.get()}")
+        assertSame(file, viewModel.historyFile.get())
+    }
+
+    /**
+     * Use case: nothing is selected in the history list. The medium the image view shows is empty, and a
+     * medium that the list reports is taken over.
+     */
+    @Test
+    fun selectedMediumIsEmptyUntilTheListReportsOne() {
+        assertNull(viewModel.selectedMedium.get())
     }
 }

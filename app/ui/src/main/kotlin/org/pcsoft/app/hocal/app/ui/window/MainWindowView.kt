@@ -22,6 +22,8 @@ import javafx.fxml.Initializable
 import javafx.geometry.Orientation
 import javafx.scene.control.SplitPane
 import javafx.scene.layout.BorderPane
+import org.pcsoft.app.hocal.app.ui.component.HistoryList
+import org.pcsoft.app.hocal.app.ui.component.MediaView
 import org.pcsoft.app.hocal.app.ui.component.ProjectFileList
 import org.pcsoft.app.hocal.app.ui.component.ProjectTree
 import org.pcsoft.app.hocal.app.ui.component.PromptInput
@@ -39,10 +41,11 @@ import java.util.ResourceBundle
  * * [splContent] divides the content area into the generation details (20 %), the media with the
  *   prompt input (60 %) and the history list (20 %)
  *
- * The folder tree, the file list and the prompt input are bound to the project the view model follows: the tree
- * shows its folders, the file list the files of the selected folder, and the prompt input offers its folders in
- * the gallery. The other parts are placeholders until their components are built. Texts come from the global
- * resource bundle via the `%key` syntax of the FXML file.
+ * The folder tree, the file list, the history list, the image view and the prompt input are bound to the project
+ * the view model follows: the tree shows its folders, the file list the files of the selected folder, the history
+ * list the media of the selected file, the image view the selected medium, and the prompt input offers the folders
+ * in the gallery. The generation details are a placeholder until their component is built. Texts come from the
+ * global resource bundle via the `%key` syntax of the FXML file.
  */
 class MainWindowView : FxmlView<MainWindowViewModel>, Initializable {
     @FXML
@@ -59,6 +62,10 @@ class MainWindowView : FxmlView<MainWindowViewModel>, Initializable {
     private lateinit var lstFiles: ProjectFileList
     @FXML
     private lateinit var promptInput: PromptInput
+    @FXML
+    private lateinit var lstHistory: HistoryList
+    @FXML
+    private lateinit var mediaView: MediaView
 
     @InjectViewModel
     private lateinit var viewModel: MainWindowViewModel
@@ -91,9 +98,18 @@ class MainWindowView : FxmlView<MainWindowViewModel>, Initializable {
         promptInput.folderProperty().bind(viewModel.tree)
         promptInput.mediaSourceProperty().set(viewModel.mediaSource)
 
+        lstHistory.fileProperty().bind(viewModel.historyFile)
+        lstHistory.mediaSourceProperty().set(viewModel.mediaSource)
+        viewModel.selectedMedium.bind(lstHistory.selectedMediumProperty())
+
+        mediaView.mediumProperty().bind(viewModel.selectedMedium)
+        mediaView.mediaSourceProperty().set(viewModel.mediaSource)
+
         viewModel.onMediaChanged = { reference ->
             lstFiles.invalidate(reference)
             promptInput.invalidate(reference)
+            lstHistory.invalidate(reference)
+            mediaView.invalidate(reference)
         }
 
         showing = pnlRoot.showingBinding()

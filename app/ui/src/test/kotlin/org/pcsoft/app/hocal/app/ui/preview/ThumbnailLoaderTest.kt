@@ -82,6 +82,44 @@ class ThumbnailLoaderTest {
     }
 
     /**
+     * Use case: a medium of the history is loaded by its number, not the last one. The original and a later
+     * medium are two thumbnails of their own, each opened once and then answered from the cache.
+     */
+    @Test
+    fun loadsAMediumByItsNumber() {
+        source.add("r1", "png" to pngBytes(50, 50, 0xFF0000), "png" to pngBytes(50, 50, 0x00FF00))
+        fun byNumber(number: Int): Image? {
+            val future = CompletableFuture<Image?>()
+            loader.load(source, "r1", number, 32) { future.complete(it) }
+            return result(future)
+        }
+
+        val original = byNumber(0)
+        val current = byNumber(1)
+        byNumber(0)
+        byNumber(1)
+
+        assertEquals(0xFF0000, original!!.pixelReader.getArgb(5, 5) and 0xFFFFFF)
+        assertEquals(0x00FF00, current!!.pixelReader.getArgb(5, 5) and 0xFFFFFF)
+        assertEquals(2, source.openRequested.get())
+    }
+
+    /**
+     * Use case: a number that the history does not have - the medium was deleted meanwhile - is asked for.
+     * The answer is null, and the source is not asked for a medium that does not exist.
+     */
+    @Test
+    fun numberOutsideTheHistoryResultsInNull() {
+        source.add("r1", "png" to pngBytes(50, 50))
+        val future = CompletableFuture<Image?>()
+
+        loader.load(source, "r1", 3, 32) { future.complete(it) }
+
+        assertNull(result(future))
+        assertEquals(0, source.openRequested.get())
+    }
+
+    /**
      * Use case: the same chip is loaded twice, for instance after the list was rebuilt. The second load
      * is answered from the cache and does not open the medium again.
      */

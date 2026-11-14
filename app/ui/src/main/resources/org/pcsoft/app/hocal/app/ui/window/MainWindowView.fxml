@@ -19,6 +19,8 @@
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.StackPane?>
+<?import org.pcsoft.app.hocal.app.ui.component.HistoryList?>
+<?import org.pcsoft.app.hocal.app.ui.component.MediaView?>
 <?import org.pcsoft.app.hocal.app.ui.component.ProjectFileList?>
 <?import org.pcsoft.app.hocal.app.ui.component.ProjectTree?>
 <?import org.pcsoft.app.hocal.app.ui.component.PromptInput?>
@@ -55,13 +57,13 @@
                         <!-- minWidth 0: the input part must not keep the splitter from shrinking this part first -->
                         <BorderPane id="pnlMedia" minWidth="0.0">
                             <center>
-                                <StackPane id="pnlImage" styleClass="placeholder"/>
+                                <MediaView fx:id="mediaView" id="pnlImage"/>
                             </center>
                             <bottom>
                                 <PromptInput fx:id="promptInput" id="pnlPromptInput"/>
                             </bottom>
                         </BorderPane>
-                        <StackPane id="pnlHistory" styleClass="placeholder" SplitPane.resizableWithParent="false"/>
+                        <HistoryList fx:id="lstHistory" id="pnlHistory" SplitPane.resizableWithParent="false"/>
                     </items>
                 </SplitPane>
             </items>

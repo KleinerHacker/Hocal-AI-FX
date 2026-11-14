@@ -19,6 +19,8 @@ import javafx.beans.property.ObjectProperty
 import javafx.beans.property.ReadOnlyObjectProperty
 import javafx.beans.property.SimpleObjectProperty
 import org.pcsoft.app.hocal.app.ui.MediaChanges
+import org.pcsoft.app.hocal.app.ui.RefreshableObjectProperty
+import org.pcsoft.app.hocal.app.ui.component.HistoryMedium
 import org.pcsoft.app.hocal.app.ui.preview.MediaSource
 import org.pcsoft.app.hocal.app.ui.preview.ProjectMediaSource
 import org.pcsoft.app.hocal.fx.model.manager.ProjectManager
@@ -35,7 +37,9 @@ import org.pcsoft.app.hocal.model.project.VirtualFolder
  * * [selectedFolder], the folder the user selected in the tree, and [listFolder], the folder the file list shows.
  *   The folders are plain objects that report nothing when they change, so [listFolder] additionally reports
  *   every change of the project, and the list reads its folder again
- * * [selectedFile], the file the user selected in the list
+ * * [selectedFile], the file the user selected in the list, and [historyFile], the file whose media history the history
+ *   list shows, reported again on every change of the project; [selectedMedium], the medium the user selected in the
+ *   history list and the image view shows
  * * [mediaSource], through which the previews are loaded from the project
  *
  * The project and the media changes are global, so the view model observes them only between [onShow] and
@@ -55,10 +59,16 @@ class MainWindowViewModel : ViewModel {
     val selectedFolder: ObjectProperty<VirtualFolder?> = SimpleObjectProperty(this, "selectedFolder")
 
     /** The folder the file list shows: the selected folder, reported again whenever the project changes. */
-    val listFolder: RefreshableFolderProperty = RefreshableFolderProperty(this, "listFolder")
+    val listFolder: RefreshableObjectProperty<VirtualFolder> = RefreshableObjectProperty(this, "listFolder")
 
     /** The file the user selected in the list, `null` while none is selected. */
     val selectedFile: ObjectProperty<VirtualEntry?> = SimpleObjectProperty(this, "selectedFile")
+
+    /** The file whose media history is shown: the selected file, reported again whenever the project changes. */
+    val historyFile: RefreshableObjectProperty<VirtualEntry> = RefreshableObjectProperty(this, "historyFile")
+
+    /** The medium the user selected in the history list, `null` while none is selected. */
+    val selectedMedium: ObjectProperty<HistoryMedium?> = SimpleObjectProperty(this, "selectedMedium")
 
     /** The source the previews are loaded from: the media of the project. */
     val mediaSource: MediaSource = ProjectMediaSource()
@@ -71,6 +81,7 @@ class MainWindowViewModel : ViewModel {
 
     init {
         selectedFolder.addListener { _, _, folder -> listFolder.set(folder) }
+        selectedFile.addListener { _, _, file -> historyFile.set(file) }
     }
 
     /**
@@ -87,6 +98,7 @@ class MainWindowViewModel : ViewModel {
         // Reading validates the property, so that its next change is reported.
         ProjectManager.project.get()
         listFolder.refresh()
+        historyFile.refresh()
     }
 
     /**
@@ -106,7 +118,10 @@ class MainWindowViewModel : ViewModel {
     private fun onProjectInvalidated() {
         // Reading again is a must: a property reports the next change only after its value was read.
         ProjectManager.project.get()
-        onFx { listFolder.refresh() }
+        onFx {
+            listFolder.refresh()
+            historyFile.refresh()
+        }
     }
 
     private fun onFx(action: () -> Unit) {
