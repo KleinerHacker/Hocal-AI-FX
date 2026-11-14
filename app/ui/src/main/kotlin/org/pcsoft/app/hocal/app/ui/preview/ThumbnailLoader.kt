@@ -22,18 +22,22 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * Loads the thumbnail of a medium of a reference in the background; [loadCurrent] takes the current (last) one.
  *
- * The loading runs on a pool of daemon threads named `hocal-chip-N`. The [cache] is asked first and
- * receives every successful result, never a failure. The result is delivered on the FX thread, and only
- * if the load was not cancelled meanwhile. Every failure, also of the source, is reported as `null`.
+ * The [cache] is asked first and receives every successful result, never a failure. The result is delivered on
+ * the FX thread, and only if the load was not cancelled meanwhile. Every failure, also of the source, is reported
+ * as `null`.
+ *
+ * Without arguments the loader uses what the whole application shares, see [ThumbnailService]: its registry, its
+ * cache - which is emptied when the project changes - and its pool of load threads. Only a loader that is given
+ * a number of threads has a pool of its own, which [close] ends; the shared pool is never ended by a loader.
  *
  * @param registry the registry of the preview providers
  * @param cache the cache of the loaded thumbnails
- * @param threads the number of load threads, at least 1
+ * @param threads the number of load threads of a pool of its own, at least 1; `null` for the shared pool
  */
 class ThumbnailLoader(
-    private val registry: MediaPreviewRegistry = MediaPreviewRegistry(),
-    private val cache: ThumbnailCache = MemoryThumbnailCache(),
-    threads: Int = 2,
+    private val registry: MediaPreviewRegistry = ThumbnailService.registry,
+    private val cache: ThumbnailCache = ThumbnailService.cache,
+    threads: Int? = null,
 ) {
     private class Handle : LoadHandle {
         @Volatile
@@ -45,9 +49,12 @@ class ThumbnailLoader(
     }
 
     private val counter = AtomicInteger()
-    private val pool: ExecutorService = Executors.newFixedThreadPool(threads) { task ->
-        Thread(task, "hocal-chip-${counter.incrementAndGet()}").apply { isDaemon = true }
+    private val ownPool: ExecutorService? = threads?.let { count ->
+        Executors.newFixedThreadPool(count) { task ->
+            Thread(task, "hocal-chip-${counter.incrementAndGet()}").apply { isDaemon = true }
+        }
     }
+    private val pool: ExecutorService get() = ownPool ?: ThumbnailService.executor
 
     // Counts the invalidations, so that a load that was running meanwhile does not store a stale image.
     @Volatile
@@ -101,7 +108,7 @@ class ThumbnailLoader(
 
     private fun loadImage(source: MediaSource, reference: String, size: Int, numberOf: (Int) -> Int): Image? =
         try {
-            val startEpoch = epoch
+            val startStamp = stamp()
             val count = source.mediaCount(reference)
             val number = numberOf(count)
             if (count <= 0 || number !in 0 until count) {
@@ -109,7 +116,7 @@ class ThumbnailLoader(
             } else {
                 val key = ThumbnailKey(reference, number, size)
                 cache.get(key, count) ?: registry.load(source, reference, number, size)?.also {
-                    if (startEpoch == epoch) cache.put(key, count, it)
+                    if (startStamp == stamp()) cache.put(key, count, it)
                 }
             }
         } catch (_: Exception) {
@@ -135,8 +142,11 @@ class ThumbnailLoader(
         cache.clear()
     }
 
-    /** Ends the load threads; loads that wait are dropped. */
+    // The invalidations of this loader and of the service, so that no load stores an image that went stale meanwhile.
+    private fun stamp(): Pair<Int, Int> = epoch to ThumbnailService.epoch
+
+    /** Ends the load threads of a pool of its own; loads that wait are dropped. The shared pool is not ended. */
     fun close() {
-        pool.shutdownNow()
+        ownPool?.shutdownNow()
     }
 }

@@ -29,9 +29,9 @@ import javafx.stage.Screen
 import org.pcsoft.app.hocal.app.HocalIcons
 import org.pcsoft.app.hocal.app.ui.preview.MediaPreviewRegistry
 import org.pcsoft.app.hocal.app.ui.preview.MediaSource
-import org.pcsoft.app.hocal.app.ui.preview.MemoryThumbnailCache
 import org.pcsoft.app.hocal.app.ui.preview.ThumbnailCache
 import org.pcsoft.app.hocal.app.ui.preview.ThumbnailKey
+import org.pcsoft.app.hocal.app.ui.preview.ThumbnailService
 import org.pcsoft.app.hocal.model.project.VirtualEntry
 import org.pcsoft.app.hocal.model.project.VirtualFolder
 import java.util.Collections
@@ -112,14 +112,14 @@ class ProjectFileListViewModel : ViewModel {
         }
 
     /** The registry of the preview providers; replaceable for tests. */
-    var registry: MediaPreviewRegistry = MediaPreviewRegistry()
+    var registry: MediaPreviewRegistry = ThumbnailService.registry
 
     /**
      * The cache of the loaded thumbnails. It keeps them across folder changes and across [onShow] and
      * [onHide], and is cleared when another media source is set. Replaceable, for instance by a cache on disk.
      */
     @Volatile
-    var thumbnails: ThumbnailCache = MemoryThumbnailCache()
+    var thumbnails: ThumbnailCache = ThumbnailService.cache
 
     /** Whether the system shows the dark appearance, so the dark placeholder icons are used. */
     val dark: ReadOnlyBooleanProperty = darkWrapper.readOnlyProperty
@@ -322,8 +322,10 @@ class ProjectFileListViewModel : ViewModel {
         val reference = entry.reference
         val registry = registry
         val loadId = state.loadId
-        // False as soon as a newer loading of the entry started, the folder changed or the list left the screen.
-        val isCurrent = { loadGeneration == generation && state.loadId == loadId }
+        val serviceEpoch = ThumbnailService.epoch
+        // False as soon as a newer loading of the entry started, the folder changed, the list left the screen or the
+        // shared cache was emptied.
+        val isCurrent = { loadGeneration == generation && state.loadId == loadId && serviceEpoch == ThumbnailService.epoch }
 
         try {
             state.future = executor.submit {

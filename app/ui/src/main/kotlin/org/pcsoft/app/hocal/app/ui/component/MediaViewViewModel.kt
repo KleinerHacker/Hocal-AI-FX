@@ -25,7 +25,6 @@ import javafx.scene.image.Image
 import org.pcsoft.app.hocal.app.ui.AppearanceObserver
 import org.pcsoft.app.hocal.app.ui.preview.LoadHandle
 import org.pcsoft.app.hocal.app.ui.preview.MediaSource
-import org.pcsoft.app.hocal.app.ui.preview.MemoryThumbnailCache
 import org.pcsoft.app.hocal.app.ui.preview.ThumbnailLoader
 
 /**
@@ -40,7 +39,7 @@ import org.pcsoft.app.hocal.app.ui.preview.ThumbnailLoader
 class MediaViewViewModel : ViewModel {
     private val imageWrapper = ReadOnlyObjectWrapper<Image?>(this, "image", null)
     private val placeholderWrapper = ReadOnlyBooleanWrapper(this, "showsPlaceholder", false)
-    private val loader = ThumbnailLoader(cache = MemoryThumbnailCache(8), threads = 1)
+    private val loader = ThumbnailLoader()
 
     private var observing = false
     private var handle: LoadHandle? = null
