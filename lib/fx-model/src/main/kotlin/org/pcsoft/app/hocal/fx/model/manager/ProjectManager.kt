@@ -68,7 +68,7 @@ import java.util.UUID
  * again on [close]. A password given to [open] or [saveAs] is kept in memory so [save] does not ask
  * again, and is overwritten on [close]. The password is changed only by [saveAs].
  *
- * The thumbnails of the open project are kept in a file in the same temporary folder, see [thumbnailCache]. It is
+ * The thumbnails of the open project are kept in a file `thumbnails-<n>.zip` in the same temporary folder, see [thumbnailCache]. It is
  * encrypted with the password of the project if there is one, renewed empty when [saveAs] changes the password, and
  * removed with the folder on [close].
  *
@@ -438,10 +438,11 @@ object ProjectManager {
     }
 
     // The old store is closed after the new one is in place, so a thumbnail that is looked up meanwhile finds a store.
+    // Every store has a file of its own: closing the old one deletes its file, which must not be the one of the new.
     private fun renewThumbnailStore() {
         val directory = sessionDirectory
         val fresh = try {
-            directory?.let { ZipThumbnailStore(it.resolve(THUMBNAIL_FILE), password) }
+            directory?.let { ZipThumbnailStore(it.resolve("$THUMBNAIL_PREFIX-${++thumbnailCounter}.zip"), password) }
         } catch (_: IOException) {
             null
         }
@@ -477,7 +478,9 @@ object ProjectManager {
         }
     }
 
-    private const val THUMBNAIL_FILE = "thumbnails.zip"
+    private const val THUMBNAIL_PREFIX = "thumbnails"
+
+    private var thumbnailCounter = 0
 
     private fun newSessionDirectory(): Path {
         val root = workRoot

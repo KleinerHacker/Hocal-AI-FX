@@ -433,8 +433,10 @@ class ProjectManagerTest {
 
     private fun marker() = ThumbnailPixels(8, 8, ByteArray(8 * 8 * 4) { 0x5A })
 
-    private fun thumbnailFile(): Path? =
-        Files.walk(work).use { stream -> stream.filter { it.fileName.toString() == "thumbnails.zip" }.findFirst().orElse(null) }
+    private fun thumbnailFiles(): List<Path> =
+        Files.walk(work).use { stream -> stream.filter { it.fileName.toString().startsWith("thumbnails-") }.toList() }
+
+    private fun thumbnailFile(): Path? = thumbnailFiles().singleOrNull()
 
     /** Without a loaded project the thumbnail store has nothing and stores nothing. */
     @Test
@@ -517,6 +519,7 @@ class ProjectManagerTest {
         manager.thumbnailCache.put(key, 1, marker())
 
         assertEquals(marker(), manager.thumbnailCache.get(key, 1))
+        assertEquals(1, thumbnailFiles().size)
         assertFalse(String(Files.readAllBytes(thumbnailFile()!!), Charsets.ISO_8859_1).contains(pattern))
     }
 }
