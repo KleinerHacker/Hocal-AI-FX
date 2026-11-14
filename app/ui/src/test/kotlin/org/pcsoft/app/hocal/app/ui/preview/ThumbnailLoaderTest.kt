@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -153,6 +154,78 @@ class ThumbnailLoaderTest {
         assertEquals(1, cache.size)
         assertEquals(0x0000FF, second!!.pixelReader.getArgb(5, 5) and 0xFFFFFF)
         assertEquals(1, other.openRequested.get())
+    }
+
+    /**
+     * Use case: a loader is made without arguments, as the components do. It stores what it loads in the cache
+     * that the whole application shares, so another component finds it there.
+     */
+    @Test
+    fun loaderWithoutArgumentsUsesTheSharedCache() {
+        source.add("r1", "png" to pngBytes(50, 50, 0xFF0000))
+        val shared = ThumbnailLoader()
+        val future = CompletableFuture<Image?>()
+
+        shared.load(source, "r1", 0, 32) { future.complete(it) }
+
+        val image = result(future)
+        assertNotNull(image)
+        assertSame(image, ThumbnailService.cache.get(ThumbnailKey("r1", 0, 32), 1))
+    }
+
+    /**
+     * Use case: a component that used the shared loader goes away and closes it. The pool that all components
+     * share stays in use, so the other components keep loading.
+     */
+    @Test
+    fun closingALoaderWithoutOwnPoolKeepsTheSharedPool() {
+        source.add("r1", "png" to pngBytes(50, 50))
+        val shared = ThumbnailLoader()
+
+        shared.close()
+
+        assertFalse(ThumbnailService.executor.isShutdown)
+        val future = CompletableFuture<Image?>()
+        ThumbnailLoader().load(source, "r1", 0, 32) { future.complete(it) }
+        assertNotNull(result(future))
+    }
+
+    /**
+     * Use case: a loader is given a number of threads, so it has a pool of its own. Closing it ends that pool:
+     * a load that is asked for afterwards delivers nothing, and the shared pool is not touched.
+     */
+    @Test
+    fun closingALoaderWithOwnPoolEndsItsPool() {
+        source.add("r1", "png" to pngBytes(50, 50))
+        val own = ThumbnailLoader(cache = MemoryThumbnailCache(), threads = 1)
+
+        own.close()
+        val future = CompletableFuture<Image?>()
+        own.load(source, "r1", 0, 32) { future.complete(it) }
+
+        assertNull(result(future))
+        assertFalse(ThumbnailService.executor.isShutdown)
+    }
+
+    /**
+     * Use case: the project is closed - the shared cache is cleared - while a load is still running. The load
+     * ends and delivers its image, but does not store it: no image of the former project stays in the cache.
+     */
+    @Test
+    fun clearDuringALoadKeepsTheResultOutOfTheSharedCache() {
+        source.add("r1", "png" to pngBytes(50, 50, 0xFF0000))
+        val gate = CountDownLatch(1)
+        source.gate = gate
+        val shared = ThumbnailLoader()
+        val future = CompletableFuture<Image?>()
+        shared.load(source, "r1", 0, 32) { future.complete(it) }
+        while (source.openRequested.get() == 0) Thread.sleep(10)
+
+        ThumbnailService.clear()
+        gate.countDown()
+
+        assertNotNull(result(future))
+        assertNull(ThumbnailService.cache.get(ThumbnailKey("r1", 0, 32), 1))
     }
 
     /**
