@@ -146,6 +146,43 @@ class ZipThumbnailStoreTest {
         assertFalse(Files.exists(file))
     }
 
+    /** Use case: an encrypted store is closed. Its key is gone, yet every call stays quiet: a miss, or no effect. */
+    @Test
+    fun closedEncryptedStoreStaysQuiet() {
+        val store = encrypted()
+        store.put(key(), 1, pixels(1))
+        store.close()
+
+        store.put(key(), 1, pixels(2))
+        assertNull(store.get(key(), 1))
+        store.invalidate("r1")
+        store.clear()
+        assertFalse(Files.exists(file))
+    }
+
+    /** Use case: threads keep using an encrypted store while it is closed. No call fails. */
+    @Test
+    fun closingWhileInUseNeverFailsACall() {
+        val pool = Executors.newFixedThreadPool(4)
+        try {
+            val store = encrypted()
+            val tasks = (0 until 4).map { worker ->
+                pool.submit(Callable {
+                    repeat(2000) { i ->
+                        val k = key("w$worker", i % 3)
+                        store.put(k, 1, pixels(i))
+                        store.get(k, 1)
+                    }
+                })
+            }
+            Thread.sleep(20)
+            store.close()
+            tasks.forEach { it.get(60, TimeUnit.SECONDS) }
+        } finally {
+            pool.shutdownNow()
+        }
+    }
+
     /** Use case: the file is kept. It is a valid ZIP of uncompressed entries with right checksums and the pixels inside. */
     @Test
     fun keptFileIsAValidStoredZip() {

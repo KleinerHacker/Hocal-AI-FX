@@ -110,9 +110,16 @@ class ZipThumbnailStore @JvmOverloads constructor(
     }
 
     override fun put(key: ThumbnailKey, mediaCount: Int, value: ThumbnailPixels) {
-        val name = entryName(key)
-        val payload = encode(mediaCount, value)
-        val data = cipher?.seal(payload, name) ?: payload
+        // The cipher is closed together with the store, possibly by another thread while this call is on its way.
+        val name: ByteArray
+        val data: ByteArray
+        try {
+            name = entryName(key)
+            val payload = encode(mediaCount, value)
+            data = cipher?.seal(payload, name) ?: payload
+        } catch (_: IllegalStateException) {
+            return
+        }
         val crc = CRC32().also { it.update(data) }.value
         lock.write {
             if (closed) return
