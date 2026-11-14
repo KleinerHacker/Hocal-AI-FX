@@ -185,7 +185,7 @@ SplitPane (horizontal, divider 0.3)
 | IP-02 | Directory Tree Component (COMPLETED) | Folder tree with child counts bound to the FX model, adapt the component rules | IP-01, FP-001 IP-02, FP-001 IP-07 |
 | IP-03 | File List And Media Preview (COMPLETED) | File list with original and current icon and the preview extension point | IP-01, FP-001 IP-02 |
 | IP-04 | Project Binding And Window Wiring (COMPLETED) | Follow the `ProjectManager`, connect tree, list and content area     | IP-02, IP-03, FP-001 IP-07 |
-| IP-05 | History List And Media View        | History list with last medium preselected and the selected image     | IP-04, FP-001 IP-02 |
+| IP-05 | History List And Media View (COMPLETED) | History list with last medium preselected and the selected image     | IP-04, FP-001 IP-02 |
 | IP-06 | Prompt Input Part (COMPLETED)      | Prompt box, send and add buttons, model combobox, flow toggle button bar, gallery dialog (placeholders) | IP-01, IP-02, IP-03 |
 | IP-07 | Generation Details Panel           | Applied prompt, model and flow of the selected medium                | IP-05, FP-001 IP-02 |
 
@@ -395,7 +395,7 @@ the selected file is handed on to the content area.
   FP-003 IP-02
 
 
-### IP-05: History List And Media View
+### IP-05: History List And Media View (COMPLETED)
 
 **Objective**
 
@@ -429,6 +429,21 @@ selecting another medium changes the image.
 * Auto selection must also happen when the history grows (a medium added later)
 * Entries of the history list also use `MediaPreview` for their icons
 * Large images need scaling to the available space and lazy loading
+
+**Built**
+
+* `HistoryList` (`ListView<HistoryMedium>`, `fx:root`) with view, view model and cell: all media of the selected file from
+  `000` to the last, each with a preview; the last medium is selected when another file is selected and when the history
+  grows, otherwise the selection of the user stays. `HistoryMedium(reference, number)` identifies a medium
+* `MediaView` (`StackPane`, `fx:root`) shows the selected medium scaled to the available space (decoded up to 1024 px, an own
+  cache of 8 images); a medium that cannot be shown shows a fixed 96 px placeholder icon, no selection shows nothing
+* Differs from the plan: shared building blocks were added - `ThumbnailLoader.load(..., number, ...)`, `AppearanceObserver`
+  (follows the light or dark appearance between `onShow` and `onHide`, used by the new components only; the older components
+  were not switched) and `RefreshableObjectProperty<T>` (replaces the folder-only variant)
+* `MainWindowViewModel` offers `historyFile` and `selectedMedium`; `selectedMedium` is what IP-07 shows details of. No new
+  message keys were needed
+* The window replaced the placeholders `pnlHistory` and `pnlImage`; `MediaChanges` reloads both components
+
 
 ### IP-06: Prompt Input Part (COMPLETED)
 
@@ -533,7 +548,7 @@ without details.
 ```text
 IP-01 (COMPLETED)
 ├── IP-02 (COMPLETED) ──┐
-├── IP-03 (COMPLETED) ──┴── IP-04 (COMPLETED) ── IP-05 ── IP-07
+├── IP-03 (COMPLETED) ──┴── IP-04 (COMPLETED) ── IP-05 (COMPLETED) ── IP-07
 └── IP-06 (COMPLETED, after IP-02 and IP-03)
 ```
 

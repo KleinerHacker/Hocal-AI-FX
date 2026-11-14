@@ -10,16 +10,16 @@ Status: IN_PROGRESS
 | IP-02 | Directory Tree Component          | COMPLETED   |
 | IP-03 | File List And Media Preview       | COMPLETED   |
 | IP-04 | Project Binding And Window Wiring | COMPLETED   |
-| IP-05 | History List And Media View       | NOT_STARTED |
+| IP-05 | History List And Media View       | COMPLETED   |
 | IP-06 | Prompt Input Part                 | COMPLETED   |
 | IP-07 | Generation Details Panel          | NOT_STARTED |
 
 ## Overall Progress
 
-71%
+86%
 
 ## Notes
 
 IP-01 is completed (PR #17, CI green). FP-001 is completed, so IP-02 to IP-05 are not blocked.
-IP-02, IP-03, IP-04 and IP-06 are completed (PR #17, CI green). The user still has to look at the
+IP-02, IP-03, IP-04, IP-05 and IP-06 are completed (PR #17, CI green). The user still has to look at the
 gallery dialog in the demo (light and dark).
