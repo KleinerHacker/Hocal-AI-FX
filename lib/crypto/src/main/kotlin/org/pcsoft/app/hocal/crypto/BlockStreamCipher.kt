@@ -9,10 +9,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations.
  */
-package org.pcsoft.app.hocal.model.storage.internal
-
-import org.pcsoft.app.hocal.model.storage.PasswordRequiredException
-import org.pcsoft.app.hocal.model.storage.WrongPasswordException
+package org.pcsoft.app.hocal.crypto
 
 import java.io.InputStream
 import java.io.OutputStream
@@ -21,16 +18,14 @@ import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.Mac
 import javax.crypto.SecretKey
-import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * Key derivation and stream creation of the encrypted project file: AES-256-GCM, applied block by
- * block, key from the password with PBKDF2-HMAC-SHA256.
+ * Stream creation of encrypted data of arbitrary length, such as the project file: AES-256-GCM, applied block by
+ * block, key from the password with [KeyDerivation].
  */
-internal object ProjectCipher {
+object BlockStreamCipher {
 
     private val random = SecureRandom()
 
@@ -41,11 +36,16 @@ internal object ProjectCipher {
      * The returned stream MUST be closed to write the last block; closing does not close [output].
      * The password array is not changed.
      */
-    fun openOutput(output: OutputStream, password: CharArray, iterations: Int): OutputStream {
-        require(iterations in 1..EncryptionHeader.MAX_ITERATIONS) { "Iteration count out of range" }
-        val salt = ByteArray(EncryptionHeader.SALT_SIZE).also { random.nextBytes(it) }
+    @JvmOverloads
+    fun openOutput(
+        output: OutputStream,
+        password: CharArray,
+        iterations: Int = KeyDerivation.DEFAULT_ITERATIONS,
+    ): OutputStream {
+        require(iterations in 1..KeyDerivation.MAX_ITERATIONS) { "Iteration count out of range" }
+        val salt = KeyDerivation.newSalt()
         val iv = ByteArray(EncryptionHeader.IV_SIZE).also { random.nextBytes(it) }
-        val keyBytes = deriveKey(password, salt, iterations)
+        val keyBytes = KeyDerivation.deriveKey(password, salt, iterations)
         try {
             val header = EncryptionHeader(
                 EncryptionHeader.VERSION, EncryptionHeader.KDF_PBKDF2_SHA256, iterations, salt, iv,
@@ -62,15 +62,15 @@ internal object ProjectCipher {
      * Reads the header from [input], checks the password and returns the stream that decrypts the rest.
      * Every block is verified before its data is passed on.
      *
-     * @throws PasswordRequiredException if [password] is `null`.
-     * @throws WrongPasswordException if the password does not match.
+     * @throws CryptoException.PasswordRequired if [password] is `null`.
+     * @throws CryptoException.WrongPassword if the password does not match.
      */
     fun openInput(input: InputStream, password: CharArray?): InputStream {
         val header = EncryptionHeader.read(input)
-        if (password == null) throw PasswordRequiredException()
-        val keyBytes = deriveKey(password, header.salt, header.iterations)
+        if (password == null) throw CryptoException.PasswordRequired()
+        val keyBytes = KeyDerivation.deriveKey(password, header.salt, header.iterations)
         try {
-            if (!MessageDigest.isEqual(checkOf(keyBytes), header.check)) throw WrongPasswordException()
+            if (!MessageDigest.isEqual(checkOf(keyBytes), header.check)) throw CryptoException.WrongPassword()
             return BlockCipherInputStream(input, SecretKeySpec(keyBytes, "AES"), header)
         } finally {
             keyBytes.fill(0)
@@ -78,7 +78,7 @@ internal object ProjectCipher {
     }
 
     /** The cipher of one block: unique IV per block, header and last-block flag as authenticated data. */
-    fun blockCipher(mode: Int, key: SecretKey, header: EncryptionHeader, counter: Long, last: Boolean): Cipher {
+    internal fun blockCipher(mode: Int, key: SecretKey, header: EncryptionHeader, counter: Long, last: Boolean): Cipher {
         val iv = header.iv.copyOf()
         for (i in 0 until 8) {
             iv[EncryptionHeader.IV_SIZE - 8 + i] =
@@ -89,15 +89,6 @@ internal object ProjectCipher {
         cipher.updateAAD(header.bytes)
         cipher.updateAAD(byteArrayOf(if (last) 1 else 0))
         return cipher
-    }
-
-    private fun deriveKey(password: CharArray, salt: ByteArray, iterations: Int): ByteArray {
-        val spec = PBEKeySpec(password, salt, iterations, 256)
-        try {
-            return SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
-        } finally {
-            spec.clearPassword()
-        }
     }
 
     private fun checkOf(keyBytes: ByteArray): ByteArray {

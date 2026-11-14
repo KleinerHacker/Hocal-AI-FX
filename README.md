@@ -39,6 +39,7 @@ runs without building a ComfyUI graph.
 ## Project structure
 
 * `app/ui` (`hocal-ui`) - the JavaFX application (Kotlin, MVVM FX)
+* `lib/crypto` (`hocal-crypto`) - the JavaFX-free encryption: block stream cipher of the encrypted project file, key derivation and record cipher
 * `lib/model` (`hocal-model`) - the JavaFX-free data model of the project file and its (optionally encrypted) ZIP storage
 * `lib/fx-model` (`hocal-fx-model`) - the Java FX property models mirroring the data model and the project manager that owns the loaded project
 * `docs` - the MkDocs user documentation

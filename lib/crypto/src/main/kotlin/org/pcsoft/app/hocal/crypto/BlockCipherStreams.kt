@@ -9,9 +9,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and limitations.
  */
-package org.pcsoft.app.hocal.model.storage.internal
-
-import org.pcsoft.app.hocal.model.storage.ManipulatedProjectFileException
+package org.pcsoft.app.hocal.crypto
 
 import java.io.InputStream
 import java.io.OutputStream
@@ -65,7 +63,7 @@ internal class BlockCipherOutputStream(
     }
 
     private fun writeBlock(last: Boolean) {
-        val cipher = ProjectCipher.blockCipher(Cipher.ENCRYPT_MODE, key, header, counter, last)
+        val cipher = BlockStreamCipher.blockCipher(Cipher.ENCRYPT_MODE, key, header, counter, last)
         output.write(cipher.doFinal(buffer, 0, filled))
         filled = 0
         counter++
@@ -74,7 +72,7 @@ internal class BlockCipherOutputStream(
 
 /**
  * Decrypts block by block and verifies every block before its data is handed out. A failed check,
- * also caused by a cut-off or reordered file, is reported as [ManipulatedProjectFileException].
+ * also caused by a cut-off or reordered file, is reported as [CryptoException.Manipulated].
  * Never closes the wrapped stream.
  */
 internal class BlockCipherInputStream(
@@ -122,13 +120,13 @@ internal class BlockCipherInputStream(
             }
         }
         if (read < EncryptionHeader.TAG_BYTES) {
-            throw ManipulatedProjectFileException("The encrypted file is cut off")
+            throw CryptoException.Manipulated("The encrypted file is cut off")
         }
         try {
-            plain = ProjectCipher.blockCipher(Cipher.DECRYPT_MODE, key, header, counter, last)
+            plain = BlockStreamCipher.blockCipher(Cipher.DECRYPT_MODE, key, header, counter, last)
                 .doFinal(encrypted, 0, read)
         } catch (e: GeneralSecurityException) {
-            throw ManipulatedProjectFileException("The encrypted file is manipulated, damaged or cut off", e)
+            throw CryptoException.Manipulated("The encrypted file is manipulated, damaged or cut off", e)
         }
         position = 0
         counter++

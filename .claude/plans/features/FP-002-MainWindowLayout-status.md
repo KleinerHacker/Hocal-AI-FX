@@ -13,10 +13,12 @@ Status: IN_PROGRESS
 | IP-05 | History List And Media View       | COMPLETED   |
 | IP-06 | Prompt Input Part                 | COMPLETED   |
 | IP-07 | Generation Details Panel          | NOT_STARTED |
+| IP-08 | Crypto Library                    | IN_PROGRESS |
+| IP-09 | Disk Thumbnail Cache              | NOT_STARTED |
 
 ## Overall Progress
 
-86%
+75%
 
 ## Notes
 

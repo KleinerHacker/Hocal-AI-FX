@@ -188,6 +188,8 @@ SplitPane (horizontal, divider 0.3)
 | IP-05 | History List And Media View (COMPLETED) | History list with last medium preselected and the selected image     | IP-04, FP-001 IP-02 |
 | IP-06 | Prompt Input Part (COMPLETED)      | Prompt box, send and add buttons, model combobox, flow toggle button bar, gallery dialog (placeholders) | IP-01, IP-02, IP-03 |
 | IP-07 | Generation Details Panel           | Applied prompt, model and flow of the selected medium                | IP-05, FP-001 IP-02 |
+| IP-08 | Crypto Library                     | Move the encryption out of `lib/model` into `lib/crypto`, add a per-record cipher | IP-06 |
+| IP-09 | Disk Thumbnail Cache               | ZIP cache in the temp directory, encrypted for encrypted projects, thumbnail code in `lib/thumbnail` | IP-05, IP-08 |
 
 ## 7. Implementation Plans
 
@@ -543,13 +545,66 @@ without details.
 * Two lines: model and flow, then the beginning of the prompt cut off with `...`; the cut-off length
   follows the width of the panel
 
+### IP-08: Crypto Library
+
+**Objective**
+
+Move the encryption out of `lib/model` into an own library `lib/crypto` (`hocal-crypto`), so the model knows nothing
+of it and the storage and the thumbnail cache share it.
+
+**Scope**
+
+* New module `hocal-crypto`, free of Java FX and of other modules
+* Block stream cipher, header and key derivation moved from `lib/model`; the file format stays compatible
+* Own error types of the library; `ProjectStorage` maps them to the existing project errors
+* New per-record cipher with a key derived once, for the thumbnail cache
+* NOT: changing the file format, the algorithm or the public errors of `lib/model`
+
+**Affected Areas**
+
+* `lib/crypto`, `lib/model`, architecture rule, README, tests
+
+**Dependencies**
+
+IP-06.
+
+**Expected Result**
+
+`lib/model` has no cipher code of its own; the encryption tests pass unchanged in behaviour.
+
+### IP-09: Disk Thumbnail Cache
+
+**Objective**
+
+Keep thumbnails on disk in an uncompressed ZIP in the temp directory, encrypted with the project password for
+encrypted projects, and move all thumbnail caching into an own library.
+
+**Scope**
+
+* New module `hocal-thumbnail` (`lib/thumbnail`) using only `javafx.scene.image` of the toolkit
+* Generic caches, two-tier cache, ZIP store, image conversion
+* The `ProjectManager` owns the session; the file is deleted when the project closes
+* NOT: a cache that outlives the session, large images on disk
+
+**Affected Areas**
+
+* `lib/thumbnail`, `lib/fx-model`, `app/ui/preview`, architecture rule, README, tests
+
+**Dependencies**
+
+IP-05, IP-08.
+
+**Expected Result**
+
+Thumbnails survive the memory cache within a session; nothing stays in the temp directory afterwards.
+
 ## 8. Dependency Graph
 
 ```text
 IP-01 (COMPLETED)
 ├── IP-02 (COMPLETED) ──┐
 ├── IP-03 (COMPLETED) ──┴── IP-04 (COMPLETED) ── IP-05 (COMPLETED) ── IP-07
-└── IP-06 (COMPLETED, after IP-02 and IP-03)
+└── IP-06 (COMPLETED, after IP-02 and IP-03) ── IP-08 ── IP-09 (also after IP-05)
 ```
 
 IP-02 and IP-03 can run in parallel after IP-01; IP-06 needs both for its gallery dialog. IP-02 to IP-05 and IP-07

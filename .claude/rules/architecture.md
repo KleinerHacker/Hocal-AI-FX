@@ -13,6 +13,9 @@ name: Architecture
   to leave 'app/ui'
   * the plain model POJOs go into 'lib/model' (`hocal-model`), free of Java FX
   * their property models go into 'lib/fx-model' (`hocal-fx-model`), see the `fx-model` skill
+  * the encryption (block stream cipher of the project file, key derivation, record cipher) goes into 'lib/crypto'
+    (`hocal-crypto`), free of Java FX and of every other module; 'lib/model' uses it and maps its errors, but
+    contains no cipher code itself
 * A module under 'lib' MAY carry Java FX only in this one case; every other one stays free of it
   * a property model library on `javafx.base` - 'lib/fx-model'; from `javafx.graphics` it uses ONLY the
     package `javafx.application` (`Platform`, to recognize the FX thread); no other toolkit module and no

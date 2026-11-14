@@ -11,10 +11,15 @@
  */
 package org.pcsoft.app.hocal.model.storage.internal
 
+import org.pcsoft.app.hocal.crypto.BlockStreamCipher
+import org.pcsoft.app.hocal.crypto.CryptoException
+import org.pcsoft.app.hocal.crypto.EncryptionHeader
+import org.pcsoft.app.hocal.crypto.KeyDerivation
 import org.pcsoft.app.hocal.model.storage.DamagedProjectFileException
 import org.pcsoft.app.hocal.model.storage.InvalidProjectFileException
 import org.pcsoft.app.hocal.model.storage.ManipulatedProjectFileException
 import org.pcsoft.app.hocal.model.storage.PasswordRequiredException
+import org.pcsoft.app.hocal.model.storage.ProjectFileException
 import org.pcsoft.app.hocal.model.storage.UnsupportedEncryptionVersionException
 import org.pcsoft.app.hocal.model.storage.UnsupportedFormatVersionException
 import org.pcsoft.app.hocal.model.storage.WrongPasswordException
@@ -85,13 +90,15 @@ object ProjectStorage {
             val head = pushback.readNBytes(EncryptionHeader.MAGIC.size)
             pushback.unread(head)
             val encrypted = hasMagic(head)
-            val source: InputStream = if (encrypted) ProjectCipher.openInput(pushback, password) else pushback
+            val source: InputStream = if (encrypted) BlockStreamCipher.openInput(pushback, password) else pushback
             return ZipInputStream(NonClosingInputStream(source)).use { zip ->
                 val file = readEntries(zip, sink, limits)
                 // the ZIP reader stops at its last entry; the rest must be read so the last block is checked
                 if (encrypted) source.transferTo(OutputStream.nullOutputStream())
                 file
             }
+        } catch (e: CryptoException) {
+            throw e.toProjectFileException()
         } catch (e: IOException) {
             throw DamagedProjectFileException("The project file cannot be read: ${e.message}", e)
         } catch (e: IllegalArgumentException) {
@@ -145,7 +152,7 @@ object ProjectStorage {
      * @throws IOException if reading a medium or writing fails.
      */
     fun write(output: OutputStream, project: ProjectFile, source: MediaSource, password: CharArray? = null) {
-        writeWithIterations(output, project, source, password, EncryptionHeader.DEFAULT_ITERATIONS)
+        writeWithIterations(output, project, source, password, KeyDerivation.DEFAULT_ITERATIONS)
     }
 
     /** Like [write], with the key derivation iteration count given; tests use a low one. */
@@ -163,7 +170,7 @@ object ProjectStorage {
             throw InvalidProjectFileException("The project cannot be written as JSON: ${e.message}", e)
         }
         val parts = measure(project, source)
-        val encrypting = password?.let { ProjectCipher.openOutput(output, it, iterations) }
+        val encrypting = password?.let { BlockStreamCipher.openOutput(output, it, iterations) }
 
         ZipOutputStream(NonClosingOutputStream(encrypting ?: output)).use { zip ->
             zip.putNextEntry(storedEntry(ProjectFormat.PROJECT_FILE_NAME, json.size.toLong(), crcOf(json)))
@@ -189,7 +196,7 @@ object ProjectStorage {
      * @see write
      */
     fun write(file: Path, project: ProjectFile, source: MediaSource, password: CharArray? = null) {
-        writeFileWithIterations(file, project, source, password, EncryptionHeader.DEFAULT_ITERATIONS)
+        writeFileWithIterations(file, project, source, password, KeyDerivation.DEFAULT_ITERATIONS)
     }
 
     /** Like the file variant of [write], with the key derivation iteration count given. */
@@ -341,4 +348,15 @@ object ProjectStorage {
             total += read
         }
     }
+}
+
+/** Maps an error of the encryption library to the error type of the project file. */
+private fun CryptoException.toProjectFileException(): ProjectFileException = when (this) {
+    is CryptoException.PasswordRequired -> PasswordRequiredException()
+    is CryptoException.WrongPassword -> WrongPasswordException()
+    is CryptoException.Manipulated -> ManipulatedProjectFileException(message.orEmpty(), cause)
+    is CryptoException.TruncatedHeader -> DamagedProjectFileException(message.orEmpty(), this)
+    is CryptoException.InvalidHeader -> InvalidProjectFileException(message.orEmpty(), this)
+    is CryptoException.UnsupportedVersion ->
+        UnsupportedEncryptionVersionException(foundVersion, supportedVersion, message.orEmpty())
 }

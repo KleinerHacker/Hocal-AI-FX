@@ -16,6 +16,9 @@ plugins {
 }
 
 dependencies {
+    // The encryption of the project file; the model only maps its errors to the project errors.
+    implementation(project(":lib:hocal-crypto"))
+
     // JSON handling of the project file; the POJOs are read and written through their getters and setters.
     // Part of the API: the module descriptor requires the Jackson annotations, so consumers need them too.
     api("tools.jackson.core:jackson-databind:3.3.0")
