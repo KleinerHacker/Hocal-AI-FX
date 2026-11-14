@@ -12,13 +12,13 @@
 
 package org.pcsoft.app.hocal.app.ui.preview
 
+import javafx.application.Platform
 import javafx.scene.image.Image
 import javafx.scene.image.WritableImage
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
@@ -38,7 +38,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.Callable
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -93,6 +92,13 @@ class ThumbnailProjectIT {
     }
 
     private fun <T> fx(block: () -> T): T = WaitForAsyncUtils.asyncFx(Callable { block() }).get()
+
+    // Runs on the FX thread and hands back what was thrown; WaitForAsyncUtils would keep the exception for later tests.
+    private fun fxFailure(block: () -> Unit): Throwable? {
+        val result = CompletableFuture<Throwable?>()
+        Platform.runLater { result.complete(try { block(); null } catch (e: Throwable) { e }) }
+        return result.get(30, TimeUnit.SECONDS)
+    }
 
     private fun password(encrypted: Boolean): CharArray? = if (encrypted) "secret".toCharArray() else null
 
@@ -325,11 +331,9 @@ class ThumbnailProjectIT {
         Files.createDirectories(blocked)
         Files.write(blocked.resolve("content"), ByteArray(1))
 
-        val error = assertThrows<ExecutionException> {
-            fx { ProjectManager.saveAs(blocked, password(!encrypted)) }
-        }
+        val error = fxFailure { ProjectManager.saveAs(blocked, password(!encrypted)) }
 
-        assertTrue(error.cause is IOException)
+        assertTrue(error is IOException, "was \$error")
         assertEquals(file, ProjectManager.pathProperty.get())
         assertEquals(encrypted, ProjectManager.encryptedProperty.get())
         load(reference)
