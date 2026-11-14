@@ -75,6 +75,9 @@ writing direction.
     * preview threads: number of threads that load the thumbnails of the file list at the same time,
       default 5, range 1 to 16; a change applies to loads that start afterwards (the file list of FP-002
       offers `loadThreads` for it)
+    * thumbnail system: `ThumbnailStorage`, memory only (`MEMORY`, the default) or memory and a file of the open
+      project (`DISK`, encrypted for an encrypted project); selected here and applied to
+      `ProjectManager.thumbnailStorage` (built in FP-002 IP-09), also while a project is loaded
 * Category `View`:
     * language: system default or one of the supported languages, listed by their own names (for
       example Deutsch, Français, 日本語, العربية) so a user finds his language; takes effect after a
@@ -223,7 +226,8 @@ Example of the shape (illustration only, not a decision on the final names):
   "window": { "x": 120, "y": 80, "width": 1600, "height": 900, "maximized": false,
               "dividers": { "outer": 0.3, "inner": 0.5, "content": [0.2, 0.8] } },
   "general": { "maxImageWidth": 4096, "maxImageHeight": 4096, "maxProjectBytes": 2000000000,
-               "confirmDelete": true, "recentProjects": 10, "recent": [], "previewThreads": 5 },
+               "confirmDelete": true, "recentProjects": 10, "recent": [], "previewThreads": 5,
+               "thumbnailStorage": "MEMORY" },
   "view": { "language": "system", "appearance": "system" },
   "models": { "maxParallelDownloads": 0 },
   "comfy": { "startMode": "onDemand" },
@@ -363,6 +367,7 @@ Build the `General` page and the recent projects list.
 * maximum image size (width and height) and maximum project file size in GB
 * confirmations before deleting
 * preview threads (thumbnail loading of the file list), applied to `ProjectFileListViewModel.loadThreads`
+* thumbnail system (`ThumbnailStorage`, default `MEMORY`), applied to `ProjectManager.thumbnailStorage`
 * recent projects: number, the list in the File menu, a clear entry, handling of missing files
 * validation messages with the allowed ranges
 * tests of the page, its view model and the list

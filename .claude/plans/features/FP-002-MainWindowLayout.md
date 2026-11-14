@@ -189,7 +189,7 @@ SplitPane (horizontal, divider 0.3)
 | IP-06 | Prompt Input Part (COMPLETED)      | Prompt box, send and add buttons, model combobox, flow toggle button bar, gallery dialog (placeholders) | IP-01, IP-02, IP-03 |
 | IP-07 | Generation Details Panel           | Applied prompt, model and flow of the selected medium                | IP-05, FP-001 IP-02 |
 | IP-08 | Crypto Library (COMPLETED)                  | Move the encryption out of `lib/model` into `lib/crypto`, add a per-record cipher | IP-06 |
-| IP-09 | Disk Thumbnail Cache               | ZIP cache in the temp directory, encrypted for encrypted projects, thumbnail code in `lib/thumbnail` | IP-05, IP-08 |
+| IP-09 | Disk Thumbnail Cache (COMPLETED)   | ZIP cache in the temp directory, encrypted for encrypted projects, thumbnail code in `lib/thumbnail` | IP-05, IP-08 |
 
 ## 7. Implementation Plans
 
@@ -580,7 +580,7 @@ IP-06.
   the library has its own new tests; `EncryptionHeader` is public so those tests can use its layout constants;
   the iteration constants moved to `KeyDerivation`
 
-### IP-09: Disk Thumbnail Cache
+### IP-09: Disk Thumbnail Cache (COMPLETED)
 
 **Objective**
 
@@ -606,13 +606,27 @@ IP-05, IP-08.
 
 Thumbnails survive the memory cache within a session; nothing stays in the temp directory afterwards.
 
+**Implementation Notes**
+
+* Built: `hocal-thumbnail` with the generic `ThumbnailCache<V>`, `MemoryThumbnailCache`, `SizeClassCache`,
+  `TieredThumbnailCache`, `ZipThumbnailStore` (uncompressed ZIP, one file per store, encrypted per entry with a
+  `RecordCipher` of `hocal-crypto`), `ThumbnailPixels`, `ImageThumbnails` and the enum `ThumbnailStorage`
+* The `ProjectManager` owns the store: `thumbnailCache` forwards to it, `thumbnailStorage` selects the system;
+  `MEMORY` is the default and makes no file, `DISK` makes `thumbnails-<n>.zip` in the session folder
+* `saveAs` renews the store when the password changes; `close` removes it with the folder
+* Differs from the plan: the system is switchable and memory is the default; `TieredThumbnailCache` has two type
+  parameters with converters; the file has a counter in its name, because closing the old store deletes its file;
+  the ZIP directory is written on close only when the file is kept
+* The selection of the thumbnail system in the settings dialog follows in FP-010 (General category); the default
+  there is `MEMORY`
+
 ## 8. Dependency Graph
 
 ```text
 IP-01 (COMPLETED)
 ├── IP-02 (COMPLETED) ──┐
 ├── IP-03 (COMPLETED) ──┴── IP-04 (COMPLETED) ── IP-05 (COMPLETED) ── IP-07
-└── IP-06 (COMPLETED, after IP-02 and IP-03) ── IP-08 (COMPLETED) ── IP-09 (also after IP-05)
+└── IP-06 (COMPLETED, after IP-02 and IP-03) ── IP-08 (COMPLETED) ── IP-09 (COMPLETED, also after IP-05)
 ```
 
 IP-02 and IP-03 can run in parallel after IP-01; IP-06 needs both for its gallery dialog. IP-02 to IP-05 and IP-07
@@ -638,7 +652,8 @@ also need parts of FP-001 (IP-02 property models and IP-07 `ProjectManager`); IP
   tree shows only folders, never files
 * Decided: only the image formats of standard JavaFX
 * Decided: a file is a row with preview images
-* Decided: thumbnails are cached in memory (`ThumbnailCache`, extensible to a cache on disk later)
+* Decided: thumbnails are cached in memory by default; a cache on disk (`ThumbnailStorage.DISK`) is built and selected
+  in the settings dialog of FP-010
 * Decided: the preview image in a row is 48 px, loaded at 96 px on a HiDPI screen
 * Decided: an entry with one medium shows the icon twice; a tooltip tells original and current
   medium apart
