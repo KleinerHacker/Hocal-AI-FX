@@ -188,7 +188,7 @@ SplitPane (horizontal, divider 0.3)
 | IP-05 | History List And Media View (COMPLETED) | History list with last medium preselected and the selected image     | IP-04, FP-001 IP-02 |
 | IP-06 | Prompt Input Part (COMPLETED)      | Prompt box, send and add buttons, model combobox, flow toggle button bar, gallery dialog (placeholders) | IP-01, IP-02, IP-03 |
 | IP-07 | Generation Details Panel           | Applied prompt, model and flow of the selected medium                | IP-05, FP-001 IP-02 |
-| IP-08 | Crypto Library                     | Move the encryption out of `lib/model` into `lib/crypto`, add a per-record cipher | IP-06 |
+| IP-08 | Crypto Library (COMPLETED)                  | Move the encryption out of `lib/model` into `lib/crypto`, add a per-record cipher | IP-06 |
 | IP-09 | Disk Thumbnail Cache               | ZIP cache in the temp directory, encrypted for encrypted projects, thumbnail code in `lib/thumbnail` | IP-05, IP-08 |
 
 ## 7. Implementation Plans
@@ -545,7 +545,7 @@ without details.
 * Two lines: model and flow, then the beginning of the prompt cut off with `...`; the cut-off length
   follows the width of the panel
 
-### IP-08: Crypto Library
+### IP-08: Crypto Library (COMPLETED)
 
 **Objective**
 
@@ -571,6 +571,14 @@ IP-06.
 **Expected Result**
 
 `lib/model` has no cipher code of its own; the encryption tests pass unchanged in behaviour.
+
+**Implementation Notes**
+
+* Built: `hocal-crypto` with `BlockStreamCipher`, `EncryptionHeader`, `KeyDerivation`, `RecordCipher` and the sealed
+  `CryptoException`; `ProjectStorage` maps the errors to the project errors
+* Differs from the plan: the encryption tests of `lib/model` stay there, because they run through `ProjectStorage`;
+  the library has its own new tests; `EncryptionHeader` is public so those tests can use its layout constants;
+  the iteration constants moved to `KeyDerivation`
 
 ### IP-09: Disk Thumbnail Cache
 
@@ -604,7 +612,7 @@ Thumbnails survive the memory cache within a session; nothing stays in the temp 
 IP-01 (COMPLETED)
 ├── IP-02 (COMPLETED) ──┐
 ├── IP-03 (COMPLETED) ──┴── IP-04 (COMPLETED) ── IP-05 (COMPLETED) ── IP-07
-└── IP-06 (COMPLETED, after IP-02 and IP-03) ── IP-08 ── IP-09 (also after IP-05)
+└── IP-06 (COMPLETED, after IP-02 and IP-03) ── IP-08 (COMPLETED) ── IP-09 (also after IP-05)
 ```
 
 IP-02 and IP-03 can run in parallel after IP-01; IP-06 needs both for its gallery dialog. IP-02 to IP-05 and IP-07
