@@ -10,7 +10,7 @@
  * See the License for the specific language governing permissions and limitations.
  */
 
-package org.pcsoft.app.hocal.app.ui.preview
+package org.pcsoft.app.hocal.thumbnail
 
 /**
  * Identifies one thumbnail: a medium of a reference at a pixel size.

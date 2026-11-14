@@ -16,17 +16,21 @@ name: Architecture
   * the encryption (block stream cipher of the project file, key derivation, record cipher) goes into 'lib/crypto'
     (`hocal-crypto`), free of Java FX and of every other module; 'lib/model' uses it and maps its errors, but
     contains no cipher code itself
-* A module under 'lib' MAY carry Java FX only in this one case; every other one stays free of it
+  * everything that has to do with thumbnail caching goes into 'lib/thumbnail' (`hocal-thumbnail`): the caches in
+    memory and in a ZIP file, the conversion of images and the encryption of that file through 'lib/crypto'
+* A module under 'lib' MAY carry Java FX only in these two cases; every other one stays free of it
   * a property model library on `javafx.base` - 'lib/fx-model'; from `javafx.graphics` it uses ONLY the
     package `javafx.application` (`Platform`, to recognize the FX thread); no other toolkit module and no
     other package
+  * the thumbnail library - 'lib/thumbnail'; from `javafx.graphics` it uses ONLY the package `javafx.scene.image`
+    (to convert images to pixels and back); no other toolkit module and no other package
 * Operations on the project (project storage, media store, media history, tree operations) live in
   `...internal` packages of 'lib/model'
   * the module descriptor exports them to `hocal-fx-model` ONLY (qualified export), so the application
     reaches them through the `ProjectManager` and nowhere else
   * plain objects, name rules and errors stay in public packages the user interface may use
   * a new package of 'lib/model' is NOT exported until it is decided whether it is public or protected
-* The full Java FX toolkit lives ONLY in 'app/ui'; the one package of `javafx.graphics` that 'lib/fx-model' may
-  use is named above and nothing else of it
+* The full Java FX toolkit lives ONLY in 'app/ui'; the packages of `javafx.graphics` that 'lib/fx-model' and
+  'lib/thumbnail' may use are named above and nothing else of it
 * The application drives ComfyUI as a separate process through its HTTP and WebSocket API; no module
   embeds or links ComfyUI itself

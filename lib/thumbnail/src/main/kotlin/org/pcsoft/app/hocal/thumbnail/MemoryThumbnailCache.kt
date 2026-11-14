@@ -10,9 +10,7 @@
  * See the License for the specific language governing permissions and limitations.
  */
 
-package org.pcsoft.app.hocal.app.ui.preview
-
-import javafx.scene.image.Image
+package org.pcsoft.app.hocal.thumbnail
 
 /**
  * A [ThumbnailCache] that keeps the thumbnails in memory for the run of the application.
@@ -20,18 +18,19 @@ import javafx.scene.image.Image
  * It holds at most [maxEntries] thumbnails. When it is full, the thumbnail that was used least recently
  * is dropped. All members are synchronized, so the load threads and the FX thread may use it at once.
  *
+ * @param V the type of the stored thumbnails
  * @param maxEntries the largest number of thumbnails to hold, at least 1
  * @throws IllegalArgumentException if [maxEntries] is less than 1
  */
-class MemoryThumbnailCache(private val maxEntries: Int = DEFAULT_MAX_ENTRIES) : ThumbnailCache {
+class MemoryThumbnailCache<V : Any>(private val maxEntries: Int = DEFAULT_MAX_ENTRIES) : ThumbnailCache<V> {
 
-    private class Stored(val mediaCount: Int, val image: Image)
+    private class Stored<V>(val mediaCount: Int, val value: V)
 
     private val lock = Any()
 
     // Ordered by access, so the eldest entry is the one used least recently.
-    private val entries = object : LinkedHashMap<ThumbnailKey, Stored>(INITIAL_CAPACITY, LOAD_FACTOR, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<ThumbnailKey, Stored>?): Boolean =
+    private val entries = object : LinkedHashMap<ThumbnailKey, Stored<V>>(INITIAL_CAPACITY, LOAD_FACTOR, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<ThumbnailKey, Stored<V>>?): Boolean =
             size > maxEntries
     }
 
@@ -43,17 +42,17 @@ class MemoryThumbnailCache(private val maxEntries: Int = DEFAULT_MAX_ENTRIES) : 
     val size: Int
         get() = synchronized(lock) { entries.size }
 
-    override fun get(key: ThumbnailKey, mediaCount: Int): Image? = synchronized(lock) {
+    override fun get(key: ThumbnailKey, mediaCount: Int): V? = synchronized(lock) {
         val stored = entries[key] ?: return null
         if (stored.mediaCount != mediaCount) {
             entries.remove(key)
             return null
         }
-        stored.image
+        stored.value
     }
 
-    override fun put(key: ThumbnailKey, mediaCount: Int, image: Image) {
-        synchronized(lock) { entries[key] = Stored(mediaCount, image) }
+    override fun put(key: ThumbnailKey, mediaCount: Int, value: V) {
+        synchronized(lock) { entries[key] = Stored(mediaCount, value) }
     }
 
     override fun invalidate(reference: String) {

@@ -12,7 +12,13 @@
 
 package org.pcsoft.app.hocal.app.ui.preview
 
+import javafx.scene.image.Image
 import org.pcsoft.app.hocal.fx.model.manager.ProjectManager
+import org.pcsoft.app.hocal.thumbnail.ImageThumbnails
+import org.pcsoft.app.hocal.thumbnail.MemoryThumbnailCache
+import org.pcsoft.app.hocal.thumbnail.SizeClassCache
+import org.pcsoft.app.hocal.thumbnail.ThumbnailCache
+import org.pcsoft.app.hocal.thumbnail.TieredThumbnailCache
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
@@ -22,8 +28,10 @@ import java.util.concurrent.atomic.AtomicInteger
  * providers and the pool of the load threads.
  *
  * The cache holds images of the project. It is emptied whenever a project is opened, created or closed, so images of a
- * closed project - an encrypted one, for instance - do not stay in memory. A later cache on disk has to be reached
- * through here as well, and cleared the same way. The cache keeps small and large images apart, see [SizeClassCache].
+ * closed project - an encrypted one, for instance - do not stay in memory. The cache keeps small and large images apart,
+ * see [SizeClassCache]: a small thumbnail lives in memory and in the file of the open project, see
+ * [ProjectManager.thumbnailCache] - so it survives the memory cache within a session - a large image of the image view
+ * lives in memory only.
  *
  * A loader that is made without its own cache and pool uses these. Everything is thread-safe; [threads] and the
  * clearing belong to whoever configures the application.
@@ -45,9 +53,14 @@ object ThumbnailService {
     val registry: MediaPreviewRegistry = MediaPreviewRegistry()
 
     /** The cache of all loaded thumbnails and images. */
-    val cache: ThumbnailCache = SizeClassCache(
-        small = MemoryThumbnailCache(THUMBNAIL_ENTRIES),
-        large = MemoryThumbnailCache(LARGE_ENTRIES),
+    val cache: ThumbnailCache<Image> = SizeClassCache(
+        small = TieredThumbnailCache(
+            memory = MemoryThumbnailCache<Image>(THUMBNAIL_ENTRIES),
+            disk = ProjectManager.thumbnailCache,
+            toDisk = ImageThumbnails::toPixels,
+            fromDisk = ImageThumbnails::toImage,
+        ),
+        large = MemoryThumbnailCache<Image>(LARGE_ENTRIES),
         largeFrom = LARGE_FROM,
     )
 

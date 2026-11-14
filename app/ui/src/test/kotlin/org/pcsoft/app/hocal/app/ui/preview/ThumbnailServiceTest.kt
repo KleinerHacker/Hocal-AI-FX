@@ -12,6 +12,7 @@
 
 package org.pcsoft.app.hocal.app.ui.preview
 
+import org.pcsoft.app.hocal.thumbnail.ThumbnailKey
 import javafx.scene.image.Image
 import javafx.scene.image.WritableImage
 import org.junit.jupiter.api.AfterEach
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.pcsoft.app.hocal.fx.model.manager.ProjectManager
+import org.pcsoft.app.hocal.thumbnail.ImageThumbnails
 import org.testfx.api.FxToolkit
 import org.testfx.util.WaitForAsyncUtils
 import java.util.concurrent.Callable
@@ -134,5 +136,54 @@ class ThumbnailServiceTest {
 
         assertNotSame(before, ThumbnailService.executor)
         assertEquals(2, ThumbnailService.threads)
+    }
+
+    /**
+     * Use case: more small thumbnails are loaded than the memory holds. The first one is dropped from the memory,
+     * but the file of the open project still has it: it is found again, with the same pixels.
+     */
+    @Test
+    fun smallThumbnailSurvivesTheMemoryCacheInTheFileOfTheProject() {
+        fx { ProjectManager.createNew("Test") }
+        val first = ThumbnailKey("first", 0, 48)
+        val original = image()
+        ThumbnailService.cache.put(first, 1, original)
+        repeat(ThumbnailService.THUMBNAIL_ENTRIES) { ThumbnailService.cache.put(ThumbnailKey("r$it", 0, 48), 1, image()) }
+
+        val found = ThumbnailService.cache.get(first, 1)
+
+        assertNotNull(found)
+        assertNotSame(original, found)
+        assertEquals(ImageThumbnails.toPixels(original), ImageThumbnails.toPixels(found!!))
+    }
+
+    /**
+     * Use case: more large images are loaded than the memory holds. The large images of the image view are not
+     * written to the file, so the first one is gone.
+     */
+    @Test
+    fun largeImagesStayInMemoryOnly() {
+        fx { ProjectManager.createNew("Test") }
+        val first = ThumbnailKey("first", 0, ThumbnailService.LARGE_FROM)
+        ThumbnailService.cache.put(first, 1, image())
+        repeat(ThumbnailService.LARGE_ENTRIES) {
+            ThumbnailService.cache.put(ThumbnailKey("r$it", 0, ThumbnailService.LARGE_FROM), 1, image())
+        }
+
+        assertNull(ThumbnailService.cache.get(first, 1))
+    }
+
+    /**
+     * Use case: the media of a reference changed while its small thumbnails are in the file. They are dropped from
+     * the file as well, so the next load reads the media again.
+     */
+    @Test
+    fun invalidateReachesTheFileOfTheProject() {
+        fx { ProjectManager.createNew("Test") }
+        ThumbnailService.cache.put(key, 1, image())
+
+        ThumbnailService.invalidate("r1")
+
+        assertNull(ProjectManager.thumbnailCache.get(key, 1))
     }
 }

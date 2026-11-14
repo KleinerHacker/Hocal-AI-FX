@@ -10,35 +10,23 @@
  * See the License for the specific language governing permissions and limitations.
  */
 
-package org.pcsoft.app.hocal.app.ui.preview
+package org.pcsoft.app.hocal.thumbnail
 
-import javafx.scene.image.Image
-import javafx.scene.image.WritableImage
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertSame
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.testfx.api.FxToolkit
 
 /**
  * Developer tests of the cache that keeps small and large images apart.
  */
 class SizeClassCacheTest {
 
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        fun startToolkit() {
-            FxToolkit.registerPrimaryStage()
-        }
-    }
-
-    private val small = MemoryThumbnailCache(maxEntries = 10)
-    private val large = MemoryThumbnailCache(maxEntries = 2)
+    private val small = MemoryThumbnailCache<String>(maxEntries = 10)
+    private val large = MemoryThumbnailCache<String>(maxEntries = 2)
     private val cache = SizeClassCache(small, large, largeFrom = 256)
 
-    private fun image(): Image = WritableImage(1, 1)
+    private fun image(): String = java.util.UUID.randomUUID().toString()
 
     /**
      * Use case: a thumbnail of the list and an image of the image view are stored. Each lands in the cache of

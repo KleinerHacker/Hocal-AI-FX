@@ -29,11 +29,11 @@ import javafx.stage.Screen
 import org.pcsoft.app.hocal.app.HocalIcons
 import org.pcsoft.app.hocal.app.ui.preview.MediaPreviewRegistry
 import org.pcsoft.app.hocal.app.ui.preview.MediaSource
-import org.pcsoft.app.hocal.app.ui.preview.ThumbnailCache
-import org.pcsoft.app.hocal.app.ui.preview.ThumbnailKey
 import org.pcsoft.app.hocal.app.ui.preview.ThumbnailService
 import org.pcsoft.app.hocal.model.project.VirtualEntry
 import org.pcsoft.app.hocal.model.project.VirtualFolder
+import org.pcsoft.app.hocal.thumbnail.ThumbnailCache
+import org.pcsoft.app.hocal.thumbnail.ThumbnailKey
 import java.util.Collections
 import java.util.IdentityHashMap
 import java.util.concurrent.ExecutorService
@@ -119,7 +119,7 @@ class ProjectFileListViewModel : ViewModel {
      * [onHide], and is cleared when another media source is set. Replaceable, for instance by a cache on disk.
      */
     @Volatile
-    var thumbnails: ThumbnailCache = ThumbnailService.cache
+    var thumbnails: ThumbnailCache<Image> = ThumbnailService.cache
 
     /** Whether the system shows the dark appearance, so the dark placeholder icons are used. */
     val dark: ReadOnlyBooleanProperty = darkWrapper.readOnlyProperty

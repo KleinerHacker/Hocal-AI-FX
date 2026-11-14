@@ -9,6 +9,7 @@ module org.pcsoft.app.hocal.fx.model {
 
     // The observable wrappers expose the plain model types, so consumers need them as well.
     requires transitive org.pcsoft.app.hocal.model;
+    requires transitive org.pcsoft.app.hocal.thumbnail;
 
     // The property models mirroring the plain model types are the public surface.
     exports org.pcsoft.app.hocal.fx.model.project;

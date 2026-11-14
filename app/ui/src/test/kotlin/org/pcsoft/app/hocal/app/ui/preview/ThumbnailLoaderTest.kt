@@ -12,6 +12,8 @@
 
 package org.pcsoft.app.hocal.app.ui.preview
 
+import org.pcsoft.app.hocal.thumbnail.ThumbnailKey
+import org.pcsoft.app.hocal.thumbnail.MemoryThumbnailCache
 import javafx.scene.image.Image
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -43,7 +45,7 @@ class ThumbnailLoaderTest {
     }
 
     private val source = FakeMediaSource()
-    private val cache = MemoryThumbnailCache()
+    private val cache = MemoryThumbnailCache<Image>()
     private val loader = ThumbnailLoader(cache = cache)
 
     @AfterEach
@@ -197,7 +199,7 @@ class ThumbnailLoaderTest {
     @Test
     fun closingALoaderWithOwnPoolEndsItsPool() {
         source.add("r1", "png" to pngBytes(50, 50))
-        val own = ThumbnailLoader(cache = MemoryThumbnailCache(), threads = 1)
+        val own = ThumbnailLoader(cache = MemoryThumbnailCache<Image>(), threads = 1)
 
         own.close()
         val future = CompletableFuture<Image?>()
@@ -333,7 +335,7 @@ class ThumbnailLoaderTest {
     @Test
     fun loadsOnNamedDaemonThreadsOfAnOwnPool() {
         val threadInfo = CompletableFuture<Pair<String, Boolean>>()
-        val own = ThumbnailLoader(cache = MemoryThumbnailCache(), threads = 1)
+        val own = ThumbnailLoader(cache = MemoryThumbnailCache<Image>(), threads = 1)
 
         own.load(threadSpy(threadInfo), "r1", 0, 32) { }
         val (name, daemon) = threadInfo.get(5, TimeUnit.SECONDS)

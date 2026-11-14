@@ -10,18 +10,14 @@
  * See the License for the specific language governing permissions and limitations.
  */
 
-package org.pcsoft.app.hocal.app.ui.preview
+package org.pcsoft.app.hocal.thumbnail
 
-import javafx.scene.image.Image
-import javafx.scene.image.WritableImage
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testfx.api.FxToolkit
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -31,15 +27,7 @@ import java.util.concurrent.TimeUnit
  */
 class MemoryThumbnailCacheTest {
 
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        fun startToolkit() {
-            FxToolkit.registerPrimaryStage()
-        }
-    }
-
-    private fun image(): Image = WritableImage(1, 1)
+    private fun image(): String = java.util.UUID.randomUUID().toString()
 
     private fun key(reference: String, number: Int = 0, size: Int = 48) = ThumbnailKey(reference, number, size)
 
@@ -49,7 +37,7 @@ class MemoryThumbnailCacheTest {
      */
     @Test
     fun storedThumbnailIsFound() {
-        val cache = MemoryThumbnailCache()
+        val cache = MemoryThumbnailCache<String>()
         val stored = image()
 
         cache.put(key("r1"), 3, stored)
@@ -63,7 +51,7 @@ class MemoryThumbnailCacheTest {
      */
     @Test
     fun unknownKeyHasNoThumbnail() {
-        val cache = MemoryThumbnailCache()
+        val cache = MemoryThumbnailCache<String>()
         cache.put(key("r1", 0, 48), 1, image())
 
         assertNull(cache.get(key("r2", 0, 48), 1))
@@ -77,7 +65,7 @@ class MemoryThumbnailCacheTest {
      */
     @Test
     fun staleThumbnailIsDropped() {
-        val cache = MemoryThumbnailCache()
+        val cache = MemoryThumbnailCache<String>()
         cache.put(key("r1"), 1, image())
 
         assertNull(cache.get(key("r1"), 2))
@@ -91,7 +79,7 @@ class MemoryThumbnailCacheTest {
      */
     @Test
     fun leastRecentlyUsedThumbnailIsEvicted() {
-        val cache = MemoryThumbnailCache(maxEntries = 2)
+        val cache = MemoryThumbnailCache<String>(maxEntries = 2)
         val first = image()
         val third = image()
         cache.put(key("r1"), 1, first)
@@ -112,7 +100,7 @@ class MemoryThumbnailCacheTest {
      */
     @Test
     fun invalidateDropsAllThumbnailsOfOneReference() {
-        val cache = MemoryThumbnailCache()
+        val cache = MemoryThumbnailCache<String>()
         val other = image()
         cache.put(key("r1", 0, 48), 2, image())
         cache.put(key("r1", 1, 48), 2, image())
@@ -130,7 +118,7 @@ class MemoryThumbnailCacheTest {
      */
     @Test
     fun clearDropsEverything() {
-        val cache = MemoryThumbnailCache()
+        val cache = MemoryThumbnailCache<String>()
         cache.put(key("r1"), 1, image())
         cache.put(key("r2"), 1, image())
 
@@ -145,7 +133,7 @@ class MemoryThumbnailCacheTest {
      */
     @Test
     fun maxEntriesBelowOneIsRejected() {
-        assertThrows<IllegalArgumentException> { MemoryThumbnailCache(maxEntries = 0) }
+        assertThrows<IllegalArgumentException> { MemoryThumbnailCache<String>(maxEntries = 0) }
     }
 
     /**
@@ -154,7 +142,7 @@ class MemoryThumbnailCacheTest {
      */
     @Test
     fun concurrentAccessKeepsTheLimit() {
-        val cache = MemoryThumbnailCache(maxEntries = 50)
+        val cache = MemoryThumbnailCache<String>(maxEntries = 50)
         val pool = Executors.newFixedThreadPool(8)
         try {
             val tasks = (0 until 8).map { worker ->

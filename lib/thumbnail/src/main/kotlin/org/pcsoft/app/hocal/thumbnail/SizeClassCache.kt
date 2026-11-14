@@ -10,9 +10,7 @@
  * See the License for the specific language governing permissions and limitations.
  */
 
-package org.pcsoft.app.hocal.app.ui.preview
-
-import javafx.scene.image.Image
+package org.pcsoft.app.hocal.thumbnail
 
 /**
  * A [ThumbnailCache] that keeps small and large images apart, so that a few large images cannot fill the
@@ -21,21 +19,22 @@ import javafx.scene.image.Image
  * An image of the edge length [largeFrom] or more goes into the [large] cache, which holds few images; every
  * other image goes into the [small] cache. Invalidating and clearing reach both.
  *
+ * @param V the type of the stored images
  * @param small the cache of the small thumbnails
  * @param large the cache of the large images, the ones of the image view
  * @param largeFrom the edge length in pixels from which an image counts as large
  */
-class SizeClassCache(
-    private val small: ThumbnailCache,
-    private val large: ThumbnailCache,
+class SizeClassCache<V : Any>(
+    private val small: ThumbnailCache<V>,
+    private val large: ThumbnailCache<V>,
     private val largeFrom: Int,
-) : ThumbnailCache {
+) : ThumbnailCache<V> {
 
-    private fun cacheOf(key: ThumbnailKey): ThumbnailCache = if (key.size >= largeFrom) large else small
+    private fun cacheOf(key: ThumbnailKey): ThumbnailCache<V> = if (key.size >= largeFrom) large else small
 
-    override fun get(key: ThumbnailKey, mediaCount: Int): Image? = cacheOf(key).get(key, mediaCount)
+    override fun get(key: ThumbnailKey, mediaCount: Int): V? = cacheOf(key).get(key, mediaCount)
 
-    override fun put(key: ThumbnailKey, mediaCount: Int, image: Image) = cacheOf(key).put(key, mediaCount, image)
+    override fun put(key: ThumbnailKey, mediaCount: Int, value: V) = cacheOf(key).put(key, mediaCount, value)
 
     override fun invalidate(reference: String) {
         small.invalidate(reference)

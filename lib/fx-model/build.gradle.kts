@@ -27,6 +27,9 @@ javafx {
 dependencies {
     // The plain model types appear in the signatures of the observable wrappers, so they are part of the API.
     api(project(":lib:hocal-model"))
+
+    // The thumbnail store of the open project is part of the ProjectManager API.
+    api(project(":lib:hocal-thumbnail"))
 }
 
 // The module descriptor is the only Java source, while the classes it exports are written in Kotlin.

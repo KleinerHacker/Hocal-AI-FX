@@ -39,6 +39,11 @@ import org.pcsoft.app.hocal.model.tree.internal.move
 import org.pcsoft.app.hocal.model.tree.internal.orphansOf
 import org.pcsoft.app.hocal.model.tree.internal.removeReference
 import org.pcsoft.app.hocal.model.tree.internal.rename
+import org.pcsoft.app.hocal.thumbnail.ThumbnailCache
+import org.pcsoft.app.hocal.thumbnail.ThumbnailKey
+import org.pcsoft.app.hocal.thumbnail.ThumbnailPixels
+import org.pcsoft.app.hocal.thumbnail.ZipThumbnailStore
+import java.io.IOException
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
@@ -62,6 +67,10 @@ import java.util.UUID
  * The media of the open project live in a temporary folder for the time it is open and are removed
  * again on [close]. A password given to [open] or [saveAs] is kept in memory so [save] does not ask
  * again, and is overwritten on [close]. The password is changed only by [saveAs].
+ *
+ * The thumbnails of the open project are kept in a file in the same temporary folder, see [thumbnailCache]. It is
+ * encrypted with the password of the project if there is one, renewed empty when [saveAs] changes the password, and
+ * removed with the folder on [close].
  *
  * All members belong to the FX thread; see [threadCheck]. Reading and writing a file blocks the caller.
  */
@@ -93,6 +102,13 @@ object ProjectManager {
     /** Whether a project is loaded. */
     val isLoaded: Boolean get() = loadedWrapper.get()
 
+    /**
+     * The thumbnail store of the open project, which lives in a file in the temporary folder: the very same object
+     * for the whole run, so it may be held by anyone. It forwards to the store of the project that is loaded now; while
+     * no project is loaded, it has nothing and stores nothing. It is thread-safe, unlike the manager itself.
+     */
+    val thumbnailCache: ThumbnailCache<ThumbnailPixels> get() = thumbnails
+
     /** The version of the application, written into the project on every save. Set by the application at start. */
     var applicationVersion: String = ""
 
@@ -111,6 +127,10 @@ object ProjectManager {
     private var sessionDirectory: Path? = null
 
     private var password: CharArray? = null
+
+    private val thumbnails = ForwardingThumbnailCache()
+
+    private var thumbnailStore: ZipThumbnailStore? = null
 
     // While the project is loaded or saved the manager itself changes the property models, which must not count as an edit.
     private var quiet = false
@@ -219,7 +239,9 @@ object ProjectManager {
         checkThread()
         write(path, password)
         pathWrapper.set(path)
+        val sameSecret = this.password?.contentEquals(password) ?: (password == null)
         keepPassword(password)
+        if (!sameSecret) renewThumbnailStore()
     }
 
     /**
@@ -387,6 +409,7 @@ object ProjectManager {
         store = DirectoryMediaStore(directory)
         pathWrapper.set(path)
         keepPassword(password)
+        renewThumbnailStore()
         dirtyWrapper.set(false)
         loadedWrapper.set(true)
     }
@@ -399,6 +422,7 @@ object ProjectManager {
             quiet = false
         }
         keepPassword(null)
+        closeThumbnailStore()
         sessionDirectory?.toFile()?.deleteRecursively()
         sessionDirectory = null
         store = null
@@ -412,6 +436,48 @@ object ProjectManager {
         password = newPassword?.copyOf()
         encryptedWrapper.set(password != null)
     }
+
+    // The old store is closed after the new one is in place, so a thumbnail that is looked up meanwhile finds a store.
+    private fun renewThumbnailStore() {
+        val directory = sessionDirectory
+        val fresh = try {
+            directory?.let { ZipThumbnailStore(it.resolve(THUMBNAIL_FILE), password) }
+        } catch (_: IOException) {
+            null
+        }
+        val old = thumbnailStore
+        thumbnailStore = fresh
+        thumbnails.target = fresh
+        old?.close()
+    }
+
+    private fun closeThumbnailStore() {
+        thumbnails.target = null
+        thumbnailStore?.close()
+        thumbnailStore = null
+    }
+
+    /** Forwards to the current store; no store means no thumbnail. */
+    private class ForwardingThumbnailCache : ThumbnailCache<ThumbnailPixels> {
+        @Volatile
+        var target: ThumbnailCache<ThumbnailPixels>? = null
+
+        override fun get(key: ThumbnailKey, mediaCount: Int): ThumbnailPixels? = target?.get(key, mediaCount)
+
+        override fun put(key: ThumbnailKey, mediaCount: Int, value: ThumbnailPixels) {
+            target?.put(key, mediaCount, value)
+        }
+
+        override fun invalidate(reference: String) {
+            target?.invalidate(reference)
+        }
+
+        override fun clear() {
+            target?.clear()
+        }
+    }
+
+    private const val THUMBNAIL_FILE = "thumbnails.zip"
 
     private fun newSessionDirectory(): Path {
         val root = workRoot

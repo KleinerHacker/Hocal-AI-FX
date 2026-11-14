@@ -10,16 +10,14 @@
  * See the License for the specific language governing permissions and limitations.
  */
 
-package org.pcsoft.app.hocal.app.ui.preview
-
-import javafx.scene.image.Image
+package org.pcsoft.app.hocal.thumbnail
 
 /**
- * A store for loaded thumbnails, so a thumbnail is loaded once and not on every look at its folder.
+ * A store for loaded thumbnails of the value type [V], so a thumbnail is loaded once and not on every look at its folder.
  *
- * This is the extension point for later caches: the first implementation, [MemoryThumbnailCache], lives
- * for the run of the application only; a cache on disk or a cache made of several levels implements the
- * same interface and replaces it without a change of the file list.
+ * This is the extension point for later caches: [MemoryThumbnailCache] lives for the run of
+ * the application only, [ZipThumbnailStore] keeps the thumbnails in a file, [TieredThumbnailCache] combines two
+ * caches and [SizeClassCache] splits by size. All implement this interface and replace each other freely.
  *
  * A thumbnail is stored together with the number of media its reference had when it was loaded. Removing
  * or appending a medium changes that number, so a stored thumbnail is stale as soon as the number the
@@ -27,7 +25,7 @@ import javafx.scene.image.Image
  *
  * All members are called from several threads, so an implementation has to be thread-safe.
  */
-interface ThumbnailCache {
+interface ThumbnailCache<V : Any> {
 
     /**
      * Returns the stored thumbnail, if there is one that is still valid.
@@ -38,16 +36,16 @@ interface ThumbnailCache {
      * @param mediaCount the number of media the reference has now
      * @return the thumbnail, or `null` if there is none or it is stale
      */
-    fun get(key: ThumbnailKey, mediaCount: Int): Image?
+    fun get(key: ThumbnailKey, mediaCount: Int): V?
 
     /**
      * Stores a successfully loaded thumbnail. Never store a placeholder or a failure here.
      *
      * @param key the thumbnail
      * @param mediaCount the number of media the reference has now
-     * @param image the loaded image
+     * @param value the loaded thumbnail
      */
-    fun put(key: ThumbnailKey, mediaCount: Int, image: Image)
+    fun put(key: ThumbnailKey, mediaCount: Int, value: V)
 
     /**
      * Drops every thumbnail of a reference, whatever its medium number and size.

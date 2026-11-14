@@ -31,6 +31,8 @@ import org.pcsoft.app.hocal.model.storage.ProjectFileException
 import org.pcsoft.app.hocal.model.storage.WrongPasswordException
 import org.pcsoft.app.hocal.model.tree.InvalidNameException
 import org.pcsoft.app.hocal.model.tree.UnknownReferenceException
+import org.pcsoft.app.hocal.thumbnail.ThumbnailKey
+import org.pcsoft.app.hocal.thumbnail.ThumbnailPixels
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
@@ -425,5 +427,96 @@ class ProjectManagerTest {
 
         manager.threadCheck = { false }
         assertThrows(IllegalStateException::class.java) { manager.isPasswordRequired(target) }
+    }
+
+    private val key = ThumbnailKey("ref", 0, 48)
+
+    private fun marker() = ThumbnailPixels(8, 8, ByteArray(8 * 8 * 4) { 0x5A })
+
+    private fun thumbnailFile(): Path? =
+        Files.walk(work).use { stream -> stream.filter { it.fileName.toString() == "thumbnails.zip" }.findFirst().orElse(null) }
+
+    /** Without a loaded project the thumbnail store has nothing and stores nothing. */
+    @Test
+    fun thumbnailCacheIsEmptyWithoutAProject() {
+        manager.thumbnailCache.put(key, 1, marker())
+
+        assertNull(manager.thumbnailCache.get(key, 1))
+    }
+
+    /** A loaded project has a thumbnail file in its temporary folder and stores thumbnails in it. */
+    @Test
+    fun thumbnailsAreStoredWhileAProjectIsLoaded() {
+        manager.createNew("Sample")
+
+        manager.thumbnailCache.put(key, 1, marker())
+
+        assertEquals(marker(), manager.thumbnailCache.get(key, 1))
+        assertNotNull(thumbnailFile())
+    }
+
+    /** Closing removes the thumbnail file with the temporary folder; the store object stays the same and is empty. */
+    @Test
+    fun closeRemovesTheThumbnailFile() {
+        val store = manager.thumbnailCache
+        manager.createNew("Sample")
+        manager.thumbnailCache.put(key, 1, marker())
+
+        manager.close(discardChanges = true)
+
+        assertEquals(0, leftovers())
+        assertTrue(store === manager.thumbnailCache)
+        assertNull(manager.thumbnailCache.get(key, 1))
+    }
+
+    /** The thumbnails of a closed project are not seen by the next project, also not when it is the same file. */
+    @Test
+    fun anotherSessionStartsWithAnEmptyStore() {
+        savedProject()
+        manager.thumbnailCache.put(key, 1, marker())
+        manager.close()
+
+        manager.open(target)
+
+        assertNull(manager.thumbnailCache.get(key, 1))
+    }
+
+    /** Saving under the same password keeps the thumbnails; a new password or the other form starts a new, empty store. */
+    @Test
+    fun saveAsRenewsTheStoreOnlyWhenThePasswordChanges() {
+        savedProject()
+        manager.thumbnailCache.put(key, 1, marker())
+
+        manager.saveAs(directory.resolve("copy.hocal"))
+        assertEquals(marker(), manager.thumbnailCache.get(key, 1))
+
+        manager.saveAs(directory.resolve("secret.hocal"), "secret".toCharArray())
+        assertNull(manager.thumbnailCache.get(key, 1))
+
+        manager.thumbnailCache.put(key, 1, marker())
+        manager.saveAs(directory.resolve("secret-again.hocal"), "secret".toCharArray())
+        assertEquals(marker(), manager.thumbnailCache.get(key, 1))
+
+        manager.saveAs(directory.resolve("other.hocal"), "other".toCharArray())
+        assertNull(manager.thumbnailCache.get(key, 1))
+
+        manager.thumbnailCache.put(key, 1, marker())
+        manager.saveAs(directory.resolve("plain.hocal"))
+        assertNull(manager.thumbnailCache.get(key, 1))
+    }
+
+    /** The thumbnail file of an encrypted project does not hold the pixels in the clear; that of a plain project does. */
+    @Test
+    fun thumbnailFileIsEncryptedWithTheProjectPassword() {
+        val pattern = "Z".repeat(32)
+        manager.createNew("Sample")
+        manager.thumbnailCache.put(key, 1, marker())
+        assertTrue(String(Files.readAllBytes(thumbnailFile()!!), Charsets.ISO_8859_1).contains(pattern))
+
+        manager.saveAs(target, "secret".toCharArray())
+        manager.thumbnailCache.put(key, 1, marker())
+
+        assertEquals(marker(), manager.thumbnailCache.get(key, 1))
+        assertFalse(String(Files.readAllBytes(thumbnailFile()!!), Charsets.ISO_8859_1).contains(pattern))
     }
 }

@@ -14,6 +14,8 @@ package org.pcsoft.app.hocal.app.ui.preview
 
 import javafx.application.Platform
 import javafx.scene.image.Image
+import org.pcsoft.app.hocal.thumbnail.ThumbnailCache
+import org.pcsoft.app.hocal.thumbnail.ThumbnailKey
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
@@ -36,7 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger
  */
 class ThumbnailLoader(
     private val registry: MediaPreviewRegistry = ThumbnailService.registry,
-    private val cache: ThumbnailCache = ThumbnailService.cache,
+    private val cache: ThumbnailCache<Image> = ThumbnailService.cache,
     threads: Int? = null,
 ) {
     private class Handle : LoadHandle {

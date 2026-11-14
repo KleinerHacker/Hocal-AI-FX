@@ -9,6 +9,7 @@ module org.pcsoft.app.hocal.ui {
     requires de.saxsys.mvvmfx;
 
     requires org.pcsoft.app.hocal.fx.model;
+    requires org.pcsoft.app.hocal.thumbnail;
 
     opens org.pcsoft.app.hocal.app to javafx.fxml, de.saxsys.mvvmfx;
     opens org.pcsoft.app.hocal.app.ui.window to javafx.fxml, de.saxsys.mvvmfx;
