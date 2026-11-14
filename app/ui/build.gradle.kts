@@ -36,6 +36,9 @@ val testFxVersion = "4.0.18"
 val log4jVersion = "2.26.1"
 
 dependencies {
+    // The property models of the project and the ProjectManager; the plain model comes along as an API dependency.
+    implementation(project(":lib:hocal-fx-model"))
+
     implementation("org.apache.commons:commons-lang3:3.21.0")
 
     implementation("org.controlsfx:controlsfx:11.2.5")
@@ -140,4 +143,38 @@ val packageDist = tasks.register<Zip>("packageDist") {
 
 tasks.named("assemble") {
     dependsOn(packageDist)
+}
+
+// Manual check of the dialogs, see the `dialog` skill: a small application showing every dialog, started by
+// hand with `gradlew :app:hocal-ui:runDialogDemo`. It lives in its own source set, so the main source set
+// never sees it: `jar`, `packageDist` and `jlink` only use the main output and the runtime classpath of the
+// main source set, so the demo never ships. It holds no test.
+sourceSets {
+    create("demo") {
+        compileClasspath += sourceSets.main.get().output + configurations.compileClasspath.get()
+        runtimeClasspath += output + compileClasspath + sourceSets.main.get().runtimeClasspath
+    }
+}
+
+// Brings mvvmfx, JavaFX and Log4j to the demo.
+configurations.named("demoImplementation") {
+    extendsFrom(configurations.implementation.get())
+}
+configurations.named("demoRuntimeOnly") {
+    extendsFrom(configurations.runtimeOnly.get())
+}
+
+tasks.register<JavaExec>("runDialogDemo") {
+    group = "demo"
+    description = "Starts the dialog demo for the manual check (never part of build, check or test)"
+
+    classpath = sourceSets["demo"].runtimeClasspath
+    mainClass.set("org.pcsoft.app.hocal.app.ui.dialog.DialogDemoKt")
+    // The demo runs on the class path, so JavaFX loads its native library as part of the unnamed module.
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+}
+
+// `build` compiles the demo, so a demo that no longer matches its dialogs breaks the build.
+tasks.named("build") {
+    dependsOn("demoClasses")
 }

@@ -15,7 +15,7 @@
 * [ ] `ViewSettings`, `ModelSettings`, `ComfySettings`, `GenerationSettings` als verschachtelte POJOs anlegen
 * [ ] Property-Modelle je POJO in `lib/fx-model`, gespiegeltes Paket
 * [ ] Vorgaben an einer Stelle definieren, auch für „Standard wiederherstellen“
-* [ ] Wertebereiche der Grenzen im Modell prüfen: Bildgröße, Projektgröße in Bytes, Warteschlange
+* [ ] Wertebereiche der Grenzen im Modell prüfen: Bildgröße, Projektgröße in Bytes, Warteschlange, Vorschau-Threads
 
 ## Aufgabe 3: Speicher
 

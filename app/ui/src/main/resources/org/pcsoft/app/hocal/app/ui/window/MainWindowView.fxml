@@ -12,12 +12,18 @@
   ~ See the License for the specific language governing permissions and limitations.
   -->
 
-<?import javafx.scene.control.Label?>
+<?import javafx.geometry.Orientation?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.layout.BorderPane?>
-<?import org.pcsoft.app.hocal.app.ui.component.FlowList?>
+<?import org.pcsoft.app.hocal.app.ui.component.GenerationDetails?>
+<?import org.pcsoft.app.hocal.app.ui.component.HistoryList?>
+<?import org.pcsoft.app.hocal.app.ui.component.MediaView?>
+<?import org.pcsoft.app.hocal.app.ui.component.ProjectFileList?>
+<?import org.pcsoft.app.hocal.app.ui.component.ProjectTree?>
+<?import org.pcsoft.app.hocal.app.ui.component.PromptInput?>
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="org.pcsoft.app.hocal.app.ui.window.MainWindowView"
@@ -31,11 +37,36 @@
         </MenuBar>
     </top>
 
-    <left>
-        <FlowList fx:id="flowList" prefWidth="280.0"/>
-    </left>
-
     <center>
-        <Label fx:id="lblSelection" styleClass="selection-hint"/>
+        <!-- Outer splitter: project side (tree above file list) | content area -->
+        <SplitPane fx:id="splMain" orientation="HORIZONTAL">
+            <items>
+                <!-- Side areas keep their width when the window is resized, the rest takes the difference -->
+                <SplitPane fx:id="splProject" orientation="VERTICAL" SplitPane.resizableWithParent="false">
+                    <items>
+                        <ProjectTree fx:id="trvProject" id="pnlTree"/>
+                        <ProjectFileList fx:id="lstFiles" id="pnlFiles"/>
+                    </items>
+                </SplitPane>
+
+                <!-- Content area: generation details | media with prompt input | history -->
+                <SplitPane fx:id="splContent" orientation="HORIZONTAL">
+                    <items>
+                        <GenerationDetails fx:id="detailsView" id="pnlDetails" SplitPane.resizableWithParent="false"/>
+                        <!-- Media with prompt input: the image above (IP-05), the input part below -->
+                        <!-- minWidth 0: the input part must not keep the splitter from shrinking this part first -->
+                        <BorderPane id="pnlMedia" minWidth="0.0">
+                            <center>
+                                <MediaView fx:id="mediaView" id="pnlImage"/>
+                            </center>
+                            <bottom>
+                                <PromptInput fx:id="promptInput" id="pnlPromptInput"/>
+                            </bottom>
+                        </BorderPane>
+                        <HistoryList fx:id="lstHistory" id="pnlHistory" SplitPane.resizableWithParent="false"/>
+                    </items>
+                </SplitPane>
+            </items>
+        </SplitPane>
     </center>
 </BorderPane>

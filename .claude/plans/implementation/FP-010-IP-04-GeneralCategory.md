@@ -14,6 +14,8 @@
 * [ ] Maximale Projektdateigröße in GB (1 GB = 1.000.000.000 Bytes), Vorgabe 2 GB, Bereich 50 MB bis 16 GB
 * [ ] Rückfragen vor dem Löschen von Medium, Ordner und Referenz, Vorgabe an
 * [ ] Anzahl zuletzt geöffneter Projekte, Vorgabe 10, 0 schaltet die Liste ab
+* [ ] Vorschau-Threads: Anzahl der Threads, die Vorschaubilder gleichzeitig laden, Vorgabe 5, Bereich 1 bis 16
+* [ ] Thumbnail-System: Auswahl `ThumbnailStorage` (Speicher oder Platte), Vorgabe Speicher
 * [ ] Wertebereiche mit Meldung am Feld anzeigen
 
 ## Aufgabe 3: Zuletzt geöffnet
@@ -26,6 +28,8 @@
 
 * [ ] Tests für Seite, View-Modell und Liste
 * [ ] Lösch-Rückfrage wird von den Abläufen aus FP-008 beim Gebrauch gelesen
+* [ ] Vorschau-Threads setzen `ProjectFileListViewModel.loadThreads` (FP-002), wirken für danach gestartete Ladevorgänge; Test dazu
+* [ ] Thumbnail-System setzt `ProjectManager.thumbnailStorage` (FP-002 IP-09), wirkt auch bei geladenem Projekt; Test dazu
 
 ## Abschluss
 

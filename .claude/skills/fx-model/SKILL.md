@@ -100,6 +100,16 @@ description: Mirroring rule between the plain model POJOs in lib/model (hocal-mo
   * Kotlin `internal` does not reach across Gradle modules; the qualified export in the module
     descriptor is what protects these packages
 
+## Thread
+
+* Every operation of the `ProjectManager` belongs to the FX thread; it recognizes that thread itself with
+  `javafx.application.Platform.isFxApplicationThread()`
+  * That is the only toolkit class `lib/fx-model` may use, see the architecture rule
+  * Its `threadCheck` is `internal`: only the tests of the library replace it, because they run without a
+    toolkit; the application and its tests NEVER set it
+* Code that works on a background thread - loading previews for instance - MUST NOT call the `ProjectManager`
+  directly; it moves the call to the FX thread and waits for the answer, as `ProjectMediaSource` does
+
 ## Testing
 
 * Load the `testing` skill before writing the tests
