@@ -46,4 +46,15 @@ interface MediaSource {
      * @return a new stream over the content
      */
     fun open(reference: String, number: Int): InputStream
+
+    /**
+     * Returns the details of the creation of a medium.
+     *
+     * The default answer is `null`: a source that knows no details needs not override it.
+     *
+     * @param reference UUID of the reference
+     * @param number position of the medium in the history
+     * @return the details, `null` if the medium is unknown or the source has none
+     */
+    fun details(reference: String, number: Int): MediumDetails? = null
 }

@@ -115,6 +115,40 @@ class ProjectMediaSourceTest {
     }
 
     /**
+     * Use case: a reference whose media carry details. The source answers prompt, model and flow of each
+     * medium by its number, from the FX thread and from another thread; empty texts are answered as `null`.
+     */
+    @Test
+    fun answersTheDetailsOfEachMedium() {
+        val reference = fx {
+            ProjectManager.addReference(Medium("A red fox", "model-1", "flow-1"), "png", ByteArrayInputStream(pngBytes(8, 8)))
+        }
+        fx {
+            ProjectManager.appendMedium(reference, Medium("  ", "model-2", ""), "png", ByteArrayInputStream(pngBytes(8, 8)))
+        }
+
+        assertEquals(MediumDetails("A red fox", "model-1", "flow-1"), source.details(reference, 0))
+        assertEquals(MediumDetails(null, "model-2", null), fx { source.details(reference, 1) })
+    }
+
+    /**
+     * Use case: a medium without any detail, an unknown number, an unknown reference and no project. The
+     * answer is empty details for the first and `null` for the others.
+     */
+    @Test
+    fun answersNothingForUnknownMedia() {
+        val reference = addReference(pngBytes(8, 8))
+
+        assertEquals(MediumDetails(), source.details(reference, 0))
+        assertEquals(null, source.details(reference, 5))
+        assertEquals(null, source.details("unknown", 0))
+
+        fx { ProjectManager.close(discardChanges = true) }
+
+        assertEquals(null, source.details(reference, 0))
+    }
+
+    /**
      * Use case: a medium that does not exist is asked for. The failure of the manager reaches the caller
      * as it is, and does not end up as a failure of the waiting.
      */

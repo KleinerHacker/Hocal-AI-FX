@@ -27,6 +27,7 @@ runs without building a ComfyUI graph.
 | Folder tree of the project in the main window                  | Implemented |
 | File list of the selected folder with media previews           | Implemented |
 | Media history list and image view of the selected file         | Implemented |
+| Generation details (model, flow and prompt) of the selected medium | Implemented |
 | Prompt input with gallery dialog, model and flow selection (placeholders) | Implemented |
 | English and German user interface                              | Implemented |
 | Application icon in the main window                            | Implemented |

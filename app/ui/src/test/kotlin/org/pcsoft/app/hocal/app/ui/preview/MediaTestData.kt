@@ -54,6 +54,15 @@ internal class FakeMediaSource : MediaSource {
         media[reference] = items.toList()
     }
 
+    private val details = mutableMapOf<Pair<String, Int>, MediumDetails>()
+
+    /** Registers the details of one medium; media without registered details answer `null`. */
+    fun addDetails(reference: String, number: Int, details: MediumDetails) {
+        this.details[reference to number] = details
+    }
+
+    override fun details(reference: String, number: Int): MediumDetails? = details[reference to number]
+
     override fun mediaCount(reference: String): Int = media[reference]?.size ?: 0
 
     override fun extension(reference: String, number: Int): String = media.getValue(reference)[number].first

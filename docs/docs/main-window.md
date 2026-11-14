@@ -27,8 +27,6 @@ and the history list keep their width; the media with the prompt input takes the
 | Media with prompt input           | content area, centre             | 60 % of the content area     |
 | History list                      | content area, right              | 20 % of the content area     |
 
-The generation details are still an empty placeholder; their content follows in a later version.
-
 ## Project
 
 The application starts with a new, empty project. The window shows it:
@@ -49,6 +47,14 @@ image. The last medium is selected automatically, also when a new medium is adde
 can select any other medium. The image in the middle shows the selected medium, scaled to the available
 space. A medium that cannot be shown - it is no image, or damaged - shows a placeholder, and nothing is
 shown while no file is selected.
+
+## Generation details
+
+The panel on the left of the content area shows how the selected medium was created. The first line
+holds the model and the flow, separated by a dot; the second line holds the beginning of the prompt on a
+single line. A prompt that is longer than the panel is cut with `...`; the wider the panel, the more of
+it is shown. Images that were used additionally for a generation are not shown. A medium without these
+details, for instance the original image of a file, leaves both lines empty, as does an empty selection.
 
 ## Prompt input
 

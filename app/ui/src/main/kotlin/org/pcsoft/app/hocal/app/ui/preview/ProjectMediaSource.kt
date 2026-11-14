@@ -63,6 +63,21 @@ class ProjectMediaSource : MediaSource {
         ProjectManager.openMedium(reference, number)
     }
 
+    /**
+     * The details of the creation of a medium.
+     *
+     * @param reference UUID of the reference
+     * @param number number of the medium, `0` is the original
+     * @return the details with empty texts as `null`, or `null` if there is no project, no such reference or no
+     *   such medium
+     */
+    override fun details(reference: String, number: Int): MediumDetails? = onFxThread {
+        val medium = ProjectManager.project.get()?.references?.firstOrNull { it.uuid == reference }?.media?.getOrNull(number)
+        medium?.let { MediumDetails(it.prompt.orNull(), it.model.orNull(), it.flow.orNull()) }
+    }
+
+    private fun String?.orNull(): String? = this?.takeIf { it.isNotBlank() }
+
     private fun <T> onFxThread(action: () -> T): T {
         if (Platform.isFxApplicationThread()) return action()
 

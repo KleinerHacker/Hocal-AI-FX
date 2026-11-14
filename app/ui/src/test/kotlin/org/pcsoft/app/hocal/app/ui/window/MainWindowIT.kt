@@ -436,6 +436,82 @@ class MainWindowIT : ApplicationTest() {
         assertSame(promptInput.mediaSourceProperty().get(), fileList.mediaSourceProperty().get())
     }
 
+    private fun detailsLines(): Pair<String, String> {
+        WaitForAsyncUtils.waitForFxEvents()
+        val details = window.scene.root.lookup("#pnlDetails")
+        return (details.lookup("#lblModelFlow") as Label).text to (details.lookup("#lblPrompt") as Label).text
+    }
+
+    private fun addFileWithDetails(parent: VirtualFolder, name: String, vararg media: Medium): String {
+        val reference = fx {
+            ProjectManager.addReference(media.first(), "png", ByteArrayInputStream(pngBytes(60, 40, 0xFF0000)))
+        }
+        media.drop(1).forEach { medium ->
+            fx { ProjectManager.appendMedium(reference, medium, "png", ByteArrayInputStream(pngBytes(60, 40, 0x00FF00))) }
+        }
+        fx { ProjectManager.createEntry(parent, name, reference) }
+        return reference
+    }
+
+    /**
+     * Use case: nothing is selected. The generation details at the top of the left part of the content area are
+     * empty. A file whose media carry no details leaves them empty as well.
+     */
+    @Test
+    fun detailsAreEmptyWithoutSelectionAndWithoutDetails() {
+        assertEquals("" to "", detailsLines())
+
+        val photos = addFolder(rootFolder, "Photos")
+        addFileWithMedia(photos, "A.png", 0xFF0000)
+        selectFolder(photos)
+        selectFirstFile()
+        awaitTrue { shownColor() == 0xFF0000 }
+
+        assertEquals("" to "", detailsLines())
+    }
+
+    /**
+     * Use case: the user selects a file and then another medium of its history. The details show model, flow
+     * and prompt of the selected medium: the last one after selecting the file, the chosen one afterwards.
+     */
+    @Test
+    fun detailsFollowTheSelectedMedium() {
+        val photos = addFolder(rootFolder, "Photos")
+        addFileWithDetails(
+            photos, "A.png",
+            Medium("A red fox", "model-1", "text-to-image"),
+            Medium("The fox gets a hat", "model-2", "image-to-image"),
+        )
+        selectFolder(photos)
+
+        selectFirstFile()
+        awaitTrue { detailsLines() == ("model-2 · image-to-image" to "The fox gets a hat") }
+
+        interact { history.selectionModel.select(0) }
+        awaitTrue { detailsLines() == ("model-1 · text-to-image" to "A red fox") }
+    }
+
+    /**
+     * Use case: a medium is appended to the shown file, for instance by a generation. The new medium is
+     * selected and the details show its data.
+     */
+    @Test
+    fun appendedMediumShowsItsDetails() {
+        val photos = addFolder(rootFolder, "Photos")
+        val reference = addFileWithDetails(photos, "A.png", Medium("A red fox", "model-1", "text-to-image"))
+        selectFolder(photos)
+        selectFirstFile()
+        awaitTrue { detailsLines() == ("model-1 · text-to-image" to "A red fox") }
+
+        fx {
+            ProjectManager.appendMedium(
+                reference, Medium("A blue fox", "model-3", null), "png", ByteArrayInputStream(pngBytes(60, 40, 0x0000FF)),
+            )
+        }
+
+        awaitTrue { detailsLines() == ("model-3" to "A blue fox") }
+    }
+
     /**
      * Use case: the user chooses Exit in the File menu, so the main window closes.
      */

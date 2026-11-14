@@ -22,6 +22,7 @@ import javafx.fxml.Initializable
 import javafx.geometry.Orientation
 import javafx.scene.control.SplitPane
 import javafx.scene.layout.BorderPane
+import org.pcsoft.app.hocal.app.ui.component.GenerationDetails
 import org.pcsoft.app.hocal.app.ui.component.HistoryList
 import org.pcsoft.app.hocal.app.ui.component.MediaView
 import org.pcsoft.app.hocal.app.ui.component.ProjectFileList
@@ -43,8 +44,8 @@ import java.util.ResourceBundle
  *
  * The folder tree, the file list, the history list, the image view and the prompt input are bound to the project
  * the view model follows: the tree shows its folders, the file list the files of the selected folder, the history
- * list the media of the selected file, the image view the selected medium, and the prompt input offers the folders
- * in the gallery. The generation details are a placeholder until their component is built. Texts come from the
+ * list the media of the selected file, the image view the selected medium, the generation details its model, flow
+ * and prompt, and the prompt input offers the folders in the gallery. Texts come from the
  * global resource bundle via the `%key` syntax of the FXML file.
  */
 class MainWindowView : FxmlView<MainWindowViewModel>, Initializable {
@@ -66,6 +67,8 @@ class MainWindowView : FxmlView<MainWindowViewModel>, Initializable {
     private lateinit var lstHistory: HistoryList
     @FXML
     private lateinit var mediaView: MediaView
+    @FXML
+    private lateinit var detailsView: GenerationDetails
 
     @InjectViewModel
     private lateinit var viewModel: MainWindowViewModel
@@ -77,7 +80,7 @@ class MainWindowView : FxmlView<MainWindowViewModel>, Initializable {
      * Initializes the view after the FXML file has been loaded.
      *
      * Sets the divider positions of the three split panes as soon as each of them has a size, binds the folder
-     * tree, the file list and the prompt input to the project, and registers the view model at the project
+     * tree, the file list, the history, the image view, the details and the prompt input to the project, and registers the view model at the project
      * only while the window is on screen.
      *
      * @param location The location used to resolve relative paths for the root object, or null if unknown.
@@ -105,7 +108,11 @@ class MainWindowView : FxmlView<MainWindowViewModel>, Initializable {
         mediaView.mediumProperty().bind(viewModel.selectedMedium)
         mediaView.mediaSourceProperty().set(viewModel.mediaSource)
 
+        detailsView.mediumProperty().bind(viewModel.selectedMedium)
+        detailsView.mediaSourceProperty().set(viewModel.mediaSource)
+
         viewModel.onMediaChanged = { reference ->
+            detailsView.invalidate(reference)
             lstFiles.invalidate(reference)
             promptInput.invalidate(reference)
             lstHistory.invalidate(reference)
