@@ -333,7 +333,7 @@ class ThumbnailProjectIT {
 
         val error = fxFailure { ProjectManager.saveAs(blocked, password(!encrypted)) }
 
-        assertTrue(error is IOException, "was \$error")
+        assertTrue(error is IOException, "was $error")
         assertEquals(file, ProjectManager.pathProperty.get())
         assertEquals(encrypted, ProjectManager.encryptedProperty.get())
         load(reference)
