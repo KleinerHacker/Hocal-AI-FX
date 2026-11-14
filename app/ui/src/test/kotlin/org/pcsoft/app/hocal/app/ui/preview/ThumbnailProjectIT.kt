@@ -171,7 +171,7 @@ class ThumbnailProjectIT {
         val reference = project(encrypted)
         load(reference)
         fx { ProjectManager.close() }
-        assertEquals(0, Files.list(work).use { it.count() })
+        assertEquals(0L, Files.list(work).use { it.count() })
 
         fx { ProjectManager.open(file, password(encrypted)) }
         val image = load(reference)
@@ -223,7 +223,7 @@ class ThumbnailProjectIT {
         assertEquals(2, opened.get())
         assertEquals(ImageThumbnails.toPixels(renewed), ImageThumbnails.toPixels(again))
         assertEquals(!toEncrypted, fileHoldsPixelsInTheClear())
-        assertEquals(1, Files.walk(work).use { stream -> stream.filter { it.fileName.toString().startsWith("thumbnails-") }.count() })
+        assertEquals(1L, Files.walk(work).use { stream -> stream.filter { it.fileName.toString().startsWith("thumbnails-") }.count() })
     }
 
     /**
@@ -239,7 +239,7 @@ class ThumbnailProjectIT {
 
         fx { ProjectManager.close() }
 
-        assertEquals(0, Files.list(work).use { it.count() })
+        assertEquals(0L, Files.list(work).use { it.count() })
         assertFalse(ProjectManager.isLoaded)
         assertNotNull(ProjectManager.thumbnailCache)
         assertEquals(null, ProjectManager.thumbnailCache.get(ThumbnailKey(reference, 0, 48), 1))
