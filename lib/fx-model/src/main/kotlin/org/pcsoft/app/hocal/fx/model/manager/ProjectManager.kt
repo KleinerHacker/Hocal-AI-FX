@@ -42,6 +42,7 @@ import org.pcsoft.app.hocal.model.tree.internal.rename
 import org.pcsoft.app.hocal.thumbnail.ThumbnailCache
 import org.pcsoft.app.hocal.thumbnail.ThumbnailKey
 import org.pcsoft.app.hocal.thumbnail.ThumbnailPixels
+import org.pcsoft.app.hocal.thumbnail.ThumbnailStorage
 import org.pcsoft.app.hocal.thumbnail.ZipThumbnailStore
 import java.io.IOException
 import java.io.InputStream
@@ -68,7 +69,7 @@ import java.util.UUID
  * again on [close]. A password given to [open] or [saveAs] is kept in memory so [save] does not ask
  * again, and is overwritten on [close]. The password is changed only by [saveAs].
  *
- * If [thumbnailsOnDisk] is set, the thumbnails of the open project are kept in a file `thumbnails-<n>.zip` in the same
+ * If [thumbnailStorage] is [ThumbnailStorage.DISK], the thumbnails of the open project are kept in a file `thumbnails-<n>.zip` in the same
  * temporary folder, see [thumbnailCache]. It is encrypted with the password of the project if there is one, renewed
  * empty when [saveAs] changes the password, and removed with the folder on [close]. By default the thumbnails are kept
  * in memory only and no file is made.
@@ -104,12 +105,13 @@ object ProjectManager {
     val isLoaded: Boolean get() = loadedWrapper.get()
 
     /**
-     * Whether the thumbnails of the open project are also kept in a file of its temporary folder. Off by default: the
-     * thumbnails then live in memory only and no file is made. Meant to be set from the settings of the application.
+     * Where the thumbnails of the open project are kept: [ThumbnailStorage.MEMORY] by default, so no file is made, or
+     * [ThumbnailStorage.DISK] for a file in its temporary folder as well. Meant to be set from the settings of the
+     * application.
      *
      * Switching it while a project is loaded makes or removes the file at once; the thumbnails in the file are lost.
      */
-    var thumbnailsOnDisk: Boolean = false
+    var thumbnailStorage: ThumbnailStorage = ThumbnailStorage.MEMORY
         set(value) {
             checkThread()
             if (field == value) return
@@ -119,8 +121,8 @@ object ProjectManager {
 
     /**
      * The thumbnail store of the open project: the very same object for the whole run, so it may be held by anyone.
-     * It forwards to the file store of the project that is loaded now, see [thumbnailsOnDisk]; while no project is
-     * loaded, or the file store is off, it has nothing and stores nothing. It is thread-safe, unlike the manager itself.
+     * It forwards to the file store of the project that is loaded now, see [thumbnailStorage]; while no project is
+     * loaded, or the storage is [ThumbnailStorage.MEMORY], it has nothing and stores nothing. It is thread-safe, unlike the manager itself.
      */
     val thumbnailCache: ThumbnailCache<ThumbnailPixels> get() = thumbnails
 
@@ -358,7 +360,7 @@ object ProjectManager {
         applicationVersion = ""
         threadCheck = { true }
         workRoot = null
-        thumbnailsOnDisk = false
+        thumbnailStorage = ThumbnailStorage.MEMORY
     }
 
     // ---- internals ---------------------------------------------------------------------------------------------
@@ -458,7 +460,7 @@ object ProjectManager {
     private fun renewThumbnailStore() {
         val directory = sessionDirectory
         val fresh = try {
-            directory?.takeIf { thumbnailsOnDisk }?.let { ZipThumbnailStore(it.resolve("$THUMBNAIL_PREFIX-${++thumbnailCounter}.zip"), password) }
+            directory?.takeIf { thumbnailStorage == ThumbnailStorage.DISK }?.let { ZipThumbnailStore(it.resolve("$THUMBNAIL_PREFIX-${++thumbnailCounter}.zip"), password) }
         } catch (_: IOException) {
             null
         }

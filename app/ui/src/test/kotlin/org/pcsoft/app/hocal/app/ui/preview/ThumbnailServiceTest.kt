@@ -13,6 +13,7 @@
 package org.pcsoft.app.hocal.app.ui.preview
 
 import org.pcsoft.app.hocal.thumbnail.ThumbnailKey
+import org.pcsoft.app.hocal.thumbnail.ThumbnailStorage
 import javafx.scene.image.Image
 import javafx.scene.image.WritableImage
 import org.junit.jupiter.api.AfterEach
@@ -58,7 +59,7 @@ class ThumbnailServiceTest {
     @AfterEach
     fun closeProject() {
         fx { ProjectManager.close(discardChanges = true) }
-        fx { ProjectManager.thumbnailsOnDisk = false }
+        fx { ProjectManager.thumbnailStorage = ThumbnailStorage.MEMORY }
         ThumbnailService.threads = ThumbnailService.DEFAULT_THREADS
     }
 
@@ -150,7 +151,7 @@ class ThumbnailServiceTest {
      */
     @Test
     fun smallThumbnailSurvivesTheMemoryCacheInTheFileOfTheProject() {
-        fx { ProjectManager.thumbnailsOnDisk = true }
+        fx { ProjectManager.thumbnailStorage = ThumbnailStorage.DISK }
         fx { ProjectManager.createNew("Test") }
         val first = ThumbnailKey("first", 0, 48)
         val original = image()
@@ -200,7 +201,7 @@ class ThumbnailServiceTest {
      */
     @Test
     fun invalidateReachesTheFileOfTheProject() {
-        fx { ProjectManager.thumbnailsOnDisk = true }
+        fx { ProjectManager.thumbnailStorage = ThumbnailStorage.DISK }
         fx { ProjectManager.createNew("Test") }
         ThumbnailService.cache.put(key, 1, image())
 
@@ -215,7 +216,7 @@ class ThumbnailServiceTest {
      */
     @Test
     fun smallThumbnailSurvivesTheMemoryCacheInTheEncryptedFile() {
-        fx { ProjectManager.thumbnailsOnDisk = true }
+        fx { ProjectManager.thumbnailStorage = ThumbnailStorage.DISK }
         fx {
             ProjectManager.createNew("Test")
             ProjectManager.saveAs(directory.resolve("secret.hocal"), "secret".toCharArray())

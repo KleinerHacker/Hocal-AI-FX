@@ -30,6 +30,7 @@ import org.pcsoft.app.hocal.fx.model.manager.ProjectManager
 import org.pcsoft.app.hocal.model.project.Medium
 import org.pcsoft.app.hocal.thumbnail.ImageThumbnails
 import org.pcsoft.app.hocal.thumbnail.ThumbnailKey
+import org.pcsoft.app.hocal.thumbnail.ThumbnailStorage
 import org.testfx.api.FxToolkit
 import org.testfx.util.WaitForAsyncUtils
 import java.io.IOException
@@ -82,14 +83,14 @@ class ThumbnailProjectIT {
     fun prepare() {
         Files.createDirectories(work)
         ProjectManager.workRoot = work
-        fx { ProjectManager.thumbnailsOnDisk = true }
+        fx { ProjectManager.thumbnailStorage = ThumbnailStorage.DISK }
     }
 
     @AfterEach
     fun cleanUp() {
         loader.close()
         fx { ProjectManager.close(discardChanges = true) }
-        fx { ProjectManager.thumbnailsOnDisk = false }
+        fx { ProjectManager.thumbnailStorage = ThumbnailStorage.MEMORY }
         ProjectManager.workRoot = null
     }
 
@@ -168,7 +169,7 @@ class ThumbnailProjectIT {
     @ParameterizedTest(name = "encrypted = {0}")
     @ValueSource(booleans = [false, true])
     fun withoutTheFileThumbnailsLiveInMemoryOnly(encrypted: Boolean) {
-        fx { ProjectManager.thumbnailsOnDisk = false }
+        fx { ProjectManager.thumbnailStorage = ThumbnailStorage.MEMORY }
         val reference = project(encrypted)
         load(reference)
         evictMemory()

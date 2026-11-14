@@ -33,6 +33,7 @@ import org.pcsoft.app.hocal.model.tree.InvalidNameException
 import org.pcsoft.app.hocal.model.tree.UnknownReferenceException
 import org.pcsoft.app.hocal.thumbnail.ThumbnailKey
 import org.pcsoft.app.hocal.thumbnail.ThumbnailPixels
+import org.pcsoft.app.hocal.thumbnail.ThumbnailStorage
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
@@ -59,7 +60,7 @@ class ProjectManagerTest {
         manager.resetForTests()
         Files.createDirectories(work)
         manager.workRoot = work
-        manager.thumbnailsOnDisk = true
+        manager.thumbnailStorage = ThumbnailStorage.DISK
     }
 
     @AfterEach
@@ -448,7 +449,7 @@ class ProjectManagerTest {
     fun thumbnailsStayInMemoryByDefault() {
         manager.resetForTests()
         manager.workRoot = work
-        assertFalse(manager.thumbnailsOnDisk)
+        assertEquals(ThumbnailStorage.MEMORY, manager.thumbnailStorage)
 
         manager.createNew("Sample")
         manager.thumbnailCache.put(key, 1, marker())
@@ -460,16 +461,16 @@ class ProjectManagerTest {
     /** Switching the file on while a project is loaded makes the file, switching it off removes it again. */
     @Test
     fun switchingTheFileWhileAProjectIsLoaded() {
-        manager.thumbnailsOnDisk = false
+        manager.thumbnailStorage = ThumbnailStorage.MEMORY
         manager.createNew("Sample")
         assertTrue(thumbnailFiles().isEmpty())
 
-        manager.thumbnailsOnDisk = true
+        manager.thumbnailStorage = ThumbnailStorage.DISK
         manager.thumbnailCache.put(key, 1, marker())
         assertEquals(marker(), manager.thumbnailCache.get(key, 1))
         assertEquals(1, thumbnailFiles().size)
 
-        manager.thumbnailsOnDisk = false
+        manager.thumbnailStorage = ThumbnailStorage.MEMORY
         assertTrue(thumbnailFiles().isEmpty())
         assertNull(manager.thumbnailCache.get(key, 1))
     }
@@ -479,7 +480,7 @@ class ProjectManagerTest {
     fun switchChecksTheThread() {
         manager.threadCheck = { false }
 
-        assertThrows(IllegalStateException::class.java) { manager.thumbnailsOnDisk = false }
+        assertThrows(IllegalStateException::class.java) { manager.thumbnailStorage = ThumbnailStorage.MEMORY }
     }
 
     /** Without a loaded project the thumbnail store has nothing and stores nothing. */

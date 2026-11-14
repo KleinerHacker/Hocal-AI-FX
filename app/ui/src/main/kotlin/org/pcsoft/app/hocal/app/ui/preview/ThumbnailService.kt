@@ -29,8 +29,8 @@ import java.util.concurrent.atomic.AtomicInteger
  *
  * The cache holds images of the project. It is emptied whenever a project is opened, created or closed, so images of a
  * closed project - an encrypted one, for instance - do not stay in memory. The cache keeps small and large images apart,
- * see [SizeClassCache]: a small thumbnail lives in memory and - if [ProjectManager.thumbnailsOnDisk] is set, which is
- * not the default - also in the file of the open project, see [ProjectManager.thumbnailCache], so it survives the
+ * see [SizeClassCache]: a small thumbnail lives in memory and - if [ProjectManager.thumbnailStorage] is
+ * [org.pcsoft.app.hocal.thumbnail.ThumbnailStorage.DISK], which is not the default - also in the file of the open project, see [ProjectManager.thumbnailCache], so it survives the
  * memory cache within a session. A large image of the image view lives in memory only.
  *
  * A loader that is made without its own cache and pool uses these. Everything is thread-safe; [threads] and the
