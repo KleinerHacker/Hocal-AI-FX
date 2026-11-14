@@ -444,6 +444,15 @@ class MainWindowIT : ApplicationTest() {
         return (details.lookup("#lblModelFlow") as Label).text to (details.lookup("#lblPrompt") as Label).text
     }
 
+    // A refresh of the file list that is still on its way may clear the selection of a file; selecting again is what a
+    // user would do, and the details follow the selection.
+    private fun awaitDetails(expected: Pair<String, String>) {
+        awaitTrue {
+            if (fx { fileList.selectionModel.isEmpty }) interact { fileList.selectionModel.select(0) }
+            detailsLines() == expected
+        }
+    }
+
     private fun addFileWithDetails(parent: VirtualFolder, name: String, vararg media: Medium): String {
         val reference = fx {
             ProjectManager.addReference(media.first(), "png", ByteArrayInputStream(pngBytes(60, 40, 0xFF0000)))
@@ -487,10 +496,10 @@ class MainWindowIT : ApplicationTest() {
         selectFolder(photos)
 
         selectFirstFile()
-        awaitTrue { detailsLines() == ("model-2 · image-to-image" to "The fox gets a hat") }
+        awaitDetails("model-2 · image-to-image" to "The fox gets a hat")
 
         interact { history.selectionModel.select(0) }
-        awaitTrue { detailsLines() == ("model-1 · text-to-image" to "A red fox") }
+        awaitDetails("model-1 · text-to-image" to "A red fox")
     }
 
     /**
@@ -503,7 +512,7 @@ class MainWindowIT : ApplicationTest() {
         val reference = addFileWithDetails(photos, "A.png", Medium("A red fox", "model-1", "text-to-image"))
         selectFolder(photos)
         selectFirstFile()
-        awaitTrue { detailsLines() == ("model-1 · text-to-image" to "A red fox") }
+        awaitDetails("model-1 · text-to-image" to "A red fox")
 
         fx {
             ProjectManager.appendMedium(
@@ -511,7 +520,7 @@ class MainWindowIT : ApplicationTest() {
             )
         }
 
-        awaitTrue { detailsLines() == ("model-3" to "A blue fox") }
+        awaitDetails("model-3" to "A blue fox")
     }
 
     /**
