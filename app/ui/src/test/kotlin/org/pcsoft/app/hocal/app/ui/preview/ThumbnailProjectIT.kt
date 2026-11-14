@@ -180,6 +180,44 @@ class ThumbnailProjectIT {
         assertEquals(0L, Files.walk(work).use { stream -> stream.filter { it.fileName.toString().startsWith("thumbnails-") }.count() })
     }
 
+    private fun thumbnailFileCount(): Long =
+        Files.walk(work).use { stream -> stream.filter { it.fileName.toString().startsWith("thumbnails-") }.count() }
+
+    /**
+     * Use case: the storage is switched while a project is loaded: memory, then disk, then memory again. The
+     * implementation really changes each time - with memory an evicted thumbnail is read from the medium again, with
+     * disk it is served from the file, and switching back removes the file. The file is encrypted in an encrypted
+     * project.
+     */
+    @ParameterizedTest(name = "encrypted = {0}")
+    @ValueSource(booleans = [false, true])
+    fun switchingTheStorageSwitchesTheImplementation(encrypted: Boolean) {
+        fx { ProjectManager.thumbnailStorage = ThumbnailStorage.MEMORY }
+        val reference = project(encrypted)
+        load(reference)
+        evictMemory()
+        load(reference)
+        assertEquals(2, opened.get(), "memory: read again")
+        assertEquals(0L, thumbnailFileCount())
+
+        fx { ProjectManager.thumbnailStorage = ThumbnailStorage.DISK }
+        assertEquals(1L, thumbnailFileCount())
+        evictMemory()
+        load(reference)
+        assertEquals(3, opened.get(), "disk is still empty")
+        evictMemory()
+        load(reference)
+        assertEquals(3, opened.get(), "disk: served from the file")
+        assertEquals(!encrypted, fileHoldsPixelsInTheClear())
+
+        fx { ProjectManager.thumbnailStorage = ThumbnailStorage.MEMORY }
+        assertEquals(0L, thumbnailFileCount())
+        evictMemory()
+        load(reference)
+        assertEquals(4, opened.get(), "memory again: read again")
+        assertEquals(0L, thumbnailFileCount())
+    }
+
     /**
      * Use case: the file of the project holds the thumbnail pixels in the clear in a plain project and does not in an
      * encrypted one.

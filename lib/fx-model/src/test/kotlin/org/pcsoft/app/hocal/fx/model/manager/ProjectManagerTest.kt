@@ -475,6 +475,33 @@ class ProjectManagerTest {
         assertNull(manager.thumbnailCache.get(key, 1))
     }
 
+    /** Setting the storage that is already set changes nothing: the same file stays and keeps its thumbnails. */
+    @Test
+    fun settingTheSameStorageKeepsTheFile() {
+        manager.createNew("Sample")
+        manager.thumbnailCache.put(key, 1, marker())
+        val before = thumbnailFile()
+
+        manager.thumbnailStorage = ThumbnailStorage.DISK
+
+        assertEquals(before, thumbnailFile())
+        assertEquals(marker(), manager.thumbnailCache.get(key, 1))
+    }
+
+    /** Switching on a loaded encrypted project makes a file that is encrypted with the password of the project. */
+    @Test
+    fun switchingOnForAnEncryptedProjectEncryptsTheFile() {
+        manager.thumbnailStorage = ThumbnailStorage.MEMORY
+        manager.createNew("Sample")
+        manager.saveAs(target, "secret".toCharArray())
+
+        manager.thumbnailStorage = ThumbnailStorage.DISK
+        manager.thumbnailCache.put(key, 1, marker())
+
+        assertEquals(marker(), manager.thumbnailCache.get(key, 1))
+        assertFalse(clearText())
+    }
+
     /** The switch belongs to the FX thread like every other member. */
     @Test
     fun switchChecksTheThread() {
