@@ -301,26 +301,45 @@ class ThumbnailLoaderTest {
         assertEquals(0x0000FF, image!!.pixelReader.getArgb(5, 5) and 0xFFFFFF)
     }
 
+    // A source that tells on which thread it is asked for the number of media.
+    private fun threadSpy(threadInfo: CompletableFuture<Pair<String, Boolean>>) = object : MediaSource {
+        override fun mediaCount(reference: String): Int {
+            threadInfo.complete(Thread.currentThread().name to Thread.currentThread().isDaemon)
+            return 0
+        }
+        override fun extension(reference: String, number: Int): String = "png"
+        override fun open(reference: String, number: Int): InputStream = throw IllegalStateException()
+    }
+
     /**
-     * Use case: the loader runs its work on daemon threads named `hocal-chip-N`, so the application can
-     * end while a load is still running.
+     * Use case: the loader runs its work on the pool that all thumbnails share, on daemon threads named
+     * `hocal-thumbnail-N`, so the application can end while a load is still running.
      */
     @Test
-    fun loadsOnNamedDaemonThreads() {
+    fun loadsOnNamedDaemonThreadsOfTheSharedPool() {
         val threadInfo = CompletableFuture<Pair<String, Boolean>>()
-        val spy = object : MediaSource {
-            override fun mediaCount(reference: String): Int {
-                threadInfo.complete(Thread.currentThread().name to Thread.currentThread().isDaemon)
-                return 0
-            }
-            override fun extension(reference: String, number: Int): String = "png"
-            override fun open(reference: String, number: Int): InputStream = throw IllegalStateException()
-        }
 
-        load(spy)
+        load(threadSpy(threadInfo))
         val (name, daemon) = threadInfo.get(5, TimeUnit.SECONDS)
 
-        assertTrue(name.startsWith("hocal-chip-"))
+        assertTrue(name.startsWith("hocal-thumbnail-"), name)
+        assertTrue(daemon)
+    }
+
+    /**
+     * Use case: a loader with a pool of its own runs its work on daemon threads named `hocal-chip-N`, so the
+     * application can end while a load is still running.
+     */
+    @Test
+    fun loadsOnNamedDaemonThreadsOfAnOwnPool() {
+        val threadInfo = CompletableFuture<Pair<String, Boolean>>()
+        val own = ThumbnailLoader(cache = MemoryThumbnailCache(), threads = 1)
+
+        own.load(threadSpy(threadInfo), "r1", 0, 32) { }
+        val (name, daemon) = threadInfo.get(5, TimeUnit.SECONDS)
+        own.close()
+
+        assertTrue(name.startsWith("hocal-chip-"), name)
         assertTrue(daemon)
     }
 }
