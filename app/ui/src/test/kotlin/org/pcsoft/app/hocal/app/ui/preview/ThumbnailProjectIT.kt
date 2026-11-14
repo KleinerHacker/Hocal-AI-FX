@@ -18,11 +18,13 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
 import org.pcsoft.app.hocal.fx.model.manager.ProjectManager
 import org.pcsoft.app.hocal.model.project.Medium
@@ -30,11 +32,13 @@ import org.pcsoft.app.hocal.thumbnail.ImageThumbnails
 import org.pcsoft.app.hocal.thumbnail.ThumbnailKey
 import org.testfx.api.FxToolkit
 import org.testfx.util.WaitForAsyncUtils
+import java.io.IOException
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.Callable
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -243,5 +247,94 @@ class ThumbnailProjectIT {
         assertFalse(ProjectManager.isLoaded)
         assertNotNull(ProjectManager.thumbnailCache)
         assertEquals(null, ProjectManager.thumbnailCache.get(ThumbnailKey(reference, 0, 48), 1))
+    }
+
+    /**
+     * Use case: the project is saved as a copy under the same secret - no password both times, or the same password
+     * twice. The thumbnail file stays, so the thumbnails still come from it without opening the medium again.
+     */
+    @ParameterizedTest(name = "encrypted = {0}")
+    @ValueSource(booleans = [false, true])
+    fun saveAsWithTheSameSecretKeepsTheThumbnails(encrypted: Boolean) {
+        val reference = project(encrypted)
+        val first = load(reference)
+        evictMemory()
+
+        fx { ProjectManager.saveAs(directory.resolve("copy.hocal"), password(encrypted)) }
+        val second = load(reference)
+
+        assertEquals(1, opened.get())
+        assertEquals(ImageThumbnails.toPixels(first), ImageThumbnails.toPixels(second))
+        assertEquals(!encrypted, fileHoldsPixelsInTheClear())
+    }
+
+    /**
+     * Use case: an encrypted project is saved as a copy with another password. The thumbnail file is renewed with the
+     * new password: the medium is read again once, then the thumbnails come from the new file, which is still encrypted.
+     */
+    @org.junit.jupiter.api.Test
+    fun saveAsWithAnotherPasswordRenewsTheEncryptedFile() {
+        val reference = project(true)
+        load(reference)
+        evictMemory()
+
+        fx { ProjectManager.saveAs(directory.resolve("other.hocal"), "other".toCharArray()) }
+        load(reference)
+        assertEquals(2, opened.get())
+        evictMemory()
+        load(reference)
+
+        assertEquals(2, opened.get())
+        assertFalse(fileHoldsPixelsInTheClear())
+        assertEquals(1, Files.walk(work).use { stream -> stream.filter { it.fileName.toString().startsWith("thumbnails-") }.count() })
+    }
+
+    /**
+     * Use case: a project is saved as a copy in every combination of plain and encrypted, the copy is closed and opened
+     * with its own password. Its thumbnails are those of a fresh session, in the form of the copy.
+     */
+    @ParameterizedTest(name = "from encrypted = {0}, to encrypted = {1}")
+    @CsvSource("false,false", "false,true", "true,false", "true,true")
+    fun savedCopyOpensWithThumbnailsInItsOwnForm(fromEncrypted: Boolean, toEncrypted: Boolean) {
+        val reference = project(fromEncrypted)
+        load(reference)
+        val copy = directory.resolve("copy.hocal")
+        fx { ProjectManager.saveAs(copy, password(toEncrypted)) }
+        fx { ProjectManager.close() }
+        assertEquals(0L, Files.list(work).use { it.count() })
+
+        fx { ProjectManager.open(copy, password(toEncrypted)) }
+        val image = load(reference)
+
+        assertEquals(2, opened.get())
+        assertEquals(GRAY, rgb(image))
+        assertEquals(!toEncrypted, fileHoldsPixelsInTheClear())
+    }
+
+    /**
+     * Use case: saving as a copy fails, because the target cannot be written. Nothing of the project changes: its
+     * file, its form and its thumbnail file stay, and saving to the old file still works with the old password.
+     */
+    @ParameterizedTest(name = "encrypted = {0}")
+    @ValueSource(booleans = [false, true])
+    fun failedSaveAsKeepsTheThumbnailFile(encrypted: Boolean) {
+        val reference = project(encrypted)
+        load(reference)
+        evictMemory()
+        val blocked = directory.resolve("blocked")
+        Files.createDirectories(blocked)
+        Files.write(blocked.resolve("content"), ByteArray(1))
+
+        val error = assertThrows<ExecutionException> {
+            fx { ProjectManager.saveAs(blocked, password(!encrypted)) }
+        }
+
+        assertTrue(error.cause is IOException)
+        assertEquals(file, ProjectManager.pathProperty.get())
+        assertEquals(encrypted, ProjectManager.encryptedProperty.get())
+        load(reference)
+        assertEquals(1, opened.get())
+        assertEquals(!encrypted, fileHoldsPixelsInTheClear())
+        fx { ProjectManager.save() }
     }
 }
