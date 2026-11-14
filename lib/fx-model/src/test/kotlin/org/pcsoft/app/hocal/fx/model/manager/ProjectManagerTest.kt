@@ -59,6 +59,7 @@ class ProjectManagerTest {
         manager.resetForTests()
         Files.createDirectories(work)
         manager.workRoot = work
+        manager.thumbnailsOnDisk = true
     }
 
     @AfterEach
@@ -441,6 +442,45 @@ class ProjectManagerTest {
         Files.walk(work).use { stream -> stream.filter { it.fileName.toString().startsWith("thumbnails-") }.toList() }
 
     private fun thumbnailFile(): Path? = thumbnailFiles().singleOrNull()
+
+    /** By default no thumbnail file is made: the store has nothing, and nothing is left in the temporary folder. */
+    @Test
+    fun thumbnailsStayInMemoryByDefault() {
+        manager.resetForTests()
+        manager.workRoot = work
+        assertFalse(manager.thumbnailsOnDisk)
+
+        manager.createNew("Sample")
+        manager.thumbnailCache.put(key, 1, marker())
+
+        assertNull(manager.thumbnailCache.get(key, 1))
+        assertTrue(thumbnailFiles().isEmpty())
+    }
+
+    /** Switching the file on while a project is loaded makes the file, switching it off removes it again. */
+    @Test
+    fun switchingTheFileWhileAProjectIsLoaded() {
+        manager.thumbnailsOnDisk = false
+        manager.createNew("Sample")
+        assertTrue(thumbnailFiles().isEmpty())
+
+        manager.thumbnailsOnDisk = true
+        manager.thumbnailCache.put(key, 1, marker())
+        assertEquals(marker(), manager.thumbnailCache.get(key, 1))
+        assertEquals(1, thumbnailFiles().size)
+
+        manager.thumbnailsOnDisk = false
+        assertTrue(thumbnailFiles().isEmpty())
+        assertNull(manager.thumbnailCache.get(key, 1))
+    }
+
+    /** The switch belongs to the FX thread like every other member. */
+    @Test
+    fun switchChecksTheThread() {
+        manager.threadCheck = { false }
+
+        assertThrows(IllegalStateException::class.java) { manager.thumbnailsOnDisk = false }
+    }
 
     /** Without a loaded project the thumbnail store has nothing and stores nothing. */
     @Test

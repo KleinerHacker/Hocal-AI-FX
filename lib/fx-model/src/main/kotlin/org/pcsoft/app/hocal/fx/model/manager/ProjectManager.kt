@@ -68,9 +68,10 @@ import java.util.UUID
  * again on [close]. A password given to [open] or [saveAs] is kept in memory so [save] does not ask
  * again, and is overwritten on [close]. The password is changed only by [saveAs].
  *
- * The thumbnails of the open project are kept in a file `thumbnails-<n>.zip` in the same temporary folder, see [thumbnailCache]. It is
- * encrypted with the password of the project if there is one, renewed empty when [saveAs] changes the password, and
- * removed with the folder on [close].
+ * If [thumbnailsOnDisk] is set, the thumbnails of the open project are kept in a file `thumbnails-<n>.zip` in the same
+ * temporary folder, see [thumbnailCache]. It is encrypted with the password of the project if there is one, renewed
+ * empty when [saveAs] changes the password, and removed with the folder on [close]. By default the thumbnails are kept
+ * in memory only and no file is made.
  *
  * All members belong to the FX thread; see [threadCheck]. Reading and writing a file blocks the caller.
  */
@@ -103,9 +104,23 @@ object ProjectManager {
     val isLoaded: Boolean get() = loadedWrapper.get()
 
     /**
-     * The thumbnail store of the open project, which lives in a file in the temporary folder: the very same object
-     * for the whole run, so it may be held by anyone. It forwards to the store of the project that is loaded now; while
-     * no project is loaded, it has nothing and stores nothing. It is thread-safe, unlike the manager itself.
+     * Whether the thumbnails of the open project are also kept in a file of its temporary folder. Off by default: the
+     * thumbnails then live in memory only and no file is made. Meant to be set from the settings of the application.
+     *
+     * Switching it while a project is loaded makes or removes the file at once; the thumbnails in the file are lost.
+     */
+    var thumbnailsOnDisk: Boolean = false
+        set(value) {
+            checkThread()
+            if (field == value) return
+            field = value
+            if (isLoaded) renewThumbnailStore()
+        }
+
+    /**
+     * The thumbnail store of the open project: the very same object for the whole run, so it may be held by anyone.
+     * It forwards to the file store of the project that is loaded now, see [thumbnailsOnDisk]; while no project is
+     * loaded, or the file store is off, it has nothing and stores nothing. It is thread-safe, unlike the manager itself.
      */
     val thumbnailCache: ThumbnailCache<ThumbnailPixels> get() = thumbnails
 
@@ -343,6 +358,7 @@ object ProjectManager {
         applicationVersion = ""
         threadCheck = { true }
         workRoot = null
+        thumbnailsOnDisk = false
     }
 
     // ---- internals ---------------------------------------------------------------------------------------------
@@ -442,7 +458,7 @@ object ProjectManager {
     private fun renewThumbnailStore() {
         val directory = sessionDirectory
         val fresh = try {
-            directory?.let { ZipThumbnailStore(it.resolve("$THUMBNAIL_PREFIX-${++thumbnailCounter}.zip"), password) }
+            directory?.takeIf { thumbnailsOnDisk }?.let { ZipThumbnailStore(it.resolve("$THUMBNAIL_PREFIX-${++thumbnailCounter}.zip"), password) }
         } catch (_: IOException) {
             null
         }

@@ -82,12 +82,14 @@ class ThumbnailProjectIT {
     fun prepare() {
         Files.createDirectories(work)
         ProjectManager.workRoot = work
+        fx { ProjectManager.thumbnailsOnDisk = true }
     }
 
     @AfterEach
     fun cleanUp() {
         loader.close()
         fx { ProjectManager.close(discardChanges = true) }
+        fx { ProjectManager.thumbnailsOnDisk = false }
         ProjectManager.workRoot = null
     }
 
@@ -157,6 +159,24 @@ class ThumbnailProjectIT {
         assertEquals(1, opened.get())
         assertEquals(ImageThumbnails.toPixels(first), ImageThumbnails.toPixels(second))
         assertEquals(GRAY, rgb(second))
+    }
+
+    /**
+     * Use case: the file is off, which is the default. No file is made, and a thumbnail that left the memory is read
+     * from the medium again - in a plain and in an encrypted project alike.
+     */
+    @ParameterizedTest(name = "encrypted = {0}")
+    @ValueSource(booleans = [false, true])
+    fun withoutTheFileThumbnailsLiveInMemoryOnly(encrypted: Boolean) {
+        fx { ProjectManager.thumbnailsOnDisk = false }
+        val reference = project(encrypted)
+        load(reference)
+        evictMemory()
+
+        load(reference)
+
+        assertEquals(2, opened.get())
+        assertEquals(0L, Files.walk(work).use { stream -> stream.filter { it.fileName.toString().startsWith("thumbnails-") }.count() })
     }
 
     /**

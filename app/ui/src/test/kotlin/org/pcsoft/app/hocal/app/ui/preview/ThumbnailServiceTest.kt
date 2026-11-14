@@ -58,6 +58,7 @@ class ThumbnailServiceTest {
     @AfterEach
     fun closeProject() {
         fx { ProjectManager.close(discardChanges = true) }
+        fx { ProjectManager.thumbnailsOnDisk = false }
         ThumbnailService.threads = ThumbnailService.DEFAULT_THREADS
     }
 
@@ -149,6 +150,7 @@ class ThumbnailServiceTest {
      */
     @Test
     fun smallThumbnailSurvivesTheMemoryCacheInTheFileOfTheProject() {
+        fx { ProjectManager.thumbnailsOnDisk = true }
         fx { ProjectManager.createNew("Test") }
         val first = ThumbnailKey("first", 0, 48)
         val original = image()
@@ -160,6 +162,20 @@ class ThumbnailServiceTest {
         assertNotNull(found)
         assertNotSame(original, found)
         assertEquals(ImageThumbnails.toPixels(original), ImageThumbnails.toPixels(found!!))
+    }
+
+    /**
+     * Use case: the file is off, which is the default. A small thumbnail that left the memory is gone, because it
+     * lives in memory only.
+     */
+    @Test
+    fun withoutTheFileAnEvictedThumbnailIsGone() {
+        fx { ProjectManager.createNew("Test") }
+        val first = ThumbnailKey("first", 0, 48)
+        ThumbnailService.cache.put(first, 1, image())
+        repeat(ThumbnailService.THUMBNAIL_ENTRIES) { ThumbnailService.cache.put(ThumbnailKey("r$it", 0, 48), 1, image()) }
+
+        assertNull(ThumbnailService.cache.get(first, 1))
     }
 
     /**
@@ -184,6 +200,7 @@ class ThumbnailServiceTest {
      */
     @Test
     fun invalidateReachesTheFileOfTheProject() {
+        fx { ProjectManager.thumbnailsOnDisk = true }
         fx { ProjectManager.createNew("Test") }
         ThumbnailService.cache.put(key, 1, image())
 
@@ -198,6 +215,7 @@ class ThumbnailServiceTest {
      */
     @Test
     fun smallThumbnailSurvivesTheMemoryCacheInTheEncryptedFile() {
+        fx { ProjectManager.thumbnailsOnDisk = true }
         fx {
             ProjectManager.createNew("Test")
             ProjectManager.saveAs(directory.resolve("secret.hocal"), "secret".toCharArray())
