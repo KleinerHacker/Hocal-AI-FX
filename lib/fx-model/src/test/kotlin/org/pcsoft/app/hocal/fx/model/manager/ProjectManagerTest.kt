@@ -37,6 +37,10 @@ import java.nio.file.Files
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.time.Instant
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 /** Developer tests for [ProjectManager], the singleton that owns the loaded project. */
 class ProjectManagerTest {
@@ -521,5 +525,95 @@ class ProjectManagerTest {
         assertEquals(marker(), manager.thumbnailCache.get(key, 1))
         assertEquals(1, thumbnailFiles().size)
         assertFalse(String(Files.readAllBytes(thumbnailFile()!!), Charsets.ISO_8859_1).contains(pattern))
+    }
+
+    private fun clearText(): Boolean =
+        String(Files.readAllBytes(thumbnailFile()!!), Charsets.ISO_8859_1).contains("Z".repeat(32))
+
+    /** An encrypted project that is opened with its password keeps its thumbnails encrypted with that password. */
+    @Test
+    fun openedEncryptedProjectEncryptsItsThumbnails() {
+        savedProject()
+        manager.saveAs(target, "secret".toCharArray())
+        manager.close()
+
+        manager.open(target, "secret".toCharArray())
+        manager.thumbnailCache.put(key, 1, marker())
+
+        assertEquals(marker(), manager.thumbnailCache.get(key, 1))
+        assertFalse(clearText())
+    }
+
+    /** Plain and encrypted sessions follow each other without sharing a thumbnail, and each keeps its own form. */
+    @Test
+    fun sessionsOfBothFormsDoNotShareThumbnails() {
+        val encrypted = directory.resolve("secret.hocal")
+        savedProject()
+        manager.saveAs(encrypted, "secret".toCharArray())
+        manager.thumbnailCache.put(key, 1, marker())
+        manager.close()
+
+        manager.open(target)
+        assertNull(manager.thumbnailCache.get(key, 1))
+        manager.thumbnailCache.put(key, 1, marker())
+        assertTrue(clearText())
+        manager.close()
+
+        manager.open(encrypted, "secret".toCharArray())
+        assertNull(manager.thumbnailCache.get(key, 1))
+        manager.thumbnailCache.put(key, 1, marker())
+        assertFalse(clearText())
+        manager.close()
+
+        assertEquals(0, leftovers())
+    }
+
+    /** A failed open - wrong password - leaves no thumbnail file and no store behind. */
+    @Test
+    fun failedOpenLeavesNoThumbnailFile() {
+        savedProject()
+        manager.saveAs(target, "secret".toCharArray())
+        manager.close()
+
+        assertThrows(WrongPasswordException::class.java) { manager.open(target, "wrong".toCharArray()) }
+        manager.thumbnailCache.put(key, 1, marker())
+
+        assertEquals(0, leftovers())
+        assertNull(manager.thumbnailCache.get(key, 1))
+    }
+
+    /** Threads that use the store while `saveAs` renews it never fail, and the store works afterwards. */
+    @Test
+    fun renewingTheStoreIsSafeUnderParallelAccess() {
+        savedProject()
+        val running = AtomicBoolean(true)
+        val pool = Executors.newFixedThreadPool(4)
+        try {
+            val workers = (0 until 4).map { worker ->
+                pool.submit(Callable {
+                    var rounds = 0
+                    while (running.get()) {
+                        val k = ThumbnailKey("w$worker", rounds % 4, 48)
+                        manager.thumbnailCache.put(k, 1, marker())
+                        manager.thumbnailCache.get(k, 1)
+                        if (rounds % 25 == 0) manager.thumbnailCache.invalidate("w$worker")
+                        rounds++
+                    }
+                    rounds
+                })
+            }
+            manager.saveAs(directory.resolve("a.hocal"), "one".toCharArray())
+            manager.saveAs(directory.resolve("b.hocal"))
+            manager.saveAs(directory.resolve("c.hocal"), "two".toCharArray())
+            running.set(false)
+            workers.forEach { assertTrue(it.get(30, TimeUnit.SECONDS) > 0) }
+        } finally {
+            running.set(false)
+            pool.shutdownNow()
+        }
+
+        manager.thumbnailCache.put(key, 1, marker())
+        assertEquals(marker(), manager.thumbnailCache.get(key, 1))
+        assertEquals(1, thumbnailFiles().size)
     }
 }

@@ -25,10 +25,12 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.io.TempDir
 import org.pcsoft.app.hocal.fx.model.manager.ProjectManager
 import org.pcsoft.app.hocal.thumbnail.ImageThumbnails
 import org.testfx.api.FxToolkit
 import org.testfx.util.WaitForAsyncUtils
+import java.nio.file.Path
 import java.util.concurrent.Callable
 
 /**
@@ -43,6 +45,9 @@ class ThumbnailServiceTest {
             FxToolkit.registerPrimaryStage()
         }
     }
+
+    @TempDir
+    lateinit var directory: Path
 
     private val key = ThumbnailKey("r1", 0, 48)
 
@@ -185,5 +190,27 @@ class ThumbnailServiceTest {
         ThumbnailService.invalidate("r1")
 
         assertNull(ProjectManager.thumbnailCache.get(key, 1))
+    }
+
+    /**
+     * Use case: the project is encrypted. A small thumbnail that left the memory is found again in the encrypted
+     * file of the project, with the same pixels.
+     */
+    @Test
+    fun smallThumbnailSurvivesTheMemoryCacheInTheEncryptedFile() {
+        fx {
+            ProjectManager.createNew("Test")
+            ProjectManager.saveAs(directory.resolve("secret.hocal"), "secret".toCharArray())
+        }
+        val first = ThumbnailKey("first", 0, 48)
+        val original = image()
+        ThumbnailService.cache.put(first, 1, original)
+        repeat(ThumbnailService.THUMBNAIL_ENTRIES) { ThumbnailService.cache.put(ThumbnailKey("r$it", 0, 48), 1, image()) }
+
+        val found = ThumbnailService.cache.get(first, 1)
+
+        assertNotNull(found)
+        assertNotSame(original, found)
+        assertEquals(ImageThumbnails.toPixels(original), ImageThumbnails.toPixels(found!!))
     }
 }
