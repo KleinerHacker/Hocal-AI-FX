@@ -50,6 +50,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * The one place that owns the project the user works on: it loads, creates, saves and closes it and
@@ -67,14 +68,21 @@ import java.util.UUID
  *
  * The media of the open project live in a temporary folder for the time it is open and are removed
  * again on [close]. A password given to [open] or [saveAs] is kept in memory so [save] does not ask
- * again, and is overwritten on [close]. The password is changed only by [saveAs].
+ * again, and is overwritten on [close]. The password is changed only by [saveAs]. An empty password is refused,
+ * no password means unencrypted.
+ *
+ * While the project is encrypted, its media in the temporary folder are encrypted as well, with a random key that
+ * lives in memory only, see [DirectoryMediaStore]. Media of an unencrypted project stay plain there.
  *
  * If [thumbnailStorage] is [ThumbnailStorage.DISK], the thumbnails of the open project are kept in a file `thumbnails-<n>.zip` in the same
  * temporary folder, see [thumbnailCache]. It is encrypted with the password of the project if there is one, renewed
  * empty when [saveAs] changes the password, and removed with the folder on [close]. By default the thumbnails are kept
  * in memory only and no file is made.
  *
- * All members belong to the FX thread; see [threadCheck]. Reading and writing a file blocks the caller.
+ * All members belong to the FX thread; see [threadCheck]. [open], [save] and [saveAs] read and write the file and
+ * block the caller. [openAsync], [saveAsync] and [saveAsAsync] do the same in the background and report the
+ * [FileOperationResult] on the FX thread; [busyProperty] is `true` meanwhile, a second file operation is answered
+ * with [FileOperationResult.Busy], and every change of the project and [close] are refused.
  */
 object ProjectManager {
 
@@ -89,6 +97,8 @@ object ProjectManager {
 
     private val encryptedWrapper = ReadOnlyBooleanWrapper(false)
 
+    private val busyWrapper = ReadOnlyBooleanWrapper(false)
+
     /** Whether a project is loaded. */
     val loadedProperty: ReadOnlyBooleanProperty = loadedWrapper.readOnlyProperty
 
@@ -100,6 +110,12 @@ object ProjectManager {
 
     /** Whether the loaded project is saved encrypted, that is whether a password is held for it. */
     val encryptedProperty: ReadOnlyBooleanProperty = encryptedWrapper.readOnlyProperty
+
+    /** Whether a file operation runs in the background, see [openAsync], [saveAsync] and [saveAsAsync]. */
+    val busyProperty: ReadOnlyBooleanProperty = busyWrapper.readOnlyProperty
+
+    /** Whether a file operation runs in the background. */
+    val isBusy: Boolean get() = busyWrapper.get()
 
     /** Whether a project is loaded. */
     val isLoaded: Boolean get() = loadedWrapper.get()
@@ -136,6 +152,9 @@ object ProjectManager {
      */
     internal var threadCheck: () -> Boolean = { Platform.isFxApplicationThread() }
 
+    /** Runs the file access of the asynchronous operations; only the tests of this library replace it. */
+    internal var runner: BackgroundRunner = TaskRunner
+
     /** The folder the temporary folders of the open project are created in, `null` for the system default. */
     var workRoot: Path? = null
 
@@ -170,6 +189,7 @@ object ProjectManager {
      */
     fun createNew(name: String) {
         checkThread()
+        checkNotBusy()
         check(!isLoaded) { "A project is loaded, close it first" }
         val now = Instant.now()
         val file = ProjectFile(
@@ -182,7 +202,7 @@ object ProjectManager {
             ),
         )
         val directory = newSessionDirectory()
-        attach(file, directory, path = null, password = null)
+        attach(file, directory, DirectoryMediaStore(directory), path = null, password = null)
         dirtyWrapper.set(true)
     }
 
@@ -208,7 +228,8 @@ object ProjectManager {
      *
      * @param path The file.
      * @param password The password of an encrypted file, `null` for an unencrypted one. The array is not changed.
-     * @throws IllegalStateException if a project is loaded, close it first.
+     * @throws IllegalStateException if a project is loaded, close it first, or a file operation runs.
+     * @throws IllegalArgumentException if the password is empty.
      * @throws org.pcsoft.app.hocal.model.storage.PasswordRequiredException if the file is encrypted and no password
      *   is given.
      * @throws org.pcsoft.app.hocal.model.storage.WrongPasswordException if the password does not match.
@@ -218,14 +239,69 @@ object ProjectManager {
      */
     fun open(path: Path, password: CharArray? = null) {
         checkThread()
+        checkNotBusy()
+        requireValid(password)
         check(!isLoaded) { "A project is loaded, close it first" }
         val directory = newSessionDirectory()
+        val mediaStore = DirectoryMediaStore(directory, encrypted = password != null)
         try {
-            val file = ProjectStorage.read(path, DirectoryMediaStore(directory), StorageLimits(), password)
-            attach(file, directory, path, password)
+            val file = ProjectStorage.read(path, mediaStore, StorageLimits(), password)
+            attach(file, directory, mediaStore, path, password)
         } catch (e: Throwable) {
+            mediaStore.close()
             directory.toFile().deleteRecursively()
             throw e
+        }
+    }
+
+    /**
+     * Opens a project file in the background and replaces the loaded project, if there is one, once the new one
+     * is read. If this fails nothing changes: the loaded project, its path and its password stay as they were.
+     * The caller asks about unsaved changes before. The window of the project is not touched while reading, so a
+     * user interface locks itself with [busyProperty].
+     *
+     * @param path The file.
+     * @param password The password of an encrypted file, `null` for an unencrypted one. The array is copied and
+     *   not changed; the caller overwrites its own array.
+     * @param onDone Called on the FX thread with [FileOperationResult.Success], [FileOperationResult.Failure] or,
+     *   at once, [FileOperationResult.Busy].
+     * @throws IllegalArgumentException if the password is empty.
+     */
+    fun openAsync(path: Path, password: CharArray? = null, onDone: (FileOperationResult) -> Unit) {
+        checkThread()
+        requireValid(password)
+        if (busyWrapper.get()) {
+            onDone(FileOperationResult.Busy)
+            return
+        }
+        val secret = password?.copyOf()
+        val directory = try {
+            newSessionDirectory()
+        } catch (e: IOException) {
+            secret?.fill('\u0000')
+            onDone(FileOperationResult.Failure(e.toFileError(writing = false), e))
+            return
+        }
+        val created = AtomicReference<DirectoryMediaStore?>()
+        busyWrapper.set(true)
+        runner.run({
+            val mediaStore = DirectoryMediaStore(directory, encrypted = secret != null)
+            created.set(mediaStore)
+            ProjectStorage.read(path, mediaStore, StorageLimits(), secret)
+        }) { result ->
+            busyWrapper.set(false)
+            val outcome = try {
+                val file = result.getOrThrow()
+                if (isLoaded) release()
+                attach(file, directory, created.get()!!, path, secret)
+                FileOperationResult.Success
+            } catch (e: Throwable) {
+                created.get()?.close()
+                directory.toFile().deleteRecursively()
+                FileOperationResult.Failure(e.toFileError(writing = false), e)
+            }
+            secret?.fill('\u0000')
+            onDone(outcome)
         }
     }
 
@@ -233,11 +309,13 @@ object ProjectManager {
      * Saves the project to its file with the password it was opened or last saved with, and sets the time of
      * the last change and the application version.
      *
-     * @throws IllegalStateException if no project is loaded or the project has no file yet, use [saveAs].
+     * @throws IllegalStateException if no project is loaded or the project has no file yet, use [saveAs], or a file
+     *   operation runs.
      * @throws java.io.IOException if writing fails; an existing file stays untouched.
      */
     fun save() {
         checkThread()
+        checkNotBusy()
         val target = pathWrapper.get()
         checkNotNull(target) { "The project has no file yet, use saveAs" }
         write(target, password)
@@ -249,16 +327,48 @@ object ProjectManager {
      *
      * @param path The new file.
      * @param password The password, `null` to save unencrypted. The array is not changed.
-     * @throws IllegalStateException if no project is loaded.
+     * @throws IllegalStateException if no project is loaded or a file operation runs.
+     * @throws IllegalArgumentException if the password is empty.
      * @throws java.io.IOException if writing fails; an existing file stays untouched.
      */
     fun saveAs(path: Path, password: CharArray? = null) {
         checkThread()
+        checkNotBusy()
+        requireValid(password)
+        requireProject()
+        if (password != null) store!!.enableEncryption()
         write(path, password)
-        pathWrapper.set(path)
-        val sameSecret = this.password?.contentEquals(password) ?: (password == null)
-        keepPassword(password)
-        if (!sameSecret) renewThumbnailStore()
+        adopt(path, password)
+    }
+
+    /**
+     * Saves the project to its file in the background, like [save]. The project must not be changed meanwhile,
+     * which the manager enforces while [busyProperty] is `true`.
+     *
+     * @param onDone Called on the FX thread with the result, at once with [FileOperationResult.Busy].
+     * @throws IllegalStateException if no project is loaded or the project has no file yet, use [saveAsAsync].
+     */
+    fun saveAsync(onDone: (FileOperationResult) -> Unit) {
+        checkThread()
+        requireProject()
+        val target = checkNotNull(pathWrapper.get()) { "The project has no file yet, use saveAsAsync" }
+        startWrite(target, saveAs = false, secret = password?.copyOf(), onDone = onDone)
+    }
+
+    /**
+     * Saves the project to a new file in the background, like [saveAs]. File, password and thumbnails of the
+     * project change only if writing worked.
+     *
+     * @param password The password, `null` to save unencrypted. The array is copied and not changed.
+     * @param onDone Called on the FX thread with the result, at once with [FileOperationResult.Busy].
+     * @throws IllegalStateException if no project is loaded.
+     * @throws IllegalArgumentException if the password is empty.
+     */
+    fun saveAsAsync(path: Path, password: CharArray? = null, onDone: (FileOperationResult) -> Unit) {
+        checkThread()
+        requireValid(password)
+        requireProject()
+        startWrite(path, saveAs = true, secret = password?.copyOf(), onDone = onDone)
     }
 
     /**
@@ -266,9 +376,11 @@ object ProjectManager {
      *
      * @param discardChanges Whether unsaved changes may be thrown away.
      * @return `false` and nothing changed if there are unsaved changes and [discardChanges] is not set, else `true`.
+     * @throws IllegalStateException if a file operation runs.
      */
     fun close(discardChanges: Boolean = false): Boolean {
         checkThread()
+        checkNotBusy()
         if (!isLoaded) return true
         if (dirtyWrapper.get() && !discardChanges) return false
         release()
@@ -356,6 +468,8 @@ object ProjectManager {
 
     /** Closes without a question and sets everything back to the start, for tests. */
     internal fun resetForTests() {
+        busyWrapper.set(false)
+        runner = SynchronousRunner
         if (isLoaded) release()
         applicationVersion = ""
         threadCheck = { true }
@@ -366,6 +480,11 @@ object ProjectManager {
     // ---- internals ---------------------------------------------------------------------------------------------
 
     private fun checkThread() = check(threadCheck()) { "Must be called on the FX thread" }
+
+    private fun checkNotBusy() = check(!busyWrapper.get()) { "A file operation is running" }
+
+    private fun requireValid(password: CharArray?) =
+        require(password == null || password.isNotEmpty()) { "The password must not be empty, use no password instead" }
 
     private fun requireProject(): ProjectFile {
         check(isLoaded) { "No project is loaded" }
@@ -382,6 +501,7 @@ object ProjectManager {
      */
     private fun <T> change(changed: (T) -> Boolean = { true }, block: (ProjectFile, DirectoryMediaStore) -> T): T {
         checkThread()
+        checkNotBusy()
         val file = requireProject()
         val result = try {
             block(file, store!!)
@@ -403,20 +523,61 @@ object ProjectManager {
     }
 
     private fun write(target: Path, password: CharArray?) {
+        val file = beforeWrite()
+        ProjectStorage.write(target, file, store!!, password)
+        dirtyWrapper.set(false)
+    }
+
+    // Sets the time of the last change and the version into the project; on the FX thread, before the file is written.
+    private fun beforeWrite(): ProjectFile {
         val file = requireProject()
         quiet = true
         try {
             file.project.modified = Instant.now()
             file.project.applicationVersion = applicationVersion
             project.refresh()
-            ProjectStorage.write(target, file, store!!, password)
         } finally {
             quiet = false
         }
-        dirtyWrapper.set(false)
+        return file
     }
 
-    private fun attach(file: ProjectFile, directory: Path, path: Path?, password: CharArray?) {
+    // File and password become those of the project; a changed password starts a new, empty thumbnail store.
+    private fun adopt(path: Path, newPassword: CharArray?) {
+        pathWrapper.set(path)
+        val sameSecret = this.password?.contentEquals(newPassword) ?: (newPassword == null)
+        keepPassword(newPassword)
+        if (!sameSecret) renewThumbnailStore()
+    }
+
+    private fun startWrite(target: Path, saveAs: Boolean, secret: CharArray?, onDone: (FileOperationResult) -> Unit) {
+        if (busyWrapper.get()) {
+            secret?.fill('\u0000')
+            onDone(FileOperationResult.Busy)
+            return
+        }
+        val file = beforeWrite()
+        val mediaStore = store!!
+        busyWrapper.set(true)
+        runner.run({
+            if (saveAs && secret != null) mediaStore.enableEncryption()
+            ProjectStorage.write(target, file, mediaStore, secret)
+        }) { result ->
+            busyWrapper.set(false)
+            val outcome = result.fold(
+                onSuccess = {
+                    dirtyWrapper.set(false)
+                    if (saveAs) adopt(target, secret)
+                    FileOperationResult.Success
+                },
+                onFailure = { FileOperationResult.Failure(it.toFileError(writing = true), it) },
+            )
+            secret?.fill('\u0000')
+            onDone(outcome)
+        }
+    }
+
+    private fun attach(file: ProjectFile, directory: Path, mediaStore: DirectoryMediaStore, path: Path?, password: CharArray?) {
         quiet = true
         try {
             project.set(file)
@@ -424,7 +585,7 @@ object ProjectManager {
             quiet = false
         }
         sessionDirectory = directory
-        store = DirectoryMediaStore(directory)
+        store = mediaStore
         pathWrapper.set(path)
         keepPassword(password)
         renewThumbnailStore()
@@ -441,6 +602,7 @@ object ProjectManager {
         }
         keepPassword(null)
         closeThumbnailStore()
+        store?.close()
         sessionDirectory?.toFile()?.deleteRecursively()
         sessionDirectory = null
         store = null
