@@ -23,19 +23,26 @@ runs without building a ComfyUI graph.
 | Feature                                                        | State       |
 |----------------------------------------------------------------|-------------|
 | Main window with File menu (Exit)                              | Implemented |
-| Flow list component with example flows                         | Implemented |
+| Main window splitter layout (placeholder parts)                | Implemented |
+| Folder tree of the project in the main window                  | Implemented |
+| File list of the selected folder with media previews           | Implemented |
+| Media history list and image view of the selected file         | Implemented |
+| Generation details (model, flow and prompt) of the selected medium | Implemented |
+| Prompt input with gallery dialog, model and flow selection (placeholders) | Implemented |
 | English and German user interface                              | Implemented |
 | Application icon in the main window                            | Implemented |
 | Portable distribution archive (ZIP) and jlink image            | Implemented |
 | Connection to a local ComfyUI process                          | Planned     |
-| Flows read from ComfyUI instead of the example list            | Planned     |
+| Flows read from ComfyUI                                        | Planned     |
 | Running a flow with its inputs and showing the result          | Planned     |
 | Model download and installation                                | Planned     |
 
 ## Project structure
 
 * `app/ui` (`hocal-ui`) - the JavaFX application (Kotlin, MVVM FX)
+* `lib/crypto` (`hocal-crypto`) - the JavaFX-free encryption: block stream cipher of the encrypted project file, key derivation and record cipher
 * `lib/model` (`hocal-model`) - the JavaFX-free data model of the project file and its (optionally encrypted) ZIP storage
+* `lib/thumbnail` (`hocal-thumbnail`) - the thumbnail caches: in memory and in an uncompressed ZIP file in the temp folder (encrypted for encrypted projects)
 * `lib/fx-model` (`hocal-fx-model`) - the Java FX property models mirroring the data model and the project manager that owns the loaded project
 * `docs` - the MkDocs user documentation
 

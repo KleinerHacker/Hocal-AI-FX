@@ -11,6 +11,7 @@
  */
 package org.pcsoft.app.hocal.model.storage.internal
 
+import org.pcsoft.app.hocal.crypto.EncryptionHeader
 import org.pcsoft.app.hocal.model.storage.DamagedProjectFileException
 import org.pcsoft.app.hocal.model.storage.InvalidProjectFileException
 import org.pcsoft.app.hocal.model.storage.ManipulatedProjectFileException

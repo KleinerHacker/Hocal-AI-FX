@@ -20,3 +20,8 @@ name: external-docs
 * Documentation for MVVM FX: `https://github.com/sialcasa/mvvmFX/wiki`
 * GitHub Repository: `https://github.com/sialcasa/mvvmFX`
   * Contains code access
+
+## ControlsFX
+
+* Documentation for ControlsFX: `https://controlsfx.github.io/`
+  * Contains the controls the application uses beyond standard Java FX, for instance `SegmentedButton`

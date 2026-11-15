@@ -10,7 +10,8 @@ emerging image, a percentage and a progress bar.
 ## 2. Current State
 
 * FP-002 (planned) creates the prompt input part: text box, `+` button (gallery), model combo box
-  and toggle buttons as placeholders; it has no send button and no generation
+  combo box and flow toggle button bar as placeholders; it has a send button that calls a handler
+  without implementation, and no generation
 * FP-001 (planned) defines history details per medium (prompt, model, flow) and the
   `ProjectManager`, which appends media to a reference; additional images are not stored
 * FP-004 (planned) delivers `ComfyClient` (submit, history, view, upload, queue, interrupt) and

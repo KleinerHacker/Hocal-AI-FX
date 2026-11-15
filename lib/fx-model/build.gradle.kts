@@ -17,15 +17,19 @@ plugins {
     id("org.openjfx.javafxplugin") version "0.1.0"
 }
 
-// Only the property and binding system is needed here; javafx.base carries it without any UI toolkit.
+// The property and binding system of javafx.base is what this module is made of. From javafx.graphics it uses
+// only javafx.application.Platform, to recognize the FX thread - nothing else of the toolkit (architecture rule).
 javafx {
     version = "25.0.1"
-    modules = listOf("javafx.base")
+    modules = listOf("javafx.base", "javafx.graphics")
 }
 
 dependencies {
     // The plain model types appear in the signatures of the observable wrappers, so they are part of the API.
     api(project(":lib:hocal-model"))
+
+    // The thumbnail store of the open project is part of the ProjectManager API.
+    api(project(":lib:hocal-thumbnail"))
 }
 
 // The module descriptor is the only Java source, while the classes it exports are written in Kotlin.

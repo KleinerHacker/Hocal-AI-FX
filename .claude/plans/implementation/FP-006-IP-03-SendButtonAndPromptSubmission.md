@@ -11,10 +11,10 @@
 
 ## Aufgabe 2: Sende-Taste
 
-* [ ] Sende-Taste hinter der Textbox im `PromptInput`, Tastenkürzel `Ctrl+Enter`
-* [ ] Aktiv nur bei nicht leerem Prompt, gewählter Referenz und geöffnetem Projekt
+* [ ] Sende-Taste und Icon `send` kommen aus FP-002 IP-06; Handler anbinden, Tastenkürzel `Ctrl+Enter` ergänzen
+* [ ] Aktivierung um gewählte Referenz und geöffnetes Projekt erweitern; nicht leerer Prompt gilt schon
 * [ ] Sperre nicht während laufender Aufträge, Senden bleibt möglich
-* [ ] Icon über den Agenten `icon-creator`, Registrierung in `HocalIcons`
+* [ ] Icon `send` existiert bereits (FP-002 IP-06), kein neues Icon nötig
 
 ## Aufgabe 3: Auswahl
 

@@ -13,6 +13,7 @@
 package org.pcsoft.app.hocal.app
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.util.Properties
@@ -61,12 +62,16 @@ class MessagesBundleTest {
     }
 
     /**
-     * Use case: the bundles are stored as UTF-8, so German umlauts arrive intact in the UI.
+     * Use case: the bundles are stored as UTF-8, so no text carries the replacement character of a
+     * wrongly decoded file.
      */
     @Test
-    fun germanTranslationKeepsUmlauts() {
-        assertEquals("Wählen Sie links einen Flow aus, um zu beginnen.", german.getProperty("window.main.selection.none"))
-        assertEquals("Keine Flows verfügbar", german.getProperty("component.flowList.empty"))
+    fun bundlesAreDecodedAsUtf8() {
+        listOf("bundle.properties" to base, "bundle_de.properties" to german).forEach { (name, bundle) ->
+            bundle.stringPropertyNames().forEach { key ->
+                assertFalse(bundle.getProperty(key).contains('�'), "key $key of $name is not valid UTF-8")
+            }
+        }
     }
 
     /**

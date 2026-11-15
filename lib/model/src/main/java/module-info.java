@@ -1,5 +1,6 @@
 module org.pcsoft.app.hocal.model {
     requires kotlin.stdlib;
+    requires org.pcsoft.app.hocal.crypto;
     requires com.fasterxml.jackson.annotation;
     requires tools.jackson.core;
     requires tools.jackson.databind;
