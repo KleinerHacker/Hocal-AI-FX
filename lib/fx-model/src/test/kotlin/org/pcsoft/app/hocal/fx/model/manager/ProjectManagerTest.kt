@@ -26,14 +26,20 @@ import org.pcsoft.app.hocal.fx.model.ChangeRecorder
 import org.pcsoft.app.hocal.model.project.Medium
 import org.pcsoft.app.hocal.model.project.VirtualEntry
 import org.pcsoft.app.hocal.model.project.VirtualFolder
+import org.pcsoft.app.hocal.model.storage.DamagedProjectFileException
+import org.pcsoft.app.hocal.model.storage.InvalidProjectFileException
+import org.pcsoft.app.hocal.model.storage.ManipulatedProjectFileException
 import org.pcsoft.app.hocal.model.storage.PasswordRequiredException
 import org.pcsoft.app.hocal.model.storage.ProjectFileException
+import org.pcsoft.app.hocal.model.storage.UnsupportedEncryptionVersionException
+import org.pcsoft.app.hocal.model.storage.UnsupportedFormatVersionException
 import org.pcsoft.app.hocal.model.storage.WrongPasswordException
 import org.pcsoft.app.hocal.model.tree.InvalidNameException
 import org.pcsoft.app.hocal.model.tree.UnknownReferenceException
 import org.pcsoft.app.hocal.thumbnail.ThumbnailKey
 import org.pcsoft.app.hocal.thumbnail.ThumbnailPixels
 import org.pcsoft.app.hocal.thumbnail.ThumbnailStorage
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
@@ -683,5 +689,450 @@ class ProjectManagerTest {
         manager.thumbnailCache.put(key, 1, marker())
         assertEquals(marker(), manager.thumbnailCache.get(key, 1))
         assertEquals(1, thumbnailFiles().size)
+    }
+
+    // ---- file operations in the background ---------------------------------------------------------------------
+
+    /** Collects the work instead of running it, so a test can look at the manager while a file operation is busy. */
+    private class DeferredRunner : BackgroundRunner {
+        private var job: (() -> Unit)? = null
+
+        val pending: Boolean get() = job != null
+
+        override fun <T> run(work: () -> T, done: (Result<T>) -> Unit) {
+            check(job == null) { "Only one job at a time" }
+            job = { done(runCatching(work)) }
+        }
+
+        fun runPending() {
+            val current = checkNotNull(job)
+            job = null
+            current()
+        }
+    }
+
+    private fun resultOf(call: ((FileOperationResult) -> Unit) -> Unit): FileOperationResult {
+        var result: FileOperationResult? = null
+        call { result = it }
+        return checkNotNull(result) { "The callback was not called" }
+    }
+
+    private fun failureOf(result: FileOperationResult): FileOperationResult.Failure {
+        assertTrue(result is FileOperationResult.Failure, "Expected a failure but was $result")
+        return result as FileOperationResult.Failure
+    }
+
+    private fun mediaFiles(): List<Path> = Files.walk(work).use { stream ->
+        stream.filter { Files.isRegularFile(it) && Regex("\\d{3}\\..*").matches(it.fileName.toString()) }.toList()
+    }
+
+    private fun mediaContains(text: String): Boolean =
+        mediaFiles().any { String(Files.readAllBytes(it), Charsets.ISO_8859_1).contains(text) }
+
+    /** A saved project with a reference whose content is a readable marker; encrypted if a password is given. */
+    private fun savedMarkerProject(password: String? = null): String {
+        manager.createNew("Sample")
+        val uuid = manager.addReference(medium("a"), "png", content("PLAIN-MARKER-".repeat(30)))
+        manager.saveAs(target, password?.toCharArray())
+        return uuid
+    }
+
+    /** Open, save and save as work in the background for unencrypted and encrypted files and give the same result. */
+    @Test
+    fun asyncOperationsRoundTrip() {
+        for (secret in listOf<String?>(null, "secret")) {
+            manager.resetForTests()
+            manager.workRoot = work
+            val file = directory.resolve("round-${secret ?: "plain"}.hocal")
+            manager.createNew("Sample")
+            val uuid = manager.addReference(medium("a"), "png", content("content-a"))
+
+            assertEquals(FileOperationResult.Success, resultOf { manager.saveAsAsync(file, secret?.toCharArray(), it) })
+            assertEquals(file, manager.pathProperty.get())
+            assertFalse(manager.dirtyProperty.get())
+            assertEquals(secret != null, manager.encryptedProperty.get())
+            assertFalse(manager.isBusy)
+
+            manager.project.projectProperty.description = "changed"
+            assertEquals(FileOperationResult.Success, resultOf { manager.saveAsync(it) })
+            assertFalse(manager.dirtyProperty.get())
+            assertEquals(secret != null, String(Files.readAllBytes(file), 0, 8) == "HOCALENC")
+            manager.close()
+
+            assertEquals(FileOperationResult.Success, resultOf { manager.openAsync(file, secret?.toCharArray(), it) })
+            assertEquals("changed", manager.project.projectProperty.description)
+            assertEquals(file, manager.pathProperty.get())
+            assertFalse(manager.dirtyProperty.get())
+            assertEquals(secret != null, manager.encryptedProperty.get())
+            assertEquals("content-a", readMedium(uuid, 0))
+        }
+    }
+
+    /** Opening replaces the loaded project once the new one is read, and removes the temporary folder of the old one. */
+    @Test
+    fun openAsyncReplacesTheLoadedProject() {
+        savedProject()
+        val other = directory.resolve("other.hocal")
+        manager.project.projectProperty.name = "Other"
+        manager.saveAs(other)
+        manager.project.projectProperty.name = "Sample"
+        manager.save()
+
+        assertEquals(FileOperationResult.Success, resultOf { manager.openAsync(other, null, it) })
+
+        assertEquals("Other", manager.project.projectProperty.name)
+        assertEquals(other, manager.pathProperty.get())
+        assertFalse(manager.dirtyProperty.get())
+        assertEquals(1, leftovers())
+    }
+
+    /** The password the caller gives is copied: overwriting the own array later does not disturb the project. */
+    @Test
+    fun openAsyncCopiesThePassword() {
+        savedProject()
+        manager.saveAs(target, "secret".toCharArray())
+        manager.close()
+        val given = "secret".toCharArray()
+
+        assertEquals(FileOperationResult.Success, resultOf { manager.openAsync(target, given, it) })
+        assertEquals("secret", String(given))
+        given.fill('x')
+        manager.project.projectProperty.description = "changed"
+
+        assertEquals(FileOperationResult.Success, resultOf { manager.saveAsync(it) })
+        manager.close()
+        manager.open(target, "secret".toCharArray())
+        assertEquals("changed", manager.project.projectProperty.description)
+    }
+
+    /** A failed open reports the reason and leaves project, path, changed state and password as they were. */
+    @Test
+    fun failedOpenAsyncLeavesEverythingAsItWas() {
+        savedProject()
+        manager.saveAs(target, "secret".toCharArray())
+        manager.project.projectProperty.name = "Edited"
+        val before = manager.project.get().toString()
+        val broken = directory.resolve("broken.hocal")
+        Files.write(broken, ByteArray(100) { 7 })
+
+        val missing = failureOf(resultOf { manager.openAsync(directory.resolve("none.hocal"), null, it) })
+        val damaged = failureOf(resultOf { manager.openAsync(broken, null, it) })
+        val wrong = failureOf(resultOf { manager.openAsync(target, "wrong".toCharArray(), it) })
+        val required = failureOf(resultOf { manager.openAsync(target, null, it) })
+
+        assertEquals(FileError.READ_FAILED, missing.error)
+        assertTrue(missing.cause is NoSuchFileException)
+        assertTrue(damaged.error == FileError.DAMAGED || damaged.error == FileError.INVALID)
+        assertEquals(FileError.WRONG_PASSWORD, wrong.error)
+        assertEquals(FileError.PASSWORD_REQUIRED, required.error)
+        assertEquals(before, manager.project.get().toString())
+        assertEquals(target, manager.pathProperty.get())
+        assertTrue(manager.dirtyProperty.get())
+        assertTrue(manager.encryptedProperty.get())
+        assertFalse(manager.isBusy)
+        assertEquals(1, leftovers())
+        manager.save()
+        assertEquals("HOCALENC", String(Files.readAllBytes(target), 0, 8))
+    }
+
+    /** A manipulated encrypted file is reported as such. */
+    @Test
+    fun manipulatedFileIsReported() {
+        savedProject()
+        manager.saveAs(target, "secret".toCharArray())
+        manager.close()
+        val bytes = Files.readAllBytes(target)
+        bytes[bytes.size - 3] = (bytes[bytes.size - 3].toInt() xor 0x55).toByte()
+        Files.write(target, bytes)
+
+        val failure = failureOf(resultOf { manager.openAsync(target, "secret".toCharArray(), it) })
+
+        assertEquals(FileError.MANIPULATED, failure.error)
+        assertFalse(manager.isLoaded)
+        assertEquals(0, leftovers())
+    }
+
+    /** Every exception of the storage and the plain I/O problems map to their error. */
+    @Test
+    fun exceptionsMapToErrors() {
+        assertEquals(FileError.INVALID, InvalidProjectFileException("x").toFileError(false))
+        assertEquals(FileError.DAMAGED, DamagedProjectFileException("x").toFileError(false))
+        assertEquals(FileError.NEWER_VERSION, UnsupportedFormatVersionException(2, 1).toFileError(false))
+        assertEquals(FileError.WRONG_PASSWORD, WrongPasswordException().toFileError(false))
+        assertEquals(FileError.PASSWORD_REQUIRED, PasswordRequiredException().toFileError(false))
+        assertEquals(FileError.MANIPULATED, ManipulatedProjectFileException("x").toFileError(false))
+        assertEquals(FileError.UNSUPPORTED_ENCRYPTION, UnsupportedEncryptionVersionException(2, 1).toFileError(false))
+        assertEquals(FileError.READ_FAILED, IOException("x").toFileError(writing = false))
+        assertEquals(FileError.WRITE_FAILED, IOException("x").toFileError(writing = true))
+        assertEquals(FileError.UNKNOWN, IllegalStateException("x").toFileError(false))
+    }
+
+    /** A failed save as keeps file, password, changed state and the existing target as they were. */
+    @Test
+    fun failedSaveAsAsyncLeavesEverythingAsItWas() {
+        savedProject()
+        manager.saveAs(target, "secret".toCharArray())
+        manager.project.projectProperty.name = "Edited"
+        val before = Files.readAllBytes(target)
+        val blocked = directory.resolve("no-folder").resolve("x.hocal")
+
+        val failure = failureOf(resultOf { manager.saveAsAsync(blocked, null, it) })
+
+        assertEquals(FileError.WRITE_FAILED, failure.error)
+        assertEquals(target, manager.pathProperty.get())
+        assertTrue(manager.encryptedProperty.get())
+        assertTrue(manager.dirtyProperty.get())
+        assertFalse(manager.isBusy)
+        assertArrayEquals(before, Files.readAllBytes(target))
+        assertEquals(FileOperationResult.Success, resultOf { manager.saveAsync(it) })
+        assertEquals("HOCALENC", String(Files.readAllBytes(target), 0, 8))
+    }
+
+    /** While a file operation runs a second one is answered with busy, and changes and closing are refused. */
+    @Test
+    fun busyRejectsEverythingElse() {
+        savedProject()
+        val runner = DeferredRunner()
+        manager.runner = runner
+        val root = manager.project.get()!!.tree
+        manager.project.projectProperty.name = "Edited"
+        val busyStates = mutableListOf<Boolean>()
+        manager.busyProperty.addListener { _, _, value -> busyStates += value }
+        var first: FileOperationResult? = null
+
+        manager.saveAsync { first = it }
+
+        assertTrue(manager.isBusy)
+        assertTrue(runner.pending)
+        assertEquals(null, first)
+        assertEquals(FileOperationResult.Busy, resultOf { manager.saveAsync(it) })
+        assertEquals(FileOperationResult.Busy, resultOf { manager.saveAsAsync(directory.resolve("x.hocal"), null, it) })
+        assertEquals(FileOperationResult.Busy, resultOf { manager.openAsync(target, null, it) })
+        assertThrows(IllegalStateException::class.java) { manager.createFolder(root, "x") }
+        assertThrows(IllegalStateException::class.java) { manager.addReference(medium("x"), "png", content("x")) }
+        assertThrows(IllegalStateException::class.java) { manager.close(discardChanges = true) }
+        assertThrows(IllegalStateException::class.java) { manager.save() }
+        assertThrows(IllegalStateException::class.java) { manager.saveAs(directory.resolve("x.hocal")) }
+        assertThrows(IllegalStateException::class.java) { manager.open(target) }
+        assertThrows(IllegalStateException::class.java) { manager.createNew("x") }
+        assertTrue(manager.isLoaded)
+
+        runner.runPending()
+
+        assertEquals(FileOperationResult.Success, first)
+        assertFalse(manager.isBusy)
+        assertFalse(manager.dirtyProperty.get())
+        assertEquals(listOf(true, false), busyStates)
+        assertEquals(1, root.children.size)
+    }
+
+    /** An open that is busy changes nothing until the answer is there; then the loaded project is replaced. */
+    @Test
+    fun openAsyncReplacesOnlyWhenTheFileIsRead() {
+        savedProject()
+        val runner = DeferredRunner()
+        manager.runner = runner
+        val before = manager.project.get()
+
+        manager.openAsync(target, null) { }
+
+        assertTrue(manager.isBusy)
+        assertTrue(before === manager.project.get())
+        assertEquals(2, leftovers())
+
+        runner.runPending()
+
+        assertFalse(manager.isBusy)
+        assertFalse(before === manager.project.get())
+        assertEquals(1, leftovers())
+    }
+
+    /** An empty password is refused by every operation that takes one, and nothing changes. */
+    @Test
+    fun emptyPasswordIsRefused() {
+        savedProject()
+        val empty = CharArray(0)
+
+        assertThrows(IllegalArgumentException::class.java) { manager.saveAs(directory.resolve("x.hocal"), empty) }
+        assertThrows(IllegalArgumentException::class.java) { manager.saveAsAsync(directory.resolve("x.hocal"), empty) { } }
+        assertThrows(IllegalArgumentException::class.java) { manager.openAsync(target, empty) { } }
+        manager.close()
+        assertThrows(IllegalArgumentException::class.java) { manager.open(target, empty) }
+
+        assertFalse(manager.isLoaded)
+        assertFalse(manager.isBusy)
+        assertFalse(Files.exists(directory.resolve("x.hocal")))
+    }
+
+    /** The asynchronous operations belong to the FX thread like all others, and need a loaded project. */
+    @Test
+    fun asyncOperationsCheckThreadAndProject() {
+        assertThrows(IllegalStateException::class.java) { manager.saveAsync { } }
+        assertThrows(IllegalStateException::class.java) { manager.saveAsAsync(target) { } }
+        savedProject()
+        manager.threadCheck = { false }
+
+        assertThrows(IllegalStateException::class.java) { manager.saveAsync { } }
+        assertThrows(IllegalStateException::class.java) { manager.saveAsAsync(target) { } }
+        assertThrows(IllegalStateException::class.java) { manager.openAsync(target) { } }
+    }
+
+    /** A new project has no file, so saving in the background needs save as. */
+    @Test
+    fun saveAsyncNeedsAFile() {
+        manager.createNew("Sample")
+
+        assertThrows(IllegalStateException::class.java) { manager.saveAsync { } }
+        assertFalse(manager.isBusy)
+    }
+
+    // ---- encryption of the temporary media ---------------------------------------------------------------------
+
+    /** The media of an unencrypted project lie plain in the temporary folder. */
+    @Test
+    fun mediaOfAPlainProjectArePlain() {
+        savedMarkerProject()
+
+        assertTrue(mediaContains("PLAIN-MARKER"))
+        assertEquals(listOf("000.png"), mediaFiles().map { it.fileName.toString() })
+    }
+
+    /** The media of an opened encrypted project are encrypted in the temporary folder, also the ones added later. */
+    @Test
+    fun mediaOfAnOpenedEncryptedProjectAreEncrypted() {
+        savedMarkerProject("secret")
+        manager.close()
+
+        manager.open(target, "secret".toCharArray())
+        val added = manager.addReference(medium("b"), "jpg", content("PLAIN-MARKER-ADDED".repeat(20)))
+        val appended = manager.project.get()!!.references[0].uuid
+        manager.appendMedium(appended, medium("c"), "png", content("PLAIN-MARKER-APPENDED".repeat(20)))
+
+        assertEquals(3, mediaFiles().size)
+        assertTrue(mediaFiles().all { it.fileName.toString().endsWith(".enc") })
+        assertFalse(mediaContains("PLAIN-MARKER"))
+        assertEquals("PLAIN-MARKER-ADDED".repeat(20), readMedium(added, 0))
+        assertEquals("PLAIN-MARKER-APPENDED".repeat(20), readMedium(appended, 1))
+    }
+
+    /** The same holds when the project is opened in the background, and it is saved with readable content. */
+    @Test
+    fun mediaOfAnAsyncOpenedEncryptedProjectAreEncrypted() {
+        val uuid = savedMarkerProject("secret")
+        manager.close()
+
+        assertEquals(FileOperationResult.Success, resultOf { manager.openAsync(target, "secret".toCharArray(), it) })
+
+        assertTrue(mediaFiles().isNotEmpty())
+        assertFalse(mediaContains("PLAIN-MARKER"))
+        assertEquals("PLAIN-MARKER-".repeat(30), readMedium(uuid, 0))
+        manager.project.projectProperty.description = "changed"
+        assertEquals(FileOperationResult.Success, resultOf { manager.saveAsync(it) })
+        manager.close()
+        manager.open(target, "secret".toCharArray())
+        assertEquals("PLAIN-MARKER-".repeat(30), readMedium(uuid, 0))
+    }
+
+    /** Saving an unencrypted project with a password encrypts the media there, in the background as well. */
+    @Test
+    fun saveAsWithPasswordEncryptsExistingMedia() {
+        for (async in listOf(false, true)) {
+            manager.resetForTests()
+            manager.workRoot = work
+            val uuid = savedMarkerProject()
+            assertTrue(mediaContains("PLAIN-MARKER"))
+            val file = directory.resolve("secret-$async.hocal")
+
+            if (async) {
+                assertEquals(FileOperationResult.Success, resultOf { manager.saveAsAsync(file, "secret".toCharArray(), it) })
+            } else {
+                manager.saveAs(file, "secret".toCharArray())
+            }
+
+            assertFalse(mediaContains("PLAIN-MARKER"))
+            assertEquals("PLAIN-MARKER-".repeat(30), readMedium(uuid, 0))
+            manager.addReference(medium("b"), "png", content("PLAIN-MARKER-LATER"))
+            assertFalse(mediaContains("PLAIN-MARKER"))
+            manager.save()
+            manager.close()
+            manager.open(file, "secret".toCharArray())
+            assertEquals("PLAIN-MARKER-".repeat(30), readMedium(uuid, 0))
+        }
+    }
+
+    /** A failed save as with a password may encrypt the media but changes nothing else and stays readable. */
+    @Test
+    fun failedSaveAsWithPasswordKeepsTheMediaReadable() {
+        val uuid = savedMarkerProject()
+
+        val failure = failureOf(resultOf { manager.saveAsAsync(directory.resolve("no-folder").resolve("x.hocal"), "secret".toCharArray(), it) })
+
+        assertEquals(FileError.WRITE_FAILED, failure.error)
+        assertFalse(manager.encryptedProperty.get())
+        assertEquals(target, manager.pathProperty.get())
+        assertEquals("PLAIN-MARKER-".repeat(30), readMedium(uuid, 0))
+        manager.save()
+        assertEquals("PK", String(Files.readAllBytes(target), 0, 2))
+    }
+
+    /** Switching an encrypted project back to unencrypted keeps the temporary media encrypted and readable. */
+    @Test
+    fun saveAsWithoutPasswordKeepsTheMediaReadable() {
+        val uuid = savedMarkerProject("secret")
+        val plain = directory.resolve("plain.hocal")
+
+        manager.saveAs(plain)
+
+        assertFalse(manager.encryptedProperty.get())
+        assertEquals("PK", String(Files.readAllBytes(plain), 0, 2))
+        assertFalse(mediaContains("PLAIN-MARKER"))
+        assertEquals("PLAIN-MARKER-".repeat(30), readMedium(uuid, 0))
+        manager.close()
+        manager.open(plain)
+        assertEquals("PLAIN-MARKER-".repeat(30), readMedium(uuid, 0))
+        assertTrue(mediaContains("PLAIN-MARKER"))
+    }
+
+    /** A failed open leaves neither a clear text medium nor a folder behind. */
+    @Test
+    fun failedOpenLeavesNoMediaBehind() {
+        savedMarkerProject("secret")
+        manager.close()
+        val bytes = Files.readAllBytes(target)
+        bytes[bytes.size - 3] = (bytes[bytes.size - 3].toInt() xor 0x55).toByte()
+        Files.write(target, bytes)
+
+        assertThrows(ProjectFileException::class.java) { manager.open(target, "secret".toCharArray()) }
+        assertEquals(FileError.MANIPULATED, failureOf(resultOf { manager.openAsync(target, "secret".toCharArray(), it) }).error)
+
+        assertEquals(0, leftovers())
+        assertTrue(mediaFiles().isEmpty())
+    }
+
+    /** Every session has its own key: the same medium looks different on disk in the next session. */
+    @Test
+    fun everySessionHasItsOwnKey() {
+        savedMarkerProject("secret")
+        manager.close()
+
+        manager.open(target, "secret".toCharArray())
+        val first = Files.readAllBytes(mediaFiles().single())
+        manager.close()
+        manager.open(target, "secret".toCharArray())
+        val second = Files.readAllBytes(mediaFiles().single())
+
+        assertEquals(first.size, second.size)
+        assertFalse(first.contentEquals(second))
+    }
+
+    /** Closing removes the encrypted media with the folder, nothing stays on disk. */
+    @Test
+    fun closeRemovesTheEncryptedMedia() {
+        savedMarkerProject("secret")
+        assertTrue(manager.close())
+
+        assertEquals(0, leftovers())
+        assertTrue(mediaFiles().isEmpty())
+        assertFalse(manager.encryptedProperty.get())
     }
 }

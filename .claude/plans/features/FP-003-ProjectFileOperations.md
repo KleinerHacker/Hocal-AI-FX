@@ -168,11 +168,13 @@ Give the manager everything the user interface needs for file operations.
 * Typed outcomes for the errors of the storage and the encryption
 * Rejecting a second operation while busy
 * A failed operation leaves project, path and password unchanged
+* Encrypting the media of an encrypted project in its temporary folder with a random session key, in
+  `DirectoryMediaStore` of `lib/model`
 * NOT: any dialog or menu
 
 **Affected Areas**
 
-* `lib/fx-model` (manager package), tests
+* `lib/fx-model` (manager package), `lib/model` (`DirectoryMediaStore`), tests
 
 **Dependencies**
 
@@ -188,6 +190,11 @@ terms the UI can show.
 * Changes the contract of FP-001 IP-07 (blocking calls) into asynchronous ones; FP-001 IP-07 must be
   implemented with that in mind or extended here
 * Wiping the password on close, reset, replace and failed open
+* The synchronous methods stay; the asynchronous ones (`openAsync`, `saveAsync`, `saveAsAsync`) are added next
+  to them and report a `FileOperationResult` on the FX thread
+* The media of an encrypted project lie encrypted (`<NNN>.<ext>.enc`, AES-256-GCM, random key held in memory
+  only, independent of the project password) while the project is open; an unencrypted project keeps them
+  plain; saving an unencrypted project with a password encrypts the existing media
 * Test cases: success, each error, busy rejection, password wiped, project untouched after failure
 
 ### IP-02: File Menu And File Actions
