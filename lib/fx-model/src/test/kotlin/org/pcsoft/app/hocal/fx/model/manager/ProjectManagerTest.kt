@@ -775,8 +775,9 @@ class ProjectManagerTest {
         val other = directory.resolve("other.hocal")
         manager.project.projectProperty.name = "Other"
         manager.saveAs(other)
-        manager.project.projectProperty.name = "Sample"
-        manager.save()
+        manager.close()
+        manager.open(target)
+        assertEquals("Sample", manager.project.projectProperty.name)
 
         assertEquals(FileOperationResult.Success, resultOf { manager.openAsync(other, null, it) })
 
