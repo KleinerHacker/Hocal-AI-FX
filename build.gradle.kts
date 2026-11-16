@@ -13,7 +13,7 @@
 import com.github.jk1.license.render.ReportRenderer
 
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "2.4.20" apply false
+    id("org.jetbrains.kotlin.jvm") version "2.4.21" apply false
     id("org.jetbrains.dokka") version "2.3.0" apply false
     id("org.jetbrains.kotlinx.kover") version "0.9.9" apply false
     id("com.github.jk1.dependency-license-report") version "3.1.5" apply false
