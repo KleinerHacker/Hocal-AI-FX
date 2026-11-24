@@ -41,7 +41,7 @@ dependencies {
 
     implementation("org.apache.commons:commons-lang3:3.21.0")
 
-    implementation("org.controlsfx:controlsfx:11.2.5")
+    implementation("org.controlsfx:controlsfx:11.2.7")
     implementation("de.saxsys:mvvmfx:1.8.0")
 
     // The application logs against the SLF4J API only; Log4j 2 is the implementation behind it and
